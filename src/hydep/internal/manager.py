@@ -1,0 +1,3 @@
+"""
+Depletion Manager
+"""
