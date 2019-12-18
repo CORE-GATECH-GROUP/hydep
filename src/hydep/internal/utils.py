@@ -5,7 +5,7 @@ from configparser import ConfigParser
 from functools import wraps
 from pathlib import Path
 
-__all__ = ("Boundaries", "configmethod")
+__all__ = ("Boundaries", "configmethod", "CompBundle")
 
 Boundaries = namedtuple("Boundaries", "x y z")
 Boundaries.__doc__ = """Representation of spatial domains
@@ -90,3 +90,27 @@ def configmethod(m):
             raise TypeError(type(cfg))
         return m(s, parser, *args, **kwargs)
     return wrapper
+
+
+CompBundle = namedtuple("CompBundle", "zai densities")
+CompBundle.__doc__ = """Updated compositions following a depletion event
+
+Parameters
+----------
+zai : Iterable[int]
+    Ordering of isotopics
+densities : Iterable[Iterable[float]]
+    Iterable of material compositions such that ``densities[i][j]``
+    is the atom density of isotope ``zai[j]`` for burnable
+    material ``i``
+
+Attributes
+----------
+zai : Iterable[int]
+    Ordering of isotopics
+densities : Iterable[Iterable[float]]
+    Iterable of material compositions such that ``densities[i][j]``
+    is the atom density of isotope ``zai[j]`` for burnable
+    material ``i``
+
+"""
