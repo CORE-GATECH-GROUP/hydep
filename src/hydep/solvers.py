@@ -120,6 +120,16 @@ class TransportSolver(ABC):
 
         return res
 
+    def configure(self, config):
+        """Configure the solver
+
+        Parameters
+        ----------
+        config : :class:`configparser.ConfigParser`
+            Configuration object that has loaded in user settings,
+            either from a file, dictionary, or in memory.
+        """
+
 
 class HighFidelitySolver(TransportSolver):
     """High fidelity transport solver"""
