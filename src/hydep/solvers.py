@@ -147,18 +147,22 @@ class HighFidelitySolver(TransportSolver):
         """
 
     @abstractmethod
-    def bosUpdate(self, newComps, timestep) -> None:
+    def bosUpdate(self, compositions, timestep) -> None:
         """Perform any updating with new compositions
+
+        Assume that new materials have already been updated
+        in memory
 
         Parameters
         ----------
-        newComps : ??
-            New compositions for this point in time
-        time : float
+        compositions : hydep.internal.CompBundle
+            New compositions for this point in time such that
+            ``compositions.densities[i][j]`` is the updated
+            atom density for ``compositions.zai[j]`` for material
+            ``i``
+        timestep : hydep.internal.TimeStep
             Current point in calendar time for the beginning
             of this coarse step
-        step : int
-            Current coarse step index
         """
 
     def bosSolve(self, newComps, timestep) -> TransportResult:
@@ -166,6 +170,17 @@ class HighFidelitySolver(TransportSolver):
 
         Relies upon :meth:`bosUpdate`, :meth:`bosExecute`,
         :meth:`bosProcessResults` and :meth:`bosFinalize`
+
+        Parameters
+        ----------
+        compositions : hydep.internal.CompBundle
+            New compositions for this point in time such that
+            ``compositions.densities[i][j]`` is the updated
+            atom density for ``compositions.zai[j]`` for material
+            ``i``
+        timestep : hydep.internal.TimeStep
+            Current point in calendar time for the beginning
+            of this coarse step
 
         Returns
         -------
