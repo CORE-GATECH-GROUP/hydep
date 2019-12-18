@@ -10,4 +10,4 @@ from .isotope import (
 from .timestep import TimeStep
 from .results import TransportResult
 from .microxs import TemporalMicroXs, MicroXsVector
-from .utils import Boundaries
+from .utils import Boundaries, configmethod
