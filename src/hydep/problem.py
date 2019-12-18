@@ -23,8 +23,8 @@ class Problem(object):
 
     def beforeMain(self):
         self.dep.beforeMain(self.model)
-        self.hf.beforeMain(self.model)
-        self.rom.beforeMain(self.model)
+        self.hf.beforeMain(self.model, self.dep.burnable)
+        self.rom.beforeMain(self.model, self.dep.burnable)
 
     def solve(self):
         """Here we gooooooooooo"""
