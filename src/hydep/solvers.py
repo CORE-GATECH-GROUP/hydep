@@ -43,7 +43,7 @@ from hydep.exceptions import IncompatibityError
 class TransportSolver(ABC):
     """Base class"""
 
-    def beforeMain(self, model):
+    def beforeMain(self, model, orderedBumats):
         """Execute any initial actions prior to main sequence
 
         By default this performs no actions, but can be used to
@@ -53,7 +53,9 @@ class TransportSolver(ABC):
         Parameters
         ----------
         model : hydep.Model
-            Geometry and material information for this problem
+            Geometry and materials
+        orderedBumats : tuple of hydep.BurnableMaterials
+            Burnable materials ordered how the depletion system anticipates
 
         """
 
