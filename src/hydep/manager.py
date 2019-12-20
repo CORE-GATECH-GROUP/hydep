@@ -29,7 +29,7 @@ class Manager:
         self.model = model
         self.chain = chain
         daysteps = numpy.asarray(daysteps, dtype=float)
-        assert (self.daysteps[:1] - self.daysteps[:-1] > 0).all()
+        assert (daysteps[:1] - daysteps[:-1] > 0).all()
         self.timesteps = tuple(daysteps * 86400)
 
         if isinstance(power, numbers.Real):
@@ -47,7 +47,7 @@ class Manager:
             self._nprelim = 0
         else:
             assert isinstance(numPreliminary, numbers.Integral)
-            assert 0 <= numPreliminary < len(self.daystesps)
+            assert 0 <= numPreliminary < len(self.timesteps)
             self._nprelim = numPreliminary
 
     @property
@@ -80,7 +80,7 @@ class Manager:
             mat.volume = mat.volume / count
         model.differentiateBurnableMaterials()
         self._burnable = tuple(model.findBurnableMaterials())
-        for ix, mat in self._burnable:
+        for ix, mat in enumerate(self._burnable):
             mat.index = ix
 
     def checkCompatibility(self, hf):
