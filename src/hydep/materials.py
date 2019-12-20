@@ -171,6 +171,13 @@ class Material(dict):
     def id(self):
         return hex(id(self))
 
+    def copy(self, name=None):
+        kwargs = {attr: getattr(self, attr)
+                  for attr in ["adens", "mdens", "temperature", "volume"]}
+        out = self.__class__(self.name if name is None else name, **kwargs)
+        out.update(self)
+        return out
+
 
 class BurnableMaterial(Material):
     r"""Material to be burned comprised of isotopes and atom densities

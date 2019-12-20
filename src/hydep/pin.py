@@ -182,7 +182,7 @@ class Pin(Universe):
             if not isinstance(mat, BurnableMaterial):
                 continue
             if mat.id in memo:
-                mat = updates[index] = copy.deepcopy(mat)
+                mat = updates[index] = mat.copy()
                 # TODO remove assumption of always hex ids
                 mat.name = "_".join((mat.name.split("_0x")[0], mat.id))
             memo.add(mat.id)
