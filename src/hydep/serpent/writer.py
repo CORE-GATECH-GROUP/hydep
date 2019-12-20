@@ -48,6 +48,7 @@ class SerpentWriter:
     bcmap = {"reflective": 2, "vacuum": 1, "periodic": 3}
     model = TypedAttr("model", hydep.Model, allowNone=True)
     burnable = IterableOf("burnable", hydep.BurnableMaterial, allowNone=True)
+    _groupby = 7  # Arbitrary number of gcu, mdep, fmtx arguments to write per line
 
     def __init__(self):
         self.model = None
@@ -115,6 +116,8 @@ class SerpentWriter:
             self._writematerials(stream)
             self._writegeometry(stream)
             self._writesettings(stream)
+            if self.hooks:
+                self._writehooks(stream)
 
     def _writesettings(self, stream):
         self.commentblock(stream, "BEGIN SETTINGS BLOCK")
@@ -380,6 +383,34 @@ cell {lid}_2 {u} {outer} {lid}_x
                 )
             bc.append(bcval)
         self.options["bc"] = bc
+
+    def _writehooks(self, stream):
+        self.commentblock(stream, "BEGIN HOOKS")
+        if hydep.features.FISSION_MATRIX in self.hooks:
+            self._writefmtx(stream)
+        if hydep.features.HOMOG_LOCAL in self.hooks:
+            self._writelocalgcu(stream)
+        if hydep.features.MICRO_REACTION_XS in self.hooks:
+            self._writelocalmicroxs(stream)
+
+    def _writefmtx(self, stream):
+        stream.write("set fmtx 1 ")
+        for count, uid in enumerate(m.id for m in self.burnable):
+            stream.write("{} ".format(uid))
+            if count and count % self._groupby == 0:
+                stream.write("\n")
+        stream.write("\n")
+
+    def _writelocalgcu(self, stream):
+        stream.write("set gcu ")
+        for count, uid in enumerate(m.id for m in self.burnable):
+            stream.write("{} ".format(uid))
+            if count and count % self._groupby == 0:
+                stream.write("\n")
+        stream.write("\n")
+
+    def _writelocalmicroxs(self, stream):
+        pass
 
     def writeSteadyStateFile(self, path, timestep):
         if self.burnable is None:
