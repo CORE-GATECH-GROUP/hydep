@@ -374,7 +374,7 @@ cell {lid}_2 {u} {outer} {lid}_x
         memo[lstack.id] = lstack.id
         return lstack.id
 
-    def configure(self, section, level)
+    def configure(self, section, level):
         """Configure the writer
 
         Parameters

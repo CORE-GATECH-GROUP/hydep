@@ -22,6 +22,7 @@ class SerpentSolver(hydep.HighFidelitySolver):
     """
 
     def __init__(self):
+        self._curfile = None
         self._writer = SerpentWriter()
 
     @property
@@ -80,7 +81,8 @@ class SerpentSolver(hydep.HighFidelitySolver):
             Current point in calendar time for the beginning
             of this coarse step
        """
-        self._writer.writeSteadyStateFile("./trial/s0", timestep)
+        self._curfile = self._writer.writeSteadyStateFile(
+            "./serpent/s{}".format(timestep.coarse), timestep)
 
     def setHooks(self, needs):
         self._writer.hooks.update(needs)
@@ -97,5 +99,5 @@ class SerpentSolver(hydep.HighFidelitySolver):
     def beforeMain(self, model, orderedBumat):
         self._writer.model = model
         self._writer.burnable = orderedBumat
-        self._writer.writeBaseFile("./trial/serpent.sss")
+        self._writer.writeBaseFile("./serpent/base.sss")
 
