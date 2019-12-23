@@ -2,11 +2,17 @@
 The Serpent solver!
 """
 
+import time
+import tempfile
+import shutil
+import pathlib
+
 import hydep
 import hydep.features
-from hydep.internal import configmethod
+from hydep.internal import configmethod, TransportResult
 
 from .writer import SerpentWriter
+from .runner import SerpentRunner
 
 
 class SerpentSolver(hydep.HighFidelitySolver):
@@ -23,7 +29,9 @@ class SerpentSolver(hydep.HighFidelitySolver):
 
     def __init__(self):
         self._curfile = None
+        self._tmpdir = None
         self._writer = SerpentWriter()
+        self._runner = SerpentRunner()
 
     @property
     def features(self):
@@ -66,6 +74,8 @@ class SerpentSolver(hydep.HighFidelitySolver):
             if config.has_section(path):
                 section = config[path]
                 self._writer.configure(section, level)
+                if level > 1:
+                    self._runner.configure(section)
 
     def bosUpdate(self, _compositions, timestep):
         """Create a new input file with updated compositions
@@ -88,13 +98,23 @@ class SerpentSolver(hydep.HighFidelitySolver):
         self._writer.hooks.update(needs)
 
     def execute(self):
-        pass
+        self._tmpdir = tempfile.TemporaryDirectory()
+        tmp = pathlib.Path(self._tmpdir.name) / self._curfile.name
+        shutil.move(self._curfile, tmp)
+
+        start = time.time()
+        self._runner(tmp)
+
+        return time.time() - start
 
     def processResults(self):
-        pass
+        # TODO THIS
+        res = TransportResult(None, None)
+        return res
 
-    def finalize(self):
-        pass
+    def finalize(self, _status):
+        # TODO Zip on failure
+        self._tmpdir.cleanup()
 
     def beforeMain(self, model, orderedBumat):
         self._writer.model = model
