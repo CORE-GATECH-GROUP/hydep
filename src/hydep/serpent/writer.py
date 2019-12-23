@@ -375,17 +375,13 @@ cell {lid}_2 {u} {outer} {lid}_x
         memo[lstack.id] = lstack.id
         return lstack.id
 
-    def configure(self, options, section, level):
+    def configure(self, section, level)
         """Configure the writer
 
         Parameters
         ----------
-        options : configparser.ConfigParser
-            Collection of all user-specified options. Some may not apply
-            to this writer.
-        section : str
-            Specific sub-section to be processed. Guarunteed to apply
-            to this writer.
+        section : configparser.SectionProxy
+            This specific set of configuration options
         level : int
             Depth or specificity. Currently support three levels:
             ``hydep``, ``hydep.montecarlo``, and ``hydep.serpent``.

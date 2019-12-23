@@ -60,9 +60,11 @@ class SerpentSolver(hydep.HighFidelitySolver):
             :meth:`configparser.ConfigParser.read_dict`. Otherwise load
             settings directly off the :class:`configparser.ConfigParser`
         """
+        # TODO This could probably be polished up
         for level, path in enumerate(["hydep", "hydep.montecarlo", "hydep.serpent"]):
             if config.has_section(path):
-                self._writer.configure(config, path, level)
+                section = config[path]
+                self._writer.configure(section, level)
 
     def bosUpdate(self, _compositions, timestep):
         """Create a new input file with updated compositions
