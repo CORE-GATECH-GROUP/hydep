@@ -55,7 +55,6 @@ class SerpentWriter:
         self.model = None
         self.burnable = None
         self.base = None
-        self.steadystatefile = None
         self.hooks = set()
         self.options = {}
 
@@ -454,6 +453,25 @@ cell {lid}_2 {u} {outer} {lid}_x
         pass
 
     def writeSteadyStateFile(self, path, timestep):
+        """Write updated burnable materials for steady state solution
+
+        Requires the base file with geometry, settings, and non-burnable
+        materials to be written in :meth:`writeBaseFile`.
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Destination to write the updated file
+        timestep : hydep.internal.TimeStep
+            Temporal information. Wil write a minor comment to the top
+            of the file describing the current time step
+
+        Returns
+        -------
+        pathlib.Path
+            Path of the steady-state input file
+
+        """
         if self.burnable is None:
             raise AttributeError("No burnable material ordering set on {}".format(self))
         if self.base is None:
@@ -461,8 +479,8 @@ cell {lid}_2 {u} {outer} {lid}_x
                 "Base file to be included not found on {}".format(self)
             )
 
-        self.steadystate = self._setupfile(path)
-        with self.steadystate.open("w") as stream:
+        steadystate = self._setupfile(path)
+        with steadystate.open("w") as stream:
             self.commentblock(
                 stream,
                 """Steady state input file
@@ -476,3 +494,5 @@ Base file : {}""".format(
 
             for m in self.burnable:
                 self.writemat(stream, m)
+
+        return steadystate
