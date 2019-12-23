@@ -112,8 +112,9 @@ class TransportSolver(ABC):
             res = self.processResults()
             res.runTime = runTime
             success = True
-        except Exception:
+        except Exception as ee:
             success = False
+            raise ee
         finally:
             self.finalize(success)
 
