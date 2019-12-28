@@ -2,6 +2,7 @@ import pytest
 from hydep import Material, BurnableMaterial
 import hydep.internal
 
+
 @pytest.fixture
 def isotopes():
     h1 = hydep.internal.getIsotope(name="H1")
@@ -10,8 +11,12 @@ def isotopes():
     o16 = hydep.internal.getIsotope(zai=(8, 16, 0))
 
     return {
-        "H1": h1, "U235": u235, "U238": u238, "O16": o16,
+        "H1": h1,
+        "U235": u235,
+        "U238": u238,
+        "O16": o16,
     }
+
 
 def test_material(isotopes):
     water = Material("water", mdens=1.0, H1=2, O16=1)
@@ -38,7 +43,7 @@ def test_material(isotopes):
 
     with pytest.raises(AttributeError, match="Cannot set both atomic and mass"):
         water.adens = 1.0
-    assert water.mdens ==  1.0
+    assert water.mdens == 1.0
     water.mdens = None
     water.adens = 2.0
     assert water.mdens is None
@@ -50,11 +55,13 @@ def test_material(isotopes):
     with pytest.raises(TypeError, match=r".*Material\.adens"):
         water.adens = "1.0"
 
+    assert water.id == 1
+
 
 def test_burnableMaterial(isotopes):
     f = BurnableMaterial(
-        "fuel", adens=2.68e-2, volume=10, temperature=900, U235=8e-4,
-        O16=4.6e-4)
+        "fuel", adens=2.68e-2, volume=10, temperature=900, U235=8e-4, O16=4.6e-4
+    )
 
     assert len(f) == 2
     f[isotopes["U238"]] = 2.5e-2
@@ -90,6 +97,9 @@ def test_burnableMaterial(isotopes):
 
     with pytest.raises(TypeError, match=r".*BurnableMaterial\.mdens"):
         f.mdens = "1.0"
+
+    assert f.id == 1
+
 
 def test_isotopes(isotopes):
     assert hydep.internal.getZaiFromName("U235") == (92, 235, 0)

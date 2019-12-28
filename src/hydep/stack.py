@@ -161,8 +161,7 @@ class LatticeStack(Universe):
         memo : set, optional
             Set containing ids of previously visited materials. Don't
             pass unless you know what you're doing. If given, will
-            be modified with :attr:`hydep.Material.id` of discovered
-            materials
+            be modified with discovered materials
 
         Yields
         ------
@@ -174,14 +173,14 @@ class LatticeStack(Universe):
             raise AttributeError("Vertical stack {} not set".format(self))
         memo = set() if memo is None else memo
         for item in self.items:
-            hid = item.id
+            hid = id(item)
             if hid in memo:
                 continue
             for m in item.findMaterials(memo):
                 yield m
             memo.add(hid)
-        if self.outer is not None and self.outer.id not in memo:
-            memo.add(self.outer.id)
+        if self.outer is not None and id(self.outer) not in memo:
+            memo.add(id(self.outer))
             yield self.outer
 
     def countBurnableMaterials(self, memo=None):
@@ -210,7 +209,7 @@ class LatticeStack(Universe):
         memo = {} if memo is None else memo
         local = {}
         for item in self.items:
-            hid = item.id
+            hid = id(item)
             previous = memo.get(hid)
             if previous is None:
                 memo[hid] = previous = item.countBurnableMaterials(memo)
@@ -267,18 +266,18 @@ class LatticeStack(Universe):
             new = item.differentiateBurnableMaterials(memo)
             if new is not item:
                 updates[ix] = new
-            memo.add(new.id)
+            memo.add(id(new))
 
         if not updates:
-            memo.add(self.id)
+            memo.add(id(self))
             return self
 
         newitems = numpy.empty_like(self.items)
         for ix, item in enumerate(self):
             newitems[ix] = updates.get(ix, item)
 
-        if self.id not in memo:
-            memo.add(self.id)
+        if id(self) not in memo:
+            memo.add(id(self))
             self.items = newitems
             return self
 
@@ -309,7 +308,7 @@ class LatticeStack(Universe):
         memo = {} if memo is None else memo
 
         if self._bounds is not False:
-            memo[self.id] = self._bounds
+            memo[id(self)] = self._bounds
             return self._bounds
 
         bx = (-numpy.inf, numpy.inf)
@@ -318,9 +317,9 @@ class LatticeStack(Universe):
         for u in self.items:
             if isinstance(u, (Pin, InfiniteMaterial)):
                 continue
-            bounds = memo.get(u.id, False)  # None is a valid answer
+            bounds = memo.get(id(u), False)  # None is a valid answer
             if bounds is False:
-                memo[u.id] = bounds = u.boundaries(memo)
+                memo[id(u)] = bounds = u.boundaries(memo)
 
             if bounds is None:
                 continue
@@ -337,5 +336,5 @@ class LatticeStack(Universe):
             by = None
 
         mybounds = Boundaries(bx, by, (self.heights[0], self.heights[-1]))
-        memo[self.id] = mybounds
+        memo[id(self)] = mybounds
         return mybounds

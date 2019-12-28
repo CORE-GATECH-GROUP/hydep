@@ -11,6 +11,7 @@ import numpy
 from .materials import Material, BurnableMaterial
 from hydep.typed import TypedAttr
 from hydep.internal import Boundaries
+from hydep.internal.registry import register, unregister
 
 __all__ = ["Universe", "InfiniteMaterial"]
 
@@ -35,8 +36,8 @@ class Universe(ABC):
     ----------
     name : str or None
         Name of this universe.
-    id : str
-        Unique identifier for each instance
+    id : int
+        Unique positive identifier for this instance
     bounds : None or Iterable[Iterable[float]] or :class:`hydep.internal.Boundaries`
         Spatial bounds for this universe. A value of ``None`` implies
         unbounded in space.
@@ -45,18 +46,22 @@ class Universe(ABC):
     def __init__(self, name=None):
         self.name = name
         self._bounds = False
+        self._id = register(Universe)
 
     def __repr__(self):
         return "<{}{} at {}>".format(
             self.__class__.__name__,
             (" " + self.name) if self.name is not None else "",
-            self.id,
+            hex(id(self)),
         )
 
     @property
     def id(self):
-        """Unique identifier for this instance"""
-        return hex(id(self))
+        """Unique positive identifier for this instance"""
+        return self._id
+
+    def __del__(self):
+        unregister(Universe)
 
     @abstractmethod
     def findMaterials(self, memo=None):

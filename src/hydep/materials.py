@@ -5,6 +5,7 @@ import numpy
 
 from hydep.typed import TypedAttr, BoundedTyped
 from hydep.internal import Isotope, ZaiTuple, getIsotope, TemporalMicroXs
+from hydep.internal.registry import register, unregister
 
 
 __all__ = ["Material", "BurnableMaterial"]
@@ -50,8 +51,8 @@ class Material(dict):
     sab : dict
         Not implemented, but will eventually support adding
         :math:`S(\alpha,\beta)` libraries for nuclides.
-    id : str
-        A unique identifier for this material.
+    id : int
+        A unique positive identifier for this material.
 
     Examples
     --------
@@ -82,7 +83,15 @@ class Material(dict):
         self.volume = volume
         self.sab = {}  # TODO this
         super().__init__()
+        self._id = register(Material)
         self.update(nucs)
+
+    def __del__(self):
+        unregister(Material)
+
+    @property
+    def id(self):
+        return self._id
 
     @property
     def mdens(self):
@@ -167,10 +176,6 @@ class Material(dict):
             d=tail,
         )
 
-    @property
-    def id(self):
-        return hex(id(self))
-
     def copy(self, name=None):
         kwargs = {attr: getattr(self, attr)
                   for attr in ["adens", "mdens", "temperature", "volume"]}
@@ -221,8 +226,8 @@ class BurnableMaterial(Material):
     sab : dict
         Not implemented, but will eventually support adding
         :math:`S(\alpha,\beta)` libraries for nuclides.
-    id : str
-        A unique identifier for this material
+    id : int
+        A unique postive identifier for this material
     microxs : hydep.internal.TemporalMicroXs or None
         Container for microscopic cross sections over time
 

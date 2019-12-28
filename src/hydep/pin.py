@@ -1,7 +1,6 @@
 """Cylindrical pin implementation"""
 from collections.abc import Iterable
 import numbers
-import copy
 
 import numpy
 
@@ -181,27 +180,26 @@ class Pin(Universe):
         for index, (_r, mat) in enumerate(self):
             if not isinstance(mat, BurnableMaterial):
                 continue
-            if mat.id in memo:
+            if id(mat) in memo:
                 mat = updates[index] = mat.copy()
                 # TODO remove assumption of always hex ids
-                mat.name = "_".join((mat.name.split("_0x")[0], mat.id))
-            memo.add(mat.id)
+                mat.name = "{}_copy{}".format(mat.name.split("_copy")[0], mat.id)
+            memo.add(id(mat))
 
         if not updates:
-            memo.add(self.id)
+            memo.add(id(self))
             return self
 
         outer = updates.pop(len(self.materials), self.outer)
         materials = [updates.get(ix, mat) for ix, mat in enumerate(self.materials)]
 
-        if self.id not in memo:
-            memo.add(self.id)
+        if id(self) not in memo:
+            memo.add(id(self))
             self.outer = outer
             self.materials = materials
             return self
 
         new = self.__class__(self.radii, materials, outer)
         if self.name is not None:
-            # TODO remove assumption of always hex ids
-            new.name =  "_".join((self.name.split("_0x")[0], new.id))
+            new.name = "{}_copy{}".format(self.name.split("_copy")[0], new.id)
         return new

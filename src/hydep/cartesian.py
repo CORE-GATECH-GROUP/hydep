@@ -228,8 +228,7 @@ class CartesianLattice(Universe):
         memo : set, optional
             Set containing ids of previously visited materials. Don't
             pass unless you know what you're doing. If given, will
-            be modified with :attr:`hydep.Material.id` of discovered
-            materials
+            be modified with discovered materials
 
         Yields
         ------
@@ -241,14 +240,14 @@ class CartesianLattice(Universe):
             raise AttributeError("Array not set for {}".format(self))
         memo = set() if memo is None else memo
         for item in self.flat:
-            hid = item.id
+            hid = id(item)
             if hid in memo:
                 continue
             for m in item.findMaterials(memo):
                 yield m
             memo.add(hid)
-        if self.outer is not None and self.outer.id not in memo:
-            memo.add(self.outer.id)
+        if self.outer is not None and id(self.outer) not in memo:
+            memo.add(id(self.outer))
             yield self.outer
 
     def countBurnableMaterials(self, memo=None):
@@ -277,7 +276,7 @@ class CartesianLattice(Universe):
         memo = {} if memo is None else memo
         local = {}
         for u in self.flat:
-            hid = u.id
+            hid = id(u)
             previous = memo.get(hid)
             if previous is None:
                 memo[hid] = previous = u.countBurnableMaterials(memo)
@@ -290,7 +289,7 @@ class CartesianLattice(Universe):
                     local[uid][1] += count
 
         if isinstance(self.outer, BurnableMaterial):
-            oid = self.outer.id
+            oid = id(self.outer)
             present = local.get(oid)
             if present is None:
                 local[oid] = [self.outer, 1]
@@ -348,18 +347,18 @@ class CartesianLattice(Universe):
             new = item.differentiateBurnableMaterials(memo)
             if new is not item:
                 updates[ix] = new
-            memo.add(new.id)
+            memo.add(id(new))
 
         if not updates:
-            memo.add(self.id)
+            memo.add(id(self))
             return self
 
         newarray = numpy.empty_like(self.array)
         for ix, orig in enumerate(self.flat):
             newarray.flat[ix] = updates.get(ix, orig)
 
-        if self.id not in memo:
-            memo.add(self.id)
+        if id(self) not in memo:
+            memo.add(id(self))
             self.array = newarray
             return self
 
@@ -371,7 +370,7 @@ class CartesianLattice(Universe):
         memo = {} if memo is None else memo
 
         if self._bounds is not False:
-            memo[self.id] = self._bounds
+            memo[id(self)] = self._bounds
             return self._bounds
 
         bz = (-numpy.inf, numpy.inf)
@@ -394,5 +393,5 @@ class CartesianLattice(Universe):
         by = (-self.ny * self.pitch * 0.5, self.ny * self.pitch * 0.5)
 
         mybounds = Boundaries(bx, by, bz)
-        memo[self.id] = mybounds
+        memo[id(self)] = mybounds
         return mybounds

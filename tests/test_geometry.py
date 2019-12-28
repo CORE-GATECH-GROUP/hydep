@@ -56,6 +56,9 @@ def pins(materials, bundles):
     fuelPin = pinFromBundle(materials, bundles["fuel"])
     guidePin = pinFromBundle(materials, bundles["guide"])
     divFuel = pinFromBundle(materials, bundles["segmented"])
+    assert fuelPin.id == 1
+    assert guidePin.id == 2
+    assert divFuel.id == 3
     return {p.name: p for p in [fuelPin, guidePin, divFuel]}
 
 
@@ -96,14 +99,15 @@ def test_pinDiffBurnedMaterials(materials, pins):
     testpin = pins["fuel"]
     assert testpin.differentiateBurnableMaterials(memo) is testpin
     assert len(memo) == 2
-    assert testpin.id in memo
-    assert materials["fuel"].id in memo
+    assert id(testpin) in memo
+    assert id(materials["fuel"]) in memo
 
     # New fuel has been added to the memo, so it will be cloned on the
     # next pass, and a new pin will be returned
     cloned = testpin.differentiateBurnableMaterials(memo)
     assert isinstance(cloned, testpin.__class__)
     assert cloned is not testpin
+    assert cloned.id != testpin.id
     assert cloned.radii == testpin.radii
 
     # Check that all materials except fuel are identical
@@ -118,15 +122,16 @@ def test_pinDiffBurnedMaterials(materials, pins):
 
     # Run again on test pin assuming fuel material has been discovered
     # elsewhere -> modify this pin in place
-    memo = {materials["fuel"].id}
+    memo = {id(materials["fuel"])}
     assert testpin.differentiateBurnableMaterials(memo) is testpin
     assert len(memo) == 3
-    assert materials["fuel"].id in memo
-    assert testpin.id in memo
+    assert id(materials["fuel"]) in memo
+    assert id(testpin) in memo
     for mat in testpin.materials:
         if isinstance(mat, hydep.BurnableMaterial):
             assert mat is not materials["fuel"]
-            assert mat.id in memo
+            assert mat.id != materials["fuel"].id
+            assert id(mat) in memo
         else:
             assert mat is materials[mat.name]
 
@@ -142,8 +147,8 @@ def test_pinDiffBurnedMaterials(materials, pins):
     assert len(segmats) == len(materials) + 1
     segbumats = list(testpin.findBurnableMaterials())
     assert len(segbumats) == 2
-    assert materials["fuel"].id in set(
-        m.id for m in segbumats
+    assert id(materials["fuel"]) in set(
+        id(m) for m in segbumats
     ), "Original fuel not found"
 
 
@@ -158,6 +163,7 @@ def pinArray(pins):
 
 def test_cartesianLattice(materials, pins, pinArray):
     lat = hydep.CartesianLattice(3, 3, pitch=1.26)
+    assert lat.id == len(pins) + 1
     hwidth = 1.5 * lat.pitch
 
     # Act on "empty" lattice
@@ -241,7 +247,7 @@ def test_diffBuLattice(materials, pins, pinArray):
 
     memo = set()
     assert lattice.differentiateBurnableMaterials(memo) is lattice
-    assert lattice.id in memo
+    assert id(lattice) in memo
 
     foundguide = False
     for ix, p in enumerate(lattice.flat):
@@ -263,6 +269,7 @@ def test_diffBuLattice(materials, pins, pinArray):
     assert newlat.shape == lattice.shape
     assert newlat.pitch == lattice.pitch
     assert newlat.name == lattice.name
+    assert newlat.id != lattice.id
 
     foundguide = False
     for p in newlat.flat:
@@ -275,7 +282,9 @@ def test_diffBuLattice(materials, pins, pinArray):
 
 def test_latticeStack(materials, pins, pinArray):
     xylattice = hydep.CartesianLattice(3, 3, pitch=1.26, array=pinArray)
+    assert xylattice.id == len(pins) + 1
     stack = hydep.LatticeStack(1, heights=(0, 1), items=[xylattice])
+    assert stack.id == xylattice.id + 1
 
     hwidth = xylattice.nx * xylattice.pitch * 0.5
 
