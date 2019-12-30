@@ -19,6 +19,58 @@ __all__ = ["Manager"]
 
 
 class Manager:
+    """Primary depletion manager
+
+    Responsible for depleting materials and updating compositions
+
+    Parameters
+    ----------
+    model : hydep.Model
+        Geometry and materials
+    chain : hydep.DepletionChain
+        Chain describing how isotopes decay and transmute
+    daysteps : iterable of float
+        Length in time [d] for each coarse depletion step
+    power : float or iterable of float
+        Power [W] to deplete the entire problem. If a single value
+        is given, a constant power will be used. Otherwise, must
+        have the same number of elements as ``daysteps``, corresponding
+        to a constant power in each depletion step
+    numPreliminary : int, optional
+        Number of coarse depletion steps to take before engaging in
+        coupled behavior. Useful for approaching some equilibrium value
+        with smaller steps with the high fidelity code
+
+    Attributes
+    ----------
+    model : hydep.Model
+        Geometry and materials
+    chain : hydep.DepletionChain
+        Depletion chain
+    timesteps : numpy.ndarray
+        Length of time [s] for each coarse depletion step
+    power : numpy.ndarray
+        Power [W] to use for each coarse depletion steps
+    numPreliminary : int
+        Number of coarse depletion steps to take before engaging in
+        coupled behavior. Useful for approaching some equilibrium value
+        with smaller steps with the high fidelity code
+    burnable : None or tuple of hydep.BurnableMaterial
+        Ordering of burnable materials. Must be set prior to depletion
+        to maintain a consistent mapping from reaction rates and
+        compositions
+    needs : hydep.internal.features.FeatureCollection
+        Read-only property describing the capabilities any solver must
+        have in order to properly perform the depletion analysis.
+        Currently requires calculation of isotopic reaction cross
+        sections in each burnable material, as well as the flux.
+    preliminarySteps : Iterator
+        Pairs of :attr:`timesteps` and :attr:`power` for the
+        preliminary stages.
+    activeSteps : Iterator
+        Pairs of :attr:`timesteps` and :attr:`power` for the
+        active stages after any preliminary steps.
+    """
 
     model = TypedAttr("model", Model)
     chain = TypedAttr("chain", DepletionChain)
