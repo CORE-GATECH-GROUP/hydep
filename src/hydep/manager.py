@@ -12,6 +12,7 @@ import numpy
 
 from hydep import Model, BurnableMaterial, DepletionChain
 from hydep.typed import TypedAttr, IterableOf
+from hydep.internal.features import FeatureCollection, MICRO_REACTION_XS
 
 
 __all__ = ["Manager"]
@@ -22,8 +23,6 @@ class Manager:
     model = TypedAttr("model", Model)
     chain = TypedAttr("chain", DepletionChain)
     _burnable = IterableOf("burnable", BurnableMaterial, allowNone=True)
-
-    _needs = frozenset(("homog.micro.local", "reactionrates.local"))
 
     def __init__(self, model, chain, daysteps, power, numPreliminary=0):
         self.model = model
@@ -56,7 +55,7 @@ class Manager:
 
     @property
     def needs(self):
-        return self._needs
+        return FeatureCollection({MICRO_REACTION_XS})
 
     @property
     def numPreliminary(self):
