@@ -29,7 +29,9 @@ def test_features():
     assert all(f in u for f in s)
     assert all(f in u.macroXS for f in s.macroXS)
     assert all(f in u.macroXS for f in o.macroXS)
-    assert o.union(s) == u
+    a = o.union(s)
+    assert a == u
+    assert hash(a) == hash(u)
     assert s.issubset(u)
     assert o.issubset(u)
 

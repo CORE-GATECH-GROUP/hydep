@@ -104,6 +104,9 @@ class FeatureCollection(Collection):
             return self.features == other.features and self.macroXS == other.macroXS
         return NotImplemented
 
+    def __hash__(self):
+        return hash(self.features.union(self.macroXS))
+
     def union(self, other):
         """Create an new collection with the contents of another
 
