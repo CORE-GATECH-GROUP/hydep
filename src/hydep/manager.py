@@ -64,11 +64,11 @@ class Manager:
 
     @property
     def preliminarySteps(self):
-        return zip(self.daysteps[:self._nprelim], self.power[:self._nprelim])
+        return zip(self.timesteps[:self._nprelim], self.power[:self._nprelim])
 
     @property
     def activeSteps(self):
-        return zip(self.daysteps[self._nprelim:], self.power[self._nprelim:])
+        return zip(self.timesteps[self._nprelim:], self.power[self._nprelim:])
 
     def beforeMain(self, model):
         # Count and differentiate burnable materials
