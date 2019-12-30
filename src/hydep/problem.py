@@ -29,6 +29,6 @@ class Problem(object):
     def solve(self):
         """Here we gooooooooooo"""
         time = TimeStep()
+        self.hf.setHooks(self.dep.needs.union(self.rom.needs))
         self.beforeMain()
         result = None
-        # Hooks?

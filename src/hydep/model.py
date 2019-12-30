@@ -46,7 +46,6 @@ class Model:
         """
         return self.root.findBurnableMaterials()
 
-
     def countBurnableMaterials(self):
         """Count all occurances of burnable materials
 

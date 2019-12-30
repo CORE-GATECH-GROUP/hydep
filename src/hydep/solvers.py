@@ -167,7 +167,7 @@ class HighFidelitySolver(TransportSolver):
         return super()._solve()
 
     @abstractmethod
-    def setHooks(self, problem, rom):
+    def setHooks(self, needs):
         """Set any pre and post-run hooks
 
         Hooks should provide sufficient information that the
@@ -181,13 +181,9 @@ class HighFidelitySolver(TransportSolver):
 
         Parameters
         ----------
-        problem : hydep.Problem
-            Geometry and materials
-        rom : ReducedOrderSolver
-            Specific reduced order solver coupled to this high
-            fidelity solver. Will have a :attr:`ReducedOrderSolver.needs`
-            attribute that describes the various features needed in order
-            to successfully couple the two solvers.
+        needs : Iterable[hydep.features.Feature]
+            The needs of both the reduced order solver
+            and the depletion manager
 
         """
 
