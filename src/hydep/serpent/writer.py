@@ -206,8 +206,8 @@ class SerpentWriter:
 
     def _writegeometry(self, stream):
         self.commentblock(stream, "BEGIN GEOMETRY BLOCK")
-        self.writeUniverse(stream, self.model.root, {})
-        self._writecellbounds(stream, self.model.root, self.model.root.id, 0)
+        rootid = self.writeUniverse(stream, self.model.root, {})
+        self._writecellbounds(stream, self.model.root, rootid, 0)
 
     def writeUniverse(self, stream, u, memo):
         """Write the geometry definition for this material
