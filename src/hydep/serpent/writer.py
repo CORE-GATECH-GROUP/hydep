@@ -155,12 +155,11 @@ class SerpentWriter:
             Some material to write
 
         """
-        # TODO Some guard against name clashes / invalid Serpent names
-        # Material named "ss 304" would break / cause weird events
-        # Replace " " with "_"?
+        if material.name:
+            stream.write("% {}\n".format(material.name))
         stream.write(
-            "mat {} {}{:<10.7f}".format(
-                material.name,
+            "mat {} {}{:<9.7f}".format(
+                material.id,
                 "-" if material.mdens is not None else "",
                 material.adens or material.mdens,
             )
