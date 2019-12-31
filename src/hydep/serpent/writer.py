@@ -243,45 +243,47 @@ class SerpentWriter:
         previous = memo.get(pin.id)
         if previous is not None:
             return previous
-        memo[pin.id] = name = pin.name or pin.id
+
+        writeas = "p" + str(pin.id)
+        memo[pin.id] = writeas
+
+        if pin.name is not None:
+            stream.write("% {}\n".format(pin.name))
+
         if any(isinstance(m, hydep.BurnableMaterial) for m in pin.materials):
-            self._writeburnablepin(stream, pin)
+            self._writeburnablepin(stream, pin, writeas)
         else:
-            stream.write("pin {}\n".format(name))
+            stream.write("pin {}\n".format(writeas))
             for r, m in zip(pin.radii, pin.materials):
-                stream.write("{} {:10.7f}\n".format(m.name, r))
-            stream.write(pin.outer.name + "\n")
+                stream.write("{} {:.7f}\n".format(m.id, r))
+            stream.write(str(pin.outer.id) + "\n")
         stream.write("\n")
-        return name
+        return writeas
 
     @staticmethod
     def _getPinRadiusID(pin, ix):
         # TODO Convert to a class attribute and formatter?
-        return "{}_r{}".format(pin.name or pin.id, ix)
+        return "{}_r{}".format(pin.id, ix)
 
-    def _writeburnablepin(self, stream, pin):
+    def _writeburnablepin(self, stream, pin, writeas):
         # TODO Write a single surface for each unique radius?
         surfaces = deque(maxlen=2)  # [lower surf, outer surf]
-        pinid = pin.name or pin.id
         for ix, (r, m) in enumerate(pin):
             surfaces.append(self._getPinRadiusID(pin, ix))
             if isinstance(m, hydep.BurnableMaterial):
                 # Write an infinite universe of this material
-                stream.write("surf {}_i inf\n".format(surfaces[-1]))
-                stream.write(
-                    "cell {surf}_i {uid} {name} -{surf}\n".format(
-                        surf=surfaces[-1], uid=m.id, name=m.name
-                    )
-                )
+                stream.write("""surf {surf}_i inf
+cell {surf}_i {uid} {uid} -{surf}
+""".format(surf=surfaces[-1], uid=m.id))
                 filler = "fill {}".format(m.id)
             else:
-                filler = m.name
+                filler = m.id
 
             if r < numpy.inf:
                 stream.write("surf {} cyl 0.0 0.0 {:7.5f}\n".format(surfaces[-1], r))
                 stream.write(
                     "cell {surf} {pid} {fill} ".format(
-                        surf=surfaces[-1], pid=pinid, fill=filler
+                        surf=surfaces[-1], pid=writeas, fill=filler
                     )
                 )
                 if ix:
@@ -291,7 +293,7 @@ class SerpentWriter:
             else:
                 stream.write(
                     "cell {outer} {pid} {fill} {inner}\n".format(
-                        outer=surfaces[1], inner=surfaces[0], pid=pinid, fill=filler
+                        outer=surfaces[1], inner=surfaces[0], pid=writeas, fill=filler
                     )
                 )
 
