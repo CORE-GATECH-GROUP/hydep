@@ -302,7 +302,12 @@ cell {surf}_i {uid} {uid} -{surf}
         if previous is not None:
             return previous
 
-        memo[lat.id] = lat.id
+        writeas = "cl" + str(lat.id)
+        if lat.outer is not None:
+            writeas += "_0"
+
+        memo[lat.id] = writeas
+
         univrows = []
 
         for row in lat.array:
@@ -315,23 +320,21 @@ cell {surf}_i {uid} {uid} -{surf}
                 items.append(uid)
             univrows.append(items)
 
-        if lat.outer is None:
-            latname = lat.id
-        else:
-            latname = lat.id + "_0"
+        if lat.name is not None:
+            stream.write("% {}\n".format(lat.name))
 
         stream.write(
             "lat {name} 1 0.0 0.0 {nx} {ny} {pitch:7.5f}\n".format(
-                name=latname, nx=lat.nx, ny=lat.ny, pitch=lat.pitch
+                name=writeas, nx=lat.nx, ny=lat.ny, pitch=lat.pitch
             )
         )
         while univrows:
             stream.write(" ".join(map(str, univrows.pop())) + "\n")
 
         if lat.outer is not None:
-            self._writecellbounds(stream, lat, latname, lat.id, lat.outer.name)
+            self._writecellbounds(stream, lat, writeas, lat.id, lat.outer.id)
 
-        return lat.id
+        return writeas
 
     @staticmethod
     def _writecellbounds(stream, universe, filler, universenumber, outer="outside"):
