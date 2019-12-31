@@ -97,7 +97,7 @@ class SerpentSolver(hydep.HighFidelitySolver):
             "./serpent/s{}".format(timestep.coarse), timestep)
 
     def setHooks(self, needs):
-        self._writer.hooks.update(needs)
+        self._writer.hooks = needs
 
     def execute(self):
         self._tmpdir = tempfile.TemporaryDirectory()

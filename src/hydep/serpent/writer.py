@@ -10,6 +10,7 @@ import numpy
 
 import hydep
 from hydep.typed import TypedAttr, IterableOf
+import hydep.internal.features as hdfeat
 
 
 class SerpentWriter:
@@ -30,11 +31,9 @@ class SerpentWriter:
     basefile : pathlib.Path or None
         The primary input file that contians all geometry, settings,
         and non-burnable material definitions
-    hooks : Set[hydep.features.Feature]
+    hooks : hydep.internal.features.FeatureCollection
         Each entry indicates a specific type of physics that
-        must be run. Including :data:`hydep.features.FISSION_MATRIX`
-        indicates that a fission matrix containing the universes
-        of all burnable materials must be created.
+        must be run.
     options : dict
         Dictionary of various attributes to create the base file
     """
@@ -50,12 +49,13 @@ class SerpentWriter:
     model = TypedAttr("model", hydep.Model, allowNone=True)
     burnable = IterableOf("burnable", hydep.BurnableMaterial, allowNone=True)
     _groupby = 7  # Arbitrary number of gcu, mdep, fmtx arguments to write per line
+    hooks = TypedAttr("hooks", hdfeat.FeatureCollection)
 
     def __init__(self):
         self.model = None
         self.burnable = None
         self.base = None
-        self.hooks = set()
+        self.hooks = hdfeat.FeatureCollection()
         self.options = {}
 
     @staticmethod
@@ -440,11 +440,11 @@ cell {lid}_2 {u} {outer} {lid}_x
 
     def _writehooks(self, stream):
         self.commentblock(stream, "BEGIN HOOKS")
-        if hydep.features.FISSION_MATRIX in self.hooks:
+        if hdfeat.FISSION_MATRIX in self.hooks:
             self._writefmtx(stream)
-        if hydep.features.HOMOG_LOCAL in self.hooks:
+        if hdfeat.HOMOG_LOCAL in self.hooks:
             self._writelocalgcu(stream)
-        if hydep.features.MICRO_REACTION_XS in self.hooks:
+        if hdfeat.MICRO_REACTION_XS in self.hooks:
             self._writelocalmicroxs(stream)
 
     def _writefmtx(self, stream):
