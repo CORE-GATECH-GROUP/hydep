@@ -114,10 +114,9 @@ class SerpentRunner:
 
         cmd = self.makeCmd() + [inputpath]
         # TODO Better logging / verbosity control
-        try:
-            proc = subprocess.run(cmd, capture_output=True, check=True)
-        except subprocess.CalledProcessError:
-            msg = proc.stdout[-500:]  # TODO Improve error parsing
+        proc = subprocess.run(cmd, capture_output=True)
+        if proc.returncode:
+            msg = proc.stdout[-500:].decode() # TODO Improve error parsing
             raise FailedSolverError(msg)
 
     def configure(self, section):
