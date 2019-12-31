@@ -366,6 +366,11 @@ cell {lid}_2 {u} {outer} {lid}_x
         previous = memo.get(lstack.id)
         if previous is not None:
             return previous
+
+        writeas = "ls" + str(lstack.id)
+
+        memo[lstack.id] = writeas
+
         subids = []
         for item in lstack:
             uid = memo.get(item.id)
@@ -373,11 +378,15 @@ cell {lid}_2 {u} {outer} {lid}_x
                 uid = self.writeUniverse(stream, item, memo)
                 memo[item.id] = uid
             subids.append(uid)
-        stream.write("lat {} 9 0.0 0.0 {}\n".format(lstack.id, lstack.nLayers))
+
+        if lstack.name is not None:
+            stream.write("% {}\n".format(lstack.name))
+
+        stream.write("lat {} 9 0.0 0.0 {}\n".format(writeas, lstack.nLayers))
         for lower, sub in zip(lstack.heights[:-1], subids):
-            stream.write("{:7.5f} {}\n".format(lower, sub))
-        memo[lstack.id] = lstack.id
-        return lstack.id
+            stream.write("{:.5f} {}\n".format(lower, sub))
+
+        return writeas
 
     def configure(self, section, level):
         """Configure the writer
