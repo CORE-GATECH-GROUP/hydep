@@ -121,7 +121,7 @@ class SerpentWriter:
 
     def _writesettings(self, stream):
         self.commentblock(stream, "BEGIN SETTINGS BLOCK")
-        for attr in {"acelib", "declib", "nfylib"}:
+        for attr in ["acelib", "declib", "nfylib"]:
             stream.write('set {} "{}"\n'.format(attr, getattr(self, attr)))
         stream.write("set pop {} ".format(self.options["particles"]))
 
@@ -129,7 +129,7 @@ class SerpentWriter:
         active = self.options["active"]
         skipped = self.options["skipped"]
         stream.write("{} {}".format(gen * active, gen * skipped))
-        stream.write(" {:7.5f} {}\n".format(self.options.get("k0", 1.0), gen))
+        stream.write(" {:.5f} {}\n".format(self.options.get("k0", 1.0), gen))
 
         stream.write("set bc")
         for value in self.options.get("bc", [1]):
@@ -165,9 +165,10 @@ class SerpentWriter:
             )
         )
         if material.volume is not None:
-            stream.write(" vol {:10.7f}".format(material.volume))
-        if material.temperature is not None:
-            stream.write(" tmp {:10.7f}".format(material.temperature))
+            stream.write(" vol {:9.7f}".format(material.volume))
+        if (material.temperature is not None
+                and material.temperature not in self._temps):
+            stream.write(" tmp {:9.7f}".format(material.temperature))
 
         if isinstance(material, hydep.BurnableMaterial):
             stream.write(" burn 1")
@@ -186,7 +187,7 @@ class SerpentWriter:
         if mat.temperature is not None:
             if mat.temperature < min(self._temps):
                 warnings.warn(
-                    "Temperature {:7.3f} for {} too low. Using {}".format(
+                    "Temperature {:.5f} for {} too low. Using {}".format(
                         mat.temperature, repr(mat), self._defaulttemp
                     )
                 )
@@ -279,7 +280,7 @@ cell {surf}_i {uid} {uid} -{surf}
                 filler = m.id
 
             if r < numpy.inf:
-                stream.write("surf {} cyl 0.0 0.0 {:7.5f}\n".format(surfaces[-1], r))
+                stream.write("surf {} cyl 0.0 0.0 {:.5f}\n".format(surfaces[-1], r))
                 stream.write(
                     "cell {surf} {pid} {fill} ".format(
                         surf=surfaces[-1], pid=writeas, fill=filler
@@ -323,7 +324,7 @@ cell {surf}_i {uid} {uid} -{surf}
             stream.write("% {}\n".format(lat.name))
 
         stream.write(
-            "lat {name} 1 0.0 0.0 {nx} {ny} {pitch:7.5f}\n".format(
+            "lat {name} 1 0.0 0.0 {nx} {ny} {pitch:.5f}\n".format(
                 name=writeas, nx=lat.nx, ny=lat.ny, pitch=lat.pitch
             )
         )
@@ -339,12 +340,12 @@ cell {surf}_i {uid} {uid} -{surf}
     def _writecellbounds(stream, universe, filler, universenumber, outer="outside"):
         bounds = universe.bounds
         xybounds = " ".join(
-            map("{:7.5f}".format, (bounds.x[0], bounds.x[1], bounds.y[0], bounds.y[1]),)
+            map("{:.5f}".format, (bounds.x[0], bounds.x[1], bounds.y[0], bounds.y[1]),)
         )
         if bounds.z is None or (-bounds.z[0] == bounds.z[1] == numpy.inf):
             surf = "rect {xy}".format(lid=universe.id, xy=xybounds)
         else:
-            surf = "cuboid {xy} {mnz:7.5f} {mxz:7.5f}".format(
+            surf = "cuboid {xy} {mnz:.5f} {mxz:.5f}".format(
                 xy=xybounds, mnz=bounds.z[0], mxz=bounds.z[1]
             )
         stream.write(
