@@ -8,8 +8,8 @@ import shutil
 import pathlib
 
 import hydep
-import hydep.features
 from hydep.internal import configmethod, TransportResult
+import hydep.internal.features as hdfeat
 
 from .writer import SerpentWriter
 from .runner import SerpentRunner
@@ -22,9 +22,11 @@ class SerpentSolver(hydep.HighFidelitySolver):
 
     Attributes
     ----------
-    features : frozenset of hydep.features.Feature
+    features : hydep.internal.features.FeatureCollection
         Capabilities employed by this code that are relevant for
-        this sequence
+        this sequence. Can get basically all the macro XS possible,
+        but also not sure how this part of the interface will
+        go.
     """
 
     def __init__(self):
@@ -35,12 +37,12 @@ class SerpentSolver(hydep.HighFidelitySolver):
 
     @property
     def features(self):
-        return frozenset((
+        return hdfeat.FeatureCollection((
             hydep.features.FISSION_MATRIX,
             hydep.features.HOMOG_GLOBAL,
             hydep.features.HOMOG_LOCAL,
             hydep.features.MICRO_REACTION_XS,
-        ))
+        ), (True))
 
     @configmethod
     def configure(self, config):
