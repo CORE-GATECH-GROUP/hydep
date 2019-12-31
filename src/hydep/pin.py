@@ -102,7 +102,7 @@ class Pin(Universe):
         """
         memo = set() if memo is None else memo
         for _r, mat in self:
-            hid = mat.id
+            hid = id(mat)
             if hid in memo:
                 continue
             memo.add(hid)
