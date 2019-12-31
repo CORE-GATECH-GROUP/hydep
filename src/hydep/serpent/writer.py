@@ -448,7 +448,7 @@ cell {lid}_2 {u} {outer} {lid}_x
             self._writelocalmicroxs(stream)
 
     def _writefmtx(self, stream):
-        stream.write("set fmtx 1 ")
+        stream.write("set fmtx 2 ")
         for count, uid in enumerate(m.id for m in self.burnable):
             stream.write("{} ".format(uid))
             if count and count % self._groupby == 0:
