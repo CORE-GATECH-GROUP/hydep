@@ -402,11 +402,11 @@ cell {lid}_2 {u} {outer} {lid}_x
             ``1`` and ``2``
 
         """
-        k0 = section.getfloat("initial k", fallback=None)
+        k0 = section.getfloat("initial k")
         if k0 is not None:
             self.options["k0"] = k0
 
-        bc = section.get("boundary conditions", fallback=None)
+        bc = section.get("boundary conditions")
         if bc is not None:
             self._parseboundaryconditions(bc.replace(",", " ").split())
 
@@ -419,7 +419,7 @@ cell {lid}_2 {u} {outer} {lid}_x
             "active",
             "skipped",
         ]:
-            value = section.getint(key, fallback=None)
+            value = section.getint(key)
             if value is not None:
                 self.options[key] = value
 
