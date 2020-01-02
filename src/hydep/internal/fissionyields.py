@@ -20,7 +20,7 @@ from numbers import Real
 
 from numpy import empty
 
-from hydep.internal import getZaiFromName
+from hydep.internal import getIsotope
 
 
 __all__ = ["FissionYield", "FissionYieldDistribution"]
@@ -116,7 +116,11 @@ class FissionYieldDistribution(Mapping):
         all_yields = {}
         for elem_index, yield_elem in enumerate(element.iter("fission_yields")):
             energy = float(yield_elem.get("energy"))
-            products = map(getZaiFromName, yield_elem.find("products").text.split())
+
+            products = []
+            for p in yield_elem.find("products").text.split():
+                products.append(getIsotope(name=p).zai)
+
             yields = map(float, yield_elem.find("data").text.split())
             # Get a map of products to their corresponding yield
             all_yields[energy] = dict(zip(products, yields))
