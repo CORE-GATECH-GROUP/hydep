@@ -2,6 +2,7 @@
 Class responsible for processing Serpent outputs
 """
 import warnings
+import copy
 
 import serpentTools
 
@@ -231,3 +232,41 @@ class SerpentProcessor:
                 "Universes are not ordered like burnable. May need to "
                 "reshuffle - TBD")
         return data.matrix
+
+    def configure(self, section):
+        """Configure the processor
+
+        Looks for the following options:
+
+        * ``"version"`` or ``"serpentVersion"`` [string] - set the
+           version of Serpent used to generate results
+        * ``useB1XS`` [boolean] - Pull cross sections from the
+          B1 / critical leakage cross sections, e.g. ``"B1_ABS"``.
+          Otherwise use infinite medium cross sections
+
+        Parameters
+        ----------
+        section : configparser.SectionProxy
+            Sections of configuration that directly apply to Serpent,
+            e.g. ``config["hydep.serpent"]``
+
+        """
+
+        self.options = copy.deepcopy(self.__class__.options)
+
+        version = section.get("version")
+
+        if version is None:
+            version = section.get("serpentVersion")
+
+        if version is not None:
+            if version not in {"2.1.31", "2.1.30", "2.1.29"}:
+                raise ValueError("Serpent version {} must be one of "
+                                 "2.1.[29|30|31]".format(version))
+            self.options["results"]["serpentVersion"] = version
+
+        useB1 = section.getboolean("useB1XS")
+
+        if useB1 is not None:
+            self.options["results"]["xs.getInfXS"] = False
+            self.options["results"]["xs.getB1XS"] = True
