@@ -237,6 +237,8 @@ class SerpentWriter:
             return self._writelattice(stream, u, memo)
         if isinstance(u, hydep.LatticeStack):
             return self._writestack(stream, u, memo)
+        if isinstance(u, hydep.InfiniteMaterial):
+            return self._writeInfMaterial(stream, u, memo)
         raise TypeError(type(u))
 
     def _writepin(self, stream, pin, memo):
@@ -385,6 +387,24 @@ cell {lid}_2 {u} {outer} {lid}_x
         stream.write("lat {} 9 0.0 0.0 {}\n".format(writeas, lstack.nLayers))
         for lower, sub in zip(lstack.heights[:-1], subids):
             stream.write("{:.5f} {}\n".format(lower, sub))
+
+        return writeas
+
+    def _writeInfMaterial(self, stream, infmat, memo):
+        previous = memo.get(infmat.id)
+        if previous is not None:
+            return previous
+
+        writeas = "inf" + str(infmat.id)
+        memo[infmat.id] = writeas
+
+        if infmat.material.name is not None:
+            stream.write("% Infinite region filled with {}\n".format(
+                infmat.material.name))
+
+        stream.write("""surf {writeas} inf
+cell {writeas} {writeas} {mid} -{writeas}
+""".format(writeas=writeas, mid=infmat.material.id))
 
         return writeas
 

@@ -1,6 +1,7 @@
 import io
 
 import pytest
+import hydep
 import hydep.serpent
 
 from tests.serpent import strcompare
@@ -76,3 +77,24 @@ cell 1_r3 p1 4 1_r2
 """.format(beavrsFuelPin.id)
     written = stream.getvalue()
     assert strcompare(reference, written)
+
+
+def test_writeInfMaterial(beavrsMaterials):
+    reference = """% Infinite region filled with {name}
+surf inf1 inf
+cell inf1 inf1 {} -inf1
+"""
+    universe = hydep.InfiniteMaterial(beavrsMaterials["ss304"])
+    reference = """% Infinite region filled with {name}
+surf inf{uid} inf
+cell inf{uid} inf{uid} {mid} -inf{uid}
+""".format(
+        name=universe.material.name, mid=universe.material.id, uid=universe.id
+    )
+
+    writer = hydep.serpent.SerpentWriter()
+    stream = io.StringIO()
+
+    writer.writeUniverse(stream, universe, {})
+
+    assert strcompare(reference, stream.getvalue())
