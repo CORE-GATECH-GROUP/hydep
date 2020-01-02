@@ -333,10 +333,12 @@ cell {surf}_i {uid} {uid} -{surf}
         while univrows:
             stream.write(" ".join(map(str, univrows.pop())) + "\n")
 
-        if lat.outer is not None:
-            self._writecellbounds(stream, lat, writeas, lat.id, lat.outer.id)
+        if lat.outer is None:
+            return writeas
 
-        return writeas
+        self._writecellbounds(stream, lat, writeas, lat.id, lat.outer.id)
+
+        return lat.id
 
     @staticmethod
     def _writecellbounds(stream, universe, filler, universenumber, outer="outside"):
