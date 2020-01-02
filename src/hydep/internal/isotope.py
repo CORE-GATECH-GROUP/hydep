@@ -123,6 +123,30 @@ class Isotope:
 
 
 def getIsotope(name=None, zai=None):
+    """Return an isotope given a name and/or its ZAI
+
+    Either ``name`` or ``zai`` must be given. If both are
+    given, then ``zai`` will be preferred. It is not
+    guaranteed that the :attr:`Isotope.name` will always
+    match if GND names, e.g. ``"U235"``, ``"Am241_m1"``
+    are not used.
+
+    Parameters
+    ----------
+    name : Optional[str]
+        Name of this isotope. If given as the only argument,
+        then will be parsed as a GND name of the form
+        ``(atomic symbol)(number of protons +
+        neutrons)[_m(metastable state)]``
+    zai : Optional[Union[int, Iterable[int]]]
+        Isotope numeric identifier. Can be a single integer
+        representing ``zzaaai`` value, e.g. 922350 for U235,
+        or an iterable of integers ``(z, a, i)``
+
+    Returns
+    -------
+    hydep.internal.Isotope
+    """
     assert (name is not None) != (zai is not None)
 
     if name is not None:
@@ -134,9 +158,10 @@ def getIsotope(name=None, zai=None):
     if isotope is not None:
         return isotope
 
-    name = SYMBOLS[zai.z] + str(zai.a)
-    if zai.i:
-        name += "_m{}".format(zai.i)
+    if name is None:
+        name = SYMBOLS[zai.z] + str(zai.a)
+        if zai.i:
+            name += "_m{}".format(zai.i)
 
     isotope = Isotope(name, zai)
     _ISOTOPES[zai] = isotope
@@ -160,6 +185,7 @@ def parseZai(zai):
     raise TypeError(
         "Unsupported type {} cannot be converted to ZAI. Expected {}, integer, "
         "or sequence or (Z, A, [I])".format(type(zai), ZaiTuple))
+
 
 def getZaiFromName(name):
     match = _GND_REG.match(name)
