@@ -28,6 +28,24 @@ def chain(tmpdir_factory):
     <reaction type="(n,4n)" Q="-17885600.0" target="U232"/>
     <reaction type="(n,gamma)" Q="6545200.0" target="U236"/>
     <reaction type="fission" Q="193405400.0"/>
+    <neutron_fission_yields>
+      <energies>0.0253 500000.0 14000000.0</energies>
+      <fission_yields energy="0.0253">
+        <!-- Intentially grab only the last 5 yields -->
+        <products>Y91 Zr91 Zr93 Zr95 Zr96</products>
+        <data>0.0582783 4.41969e-10 0.0634629 0.0650274 0.0633924</data>
+      </fission_yields>
+      <fission_yields energy="500000.0">
+        <!-- Intentially grab only the last 5 yields -->
+        <products>Y91 Zr91 Zr93 Zr95 Zr96</products>
+        <data>0.0573342 2.00998e-10 0.06254 0.0643197 0.0620232</data>
+      </fission_yields>
+      <fission_yields energy="14000000.0">
+        <!-- Intentially grab only the last 5 yields -->
+        <products>Y91 Zr91 Zr93 Zr95 Zr96</products>
+        <data>0.0482267 1.84979e-07 0.0519317 0.0517353 0.0520296</data>
+      </fission_yields>
+    </neutron_fission_yields>
   </nuclide>
   <nuclide name="Am241" half_life="13651800000.0" decay_modes="2" decay_energy="5627985.35" reactions="6">
     <!-- Intentionally skip sf decay <decay type="sf" target="Am241" branching_ratio="4.3e-12"/> -->
@@ -62,9 +80,9 @@ def u5Reactions():
 
 @pytest.fixture
 def u5DecayModes():
-    data = set(
+    data = {
         DecayTuple(getIsotope("Th231"), "alpha", 1.0),
-    )
+    }
     return data
 
 
@@ -99,3 +117,17 @@ def test_u5(chain, u5Reactions, u5DecayModes):
         assert rxn.Q == pytest.approx(expected.Q)
 
     assert not u5Reactions, "Mismatch in reactions. Missing {}".format(u5Reactions)
+
+    assert len(u5.fissionYields) == 3
+    assert sorted(u5.fissionYields) == pytest.approx([0.0253, 5e5, 1.4e7])
+
+    products = tuple(sorted(getIsotope(name=name).zai
+                      for name in ("Y91", "Zr91", "Zr93", "Zr95", "Zr96")))
+    expYields = [
+        [0.0582783, 4.41969e-10, 0.0634629, 0.0650274, 0.0633924],
+        [0.0573342, 2.00998e-10, 0.06254, 0.0643197, 0.0620232],
+        [0.0482267, 1.84979e-07, 0.0519317, 0.0517353, 0.0520296]]
+    # all fission yields in this test chain are thermal
+    for ene, fydist in zip(sorted(u5.fissionYields), expYields):
+        assert u5.fissionYields[ene].products == products
+        assert u5.fissionYields[ene].yields == pytest.approx(fydist)
