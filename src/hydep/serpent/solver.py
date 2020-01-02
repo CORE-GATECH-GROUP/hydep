@@ -6,6 +6,7 @@ import time
 import tempfile
 import shutil
 import pathlib
+import warnings
 
 import hydep
 from hydep.internal import configmethod, TransportResult
@@ -27,13 +28,32 @@ class SerpentSolver(hydep.HighFidelitySolver):
         this sequence. Can get basically all the macro XS possible,
         but also not sure how this part of the interface will
         go.
+    hooks : hydep.internal.features.FeatureCollection or None
+        Hooks describing the physics needed by attached physics
+        solvers. Setting this more than once will produced
+        warnings, as it should not be modified after use.
     """
 
     def __init__(self):
+        self._hooks = None
         self._curfile = None
         self._tmpdir = None
         self._writer = SerpentWriter()
         self._runner = SerpentRunner()
+
+    @property
+    def hooks(self):
+        return self._hooks
+
+    @hooks.setter
+    def hooks(self, value):
+        if not isinstance(value, hdfeat.FeatureCollection):
+            raise TypeError("Hooks must be {}, not {}".format(
+                hdfeat.FeatureCollection.__name__, type(value)))
+        if self._hooks is not None:
+            warnings.warn("Overwritting hooks for {}".format(self))
+        self._hooks = value
+        self._writer.hooks = value
 
     @property
     def features(self):
@@ -100,6 +120,16 @@ class SerpentSolver(hydep.HighFidelitySolver):
             "./serpent/s{}".format(timestep.coarse), timestep)
 
     def setHooks(self, needs):
+        """Instruct the solver and helpers what physics are needed
+
+        Parameters
+        ----------
+        needs : hydep.internal.features.FeatureCollection
+            The needs of other solvers, e.g.
+            :class:`hydep.ReducedOrderSolver`
+
+        """
+        self.hooks = needs
         self._writer.hooks = needs
 
     def execute(self):
