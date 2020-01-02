@@ -48,14 +48,14 @@ class SerpentSolver(hydep.HighFidelitySolver):
     def configure(self, config):
         """Configure this interface
 
-        Passes configuration data onto the :class:`SerpentWriter`.
-        Settings are processed according to the following sections
-        or keys:
+        Passes configuration data onto the :class:`SerpentWriter`
+        and :class:`SerpentRunner` used by this solver. Settings are
+        processed according to the following sections or keys:
 
-            1. ``hydep`` - Global settings
-            2. ``hydep.montecarlo`` - MC specific settings like particle
+            1. ``"hydep"`` - Global settings
+            2. ``"hydep.montecarlo"`` - MC specific settings like particle
                statistics
-            3. ``hydep.serpent`` - Serpent specific settings like
+            3. ``"hydep.serpent"`` - Serpent specific settings like
                executable path and cross section libraries.
 
         Settings found in later sections will overwrite those found in
@@ -63,21 +63,24 @@ class SerpentSolver(hydep.HighFidelitySolver):
 
         Parameters
         ----------
-        config : Union[str, Mapping, pathlib.Path, configparser.ConfigParser]
+        config : str or collections.abc.Mapping or pathlib.Path or configparser.ConfigParser
             Configuration options to be processed. If ``str`` or
             ``pathlib.Path``, assume a file and read using
             :meth:`configparser.ConfigParser.read_file`. If a ``dict`` or
             other ``Mapping``, process with
             :meth:`configparser.ConfigParser.read_dict`. Otherwise load
-            settings directly off the :class:`configparser.ConfigParser`
         """
-        # TODO This could probably be polished up
-        for level, path in enumerate(["hydep", "hydep.montecarlo", "hydep.serpent"]):
-            if config.has_section(path):
-                section = config[path]
-                self._writer.configure(section, level)
-                if level > 1:
-                    self._runner.configure(section)
+
+        if config.has_section("hydep"):
+            self._writer.configure(config["hydep"], level=0)
+
+        if config.has_section("hydep.montecarlo"):
+            self._writer.configure(config["hydep.montecarlo"], level=1)
+
+        if config.has_section("hydep.serpent"):
+            section = config["hydep.serpent"]
+            self._writer.configure(section, level=2)
+            self._runner.configure(section)
 
     def bosUpdate(self, _compositions, timestep):
         """Create a new input file with updated compositions
