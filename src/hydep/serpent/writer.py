@@ -9,6 +9,7 @@ from collections import deque
 import numpy
 
 import hydep
+from hydep.internal import getIsotope
 from hydep.typed import TypedAttr, IterableOf
 import hydep.internal.features as hdfeat
 
@@ -486,7 +487,36 @@ cell {writeas} {writeas} {mid} -{writeas}
         stream.write("\n")
 
     def _writelocalmicroxs(self, stream):
-        pass
+        self.commentblock(stream, """BEGIN MICROSCOPIC REACTION XS BLOCK
+Need to trick Serpent into given this information, but we don't want a ton
+of depletion. Add a single one day step here. Maybe hack something later""")
+        stream.write("dep daystep 1\n")
+        for m in self.burnable:
+            stream.write("set mdep {mid} 1.0 1 {mid}\n".format(mid=m.id))
+            reactions = self._getReactions(set(m))
+            # TODO Some shared group by method
+            for zai, m in sorted(reactions):
+                stream.write("{} {}\n".format(zai, m))
+
+    @staticmethod
+    def _getReactions(isotopes):
+        reactions = set()
+        previous = {None}
+        while isotopes:
+            iso = isotopes.pop()
+            if iso in previous:
+                continue
+            previous.add(iso)
+            for reaction in iso.reactions:
+                if reaction.target not in previous:
+                    isotopes.add(reaction.target)
+                reactions.add((iso.zai, reaction.mt))
+            if iso.fissionYields is None:
+                continue
+            for prod in (getIsotope(zai=z) for z in iso.fissionYields.products):
+                if prod not in previous:
+                    isotopes.add(prod)
+        return reactions
 
     def writeSteadyStateFile(self, path, timestep, power):
         """Write updated burnable materials for steady state solution
