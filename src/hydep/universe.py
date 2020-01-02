@@ -269,24 +269,23 @@ class InfiniteMaterial(Universe):
         super().__init__(name)
 
     def findMaterials(self, memo=None):
-        """Yield all materials present in this and contained universes
+        """Yield the material inside this universe
 
         Parameters
         ----------
         memo : set, optional
             Set containing ids of previously visited materials. Don't
             pass unless you know what you're doing. If given, will
-            be modified with :attr:`hydep.Material.id` of discovered
-            materials
+            be modified with the id of the contained material
 
         Yields
         ------
         hydep.Material
-            The first occurance of this material.
+            The first occurance of the contained material
 
         """
-        if memo is None or self.material.id not in memo:
-            memo.add(self.material.id)
+        if memo is None or id(self.material) not in memo:
+            memo.add(id(self.material))
             yield self.material
 
     def countBurnableMaterials(self, _memo=None):
