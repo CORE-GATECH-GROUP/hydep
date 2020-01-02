@@ -107,11 +107,11 @@ class TransportSolver(ABC):
         """
 
     def _solve(self) -> TransportResult:
+        success = True
         try:
             runTime = self.execute()
             res = self.processResults()
             res.runTime = runTime
-            success = True
         except Exception as ee:
             success = False
             raise ee
