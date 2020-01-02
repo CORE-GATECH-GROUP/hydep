@@ -125,7 +125,7 @@ class SerpentSolver(hydep.HighFidelitySolver):
         self._archiveOnSuccess = section.getboolean(
             "archive on success", fallback=self._archiveOnSuccess)
 
-    def bosUpdate(self, _compositions, timestep):
+    def bosUpdate(self, _compositions, timestep, power):
         """Create a new input file with updated compositions
 
         Parameters
@@ -138,9 +138,11 @@ class SerpentSolver(hydep.HighFidelitySolver):
         timestep : hydep.internal.TimeStep
             Current point in calendar time for the beginning
             of this coarse step
+        power : float
+            Current reactor power [W]
        """
         self._curfile = self._writer.writeSteadyStateFile(
-            "./serpent/s{}".format(timestep.coarse), timestep)
+            "./serpent/s{}".format(timestep.coarse), timestep, power)
 
     def setHooks(self, needs):
         """Instruct the solver and helpers what physics are needed

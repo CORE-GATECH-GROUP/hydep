@@ -488,7 +488,7 @@ cell {writeas} {writeas} {mid} -{writeas}
     def _writelocalmicroxs(self, stream):
         pass
 
-    def writeSteadyStateFile(self, path, timestep):
+    def writeSteadyStateFile(self, path, timestep, power):
         """Write updated burnable materials for steady state solution
 
         Requires the base file with geometry, settings, and non-burnable
@@ -501,6 +501,8 @@ cell {writeas} {writeas} {mid} -{writeas}
         timestep : hydep.internal.TimeStep
             Temporal information. Wil write a minor comment to the top
             of the file describing the current time step
+        power : float
+            Current reactor power
 
         Returns
         -------
@@ -527,6 +529,7 @@ Base file : {}""".format(
                 ),
             )
             stream.write('include "{}"\n'.format(self.base.absolute()))
+            stream.write("set power {:.7E}\n".format(power))
 
             for m in self.burnable:
                 self.writemat(stream, m)
