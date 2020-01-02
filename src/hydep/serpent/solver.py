@@ -9,11 +9,12 @@ import pathlib
 import warnings
 
 import hydep
-from hydep.internal import configmethod, TransportResult
+from hydep.internal import configmethod
 import hydep.internal.features as hdfeat
 
 from .writer import SerpentWriter
 from .runner import SerpentRunner
+from .processor import SerpentProcessor
 
 
 class SerpentSolver(hydep.HighFidelitySolver):
@@ -38,8 +39,10 @@ class SerpentSolver(hydep.HighFidelitySolver):
         self._hooks = None
         self._curfile = None
         self._tmpdir = None
+        self._tmpFile = None
         self._writer = SerpentWriter()
         self._runner = SerpentRunner()
+        self._processor = SerpentProcessor()
 
     @property
     def hooks(self):
@@ -68,9 +71,10 @@ class SerpentSolver(hydep.HighFidelitySolver):
     def configure(self, config):
         """Configure this interface
 
-        Passes configuration data onto the :class:`SerpentWriter`
-        and :class:`SerpentRunner` used by this solver. Settings are
-        processed according to the following sections or keys:
+        Passes configuration data onto the :class:`SerpentWriter`,
+        :class:`SerpentRunner`, and :class:`SerpentProcessor` used by
+        this solver. Settings are processed according to the following
+        sections or keys:
 
             1. ``"hydep"`` - Global settings
             2. ``"hydep.montecarlo"`` - MC specific settings like particle
@@ -101,6 +105,7 @@ class SerpentSolver(hydep.HighFidelitySolver):
             section = config["hydep.serpent"]
             self._writer.configure(section, level=2)
             self._runner.configure(section)
+            self._processor.configure(section)
 
     def bosUpdate(self, _compositions, timestep):
         """Create a new input file with updated compositions
@@ -134,17 +139,42 @@ class SerpentSolver(hydep.HighFidelitySolver):
 
     def execute(self):
         self._tmpdir = tempfile.TemporaryDirectory()
-        tmp = pathlib.Path(self._tmpdir.name) / self._curfile.name
-        shutil.move(self._curfile, tmp)
+        self._tmpFile = pathlib.Path(self._tmpdir.name) / self._curfile.name
+        shutil.move(self._curfile, self._tmpFile)
 
         start = time.time()
-        self._runner(tmp)
+        self._runner(self._tmpFile)
 
         return time.time() - start
 
     def processResults(self):
-        # TODO THIS
-        res = TransportResult(None, None)
+        """Pull necessary information from Serpent outputs
+
+        Returns
+        -------
+        TransportResult
+            At the very least a result containing the flux in each burnable
+            region and multiplication factor. Other data will be attached
+            depending on the :attr:`hooks`, including fission matrix
+            and macrosopic cross sections
+
+        Raises
+        ------
+        AttributeError
+            If the ordering of burnable materials is not known. This
+            should be set prior to :meth:`execute`, typically in
+            :meth:`bosUpdate` or :meth:`beforeMain`
+
+        """
+        xsnames = set() if self.hooks is None else self.hooks.macroXS
+        base = str(self._tmpFile)
+        res = self._processor.processResult(base + "_res.m", xsnames)
+        if self.hooks is None:
+            return res
+
+        if hdfeat.FISSION_MATRIX in self.hooks:
+            res.fmtx = self._processor.processFmtx(base + "_fmtx0.m")
+
         return res
 
     def finalize(self, _status):
@@ -155,4 +185,5 @@ class SerpentSolver(hydep.HighFidelitySolver):
         self._writer.model = model
         self._writer.burnable = orderedBumat
         self._writer.writeBaseFile("./serpent/base.sss")
+        self._processor.burnable = tuple(str(m.id) for m in orderedBumat)
 
