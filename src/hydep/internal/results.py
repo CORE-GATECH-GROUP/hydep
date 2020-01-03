@@ -8,6 +8,8 @@ import numbers
 import numpy
 import scipy.sparse
 
+from .microxs import MicroXsVector
+
 
 class TransportResult:
     """Result from any transport simulation
@@ -34,6 +36,8 @@ class TransportResult:
         If given, pass to :attr:`macroXS`
     fmtx : scipy.sparse.csr_matrix, optional
         If given, pass to :attr:`fmtx`
+    microXS : Optional[Sequence]
+        If given, pass to :attr:microXS`
 
     Attributes
     ----------
@@ -56,17 +60,20 @@ class TransportResult:
         expected number of fission neutrons born in burnable
         region ``j`` due to a fission event in burnable region
         ``i``
+    microXS : Sequence of hydep.internal.MicroXsVector or None
+        Microscopic cross sections in each burnable region.
 
     """
 
-    __slots__ = ("_flux", "_keff", "_runTime", "_macroXS", "_fmtx")
+    __slots__ = ("_flux", "_keff", "_runTime", "_macroXS", "_fmtx", "_microXS")
 
-    def __init__(self, flux, keff, runTime=None, macroXS=None, fmtx=None):
+    def __init__(self, flux, keff, runTime=None, macroXS=None, fmtx=None, microXS=None):
         self.flux = flux
         self.keff = keff
         self.runTime = runTime
         self.macroXS = macroXS
         self.fmtx = fmtx
+        self.microXS = microXS
 
     @property
     def flux(self):
@@ -149,3 +156,22 @@ class TransportResult:
                 "Fission matrix must be set with a square 2D array, "
                 "got {}".format(array.shape))
         self._fmtx = array
+
+    @property
+    def microXS(self):
+        return self._microXS
+
+    @microXS.setter
+    def microXS(self, value):
+        if value is None:
+            self._microXS = None
+            return
+
+        if not isinstance(value, Sequence):
+            raise TypeError("microXS must be sequence of MicroXSVector not {}".format(
+                type(value)))
+        for item in value:
+            if not isinstance(item, MicroXsVector):
+                raise TypeError("microXS must be sequence of {}, found {}".format(
+                    type(item)))
+        self._microXS = value
