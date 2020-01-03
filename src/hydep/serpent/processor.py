@@ -178,6 +178,13 @@ class SerpentProcessor:
     def processResult(self, resultfile, reqXS):
         """Scrape fluxes, multiplication factor, and xs
 
+        Expects all the universes to have been selected for
+        homogenization with the ``set gcu`` card. Will pull both
+        fluxes and macroscopic cross sections from the file.
+        If this is not the case, there will be errors. Examine
+        some of the smaller methods that are used here to pull
+        a single quantity
+
         Parameters
         ----------
         resultfile : str
@@ -201,6 +208,14 @@ class SerpentProcessor:
         AttributeError
             If :attr:`burnable` has not been set, indicating what
             universes to process, and in what order
+
+        See Also
+        --------
+        * :meth:`getKeff` - Just pull the multiplication factor and
+           uncertainty
+        * :meth:`processDetectorFluxes` - Pull fluxes in each burnable
+          region from a detector file, rather than relying on
+          homogenization
 
         """
 
@@ -302,3 +317,66 @@ class SerpentProcessor:
         if useB1 is not None:
             self.options["results"]["xs.getInfXS"] = False
             self.options["results"]["xs.getB1XS"] = True
+
+    @requireBurnable
+    def processDetectorFluxes(self, detectorfile, name):
+        """Pull the universe fluxes from the detector file
+
+        Does not perform any sorting on the tallies, so they must
+        be loaded into the detector setting in an order that corresponds
+        to the ordering expected by the rest of the framework.
+
+        Parameters
+        ----------
+        detectorfile : str
+            Path to the detector file to be read
+        name : str
+            Name of this specific detector to be read
+
+        Returns
+        -------
+        numpy.ndarray
+            Expected value of flux in each burnable universe
+
+        """
+
+        detector = self.read(detectorfile, "det")[name]
+        tallies = detector.tallies
+
+        if "universe" not in detector.indexes:
+            raise ValueError(
+                "Detector {} does not appear to be binned against "
+                "universes. Indexes: {}".format(detector.name, detector.indexes)
+            )
+
+        elif detector.indexes == ("universe",):
+            if tallies.size != len(self.burnable):
+                raise ValueError(
+                    "Detector {} has {} tallies, expected {} for burnable "
+                    "universes".format(detector.name, tallies.size, len(self.burnable))
+                )
+
+            return tallies.reshape((len(self.burnable), 1))
+
+        elif "energy" in detector.indexes:
+            if len(detector.indexes) != 2:
+                raise ValueError(
+                    "Detector {} must only be binned against universe, "
+                    "and optionally energy, not {}".format(detector.indexes)
+                )
+
+            eneAx = detector.indexes.index("energy")
+            uAx = detector.indexes.index("universe")
+
+            if tallies.shape[uAx] != len(self.burnable):
+                raise ValueError(
+                    "Detector {} has {} tallies, expected {} for burnable "
+                    "universes".format(detector.name, tallies.size, len(self.burnable))
+                )
+
+            return tallies.transpose((uAx, eneAx))
+
+        raise ValueError(
+            "Detector {} must only be binned against universe, "
+            "and optionally energy, not {}".format(detector.indexes)
+        )
