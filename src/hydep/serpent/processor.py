@@ -5,9 +5,10 @@ import warnings
 import copy
 from functools import wraps
 
+import numpy
 import serpentTools
 
-from hydep.internal import TransportResult
+from hydep.internal import TransportResult, MicroXsVector
 from .fmtx import parseFmtx
 
 
@@ -380,3 +381,24 @@ class SerpentProcessor:
             "Detector {} must only be binned against universe, "
             "and optionally energy, not {}".format(detector.indexes)
         )
+
+    @requireBurnable
+    def processMicroXS(self, mdepfile):
+
+        microxs = self.read(mdepfile, "microxs").xsVal
+        out = []
+
+        for u in self.burnable:
+            z = []
+            r = []
+            m = []
+
+            for key, xs in microxs[u].items():
+                z.append(key.zai)
+                r.append(key.mt)
+                # TODO Metastable
+                m.append(xs)
+
+            out.append(MicroXsVector.fromLongFormVectors(z, r, m, assumeSorted=False))
+
+        return out
