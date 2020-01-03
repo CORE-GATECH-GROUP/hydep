@@ -121,3 +121,6 @@ set declib "sss_endfb7.dec"
 set nfylib "sss_endfb7.nfy"
 set pop 200 25 10 1.00000 5
 set bc 2 2 2
+% Hard set one group [0, 20] MeV for all data
+ene energies 2 1 0 20
+set nfg energies

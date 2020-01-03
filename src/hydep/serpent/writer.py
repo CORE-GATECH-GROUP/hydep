@@ -51,6 +51,7 @@ class SerpentWriter:
     burnable = IterableOf("burnable", hydep.BurnableMaterial, allowNone=True)
     _groupby = 7  # Arbitrary number of gcu, mdep, fmtx arguments to write per line
     hooks = TypedAttr("hooks", hdfeat.FeatureCollection)
+    _eneGridName = "energies"
 
     def __init__(self):
         self.model = None
@@ -135,6 +136,10 @@ class SerpentWriter:
         stream.write("set bc")
         for value in self.options.get("bc", [1]):
             stream.write(" " + str(value))
+
+        stream.write("""\n% Hard set one group [0, 20] MeV for all data
+ene {grid} 2 1 0 20
+set nfg {grid}""".format(grid=self._eneGridName))
         stream.write("\n")
 
     def _writematerials(self, stream):
