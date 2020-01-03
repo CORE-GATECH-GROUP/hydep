@@ -118,8 +118,7 @@ class SerpentWriter:
             self._writematerials(stream)
             self._writegeometry(stream)
             self._writesettings(stream)
-            if self.hooks:
-                self._writehooks(stream)
+            self._writehooks(stream)
 
     def _writesettings(self, stream):
         self.commentblock(stream, "BEGIN SETTINGS BLOCK")
@@ -474,6 +473,8 @@ cell {writeas} {writeas} {mid} -{writeas}
             self._writefmtx(stream)
         if hdfeat.HOMOG_LOCAL in self.hooks:
             self._writelocalgcu(stream)
+        else:
+            self._writeFluxDetectors(stream)
         if hdfeat.MICRO_REACTION_XS in self.hooks:
             self._writelocalmicroxs(stream)
 
@@ -492,6 +493,12 @@ cell {writeas} {writeas} {mid} -{writeas}
             if count and count % self._groupby == 0:
                 stream.write("\n")
         stream.write("\n")
+
+    def _writeFluxDetectors(self, stream):
+        self.commentblock(stream, "BEGIN FLUX DETECTORS")
+        stream.write("det flux de {}\n".format(self._eneGridName))
+        for u in self.burnable:
+            stream.write("du {}\n".format(u.id))
 
     def _writelocalmicroxs(self, stream):
         self.commentblock(stream, """BEGIN MICROSCOPIC REACTION XS BLOCK
