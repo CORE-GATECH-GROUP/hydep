@@ -3,6 +3,7 @@ Class responsible for processing Serpent outputs
 """
 import warnings
 import copy
+from functools import wraps
 
 import serpentTools
 
@@ -11,6 +12,21 @@ from .fmtx import parseFmtx
 
 
 __all__ = ["SerpentProcessor"]
+
+
+def requireBurnable(m):
+    """Decorator that requires the processor's burnable to be set"""
+
+    @wraps(m)
+    def checkburnable(s, *args, **kwargs):
+        if s.burnable is None:
+            raise AttributeError(
+                "{} requires burnable universes to be "
+                "set on {}".format(m.__name__, s)
+            )
+        return m(s, *args, **kwargs)
+
+    return checkburnable
 
 
 class SerpentProcessor:
@@ -158,6 +174,7 @@ class SerpentProcessor:
         keff[1] *= keff[0]
         return keff
 
+    @requireBurnable
     def processResult(self, resultfile, reqXS):
         """Scrape fluxes, multiplication factor, and xs
 
@@ -186,10 +203,6 @@ class SerpentProcessor:
             universes to process, and in what order
 
         """
-        if self.burnable is None:
-            raise AttributeError(
-                "No burnable universes present on {}".format(self.__class__.__name__)
-            )
 
         results = self.read(resultfile, "results")
 
@@ -220,6 +233,7 @@ class SerpentProcessor:
     def _mapMacroXS(leader, name):
         return leader + name.capitalize()
 
+    @requireBurnable
     def processFmtx(self, fmtxfile):
         """Obtain the fission matrix from the outputs
 
@@ -242,10 +256,6 @@ class SerpentProcessor:
             :attr:`burnable`
 
         """
-        if self.burnable is None:
-            raise AttributeError(
-                "No burnable universes present on {}".format(self.__class__.__name__)
-            )
 
         with open(fmtxfile, "r") as stream:
             data = parseFmtx(stream)
