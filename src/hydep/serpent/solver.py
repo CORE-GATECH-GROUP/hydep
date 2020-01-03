@@ -198,6 +198,9 @@ class SerpentSolver(hydep.HighFidelitySolver):
         if self.hooks and hdfeat.FISSION_MATRIX in self.hooks:
             res.fmtx = self._processor.processFmtx(base + "_fmtx0.m")
 
+        if self.hooks and hdfeat.MICRO_REACTION_XS in self.hooks:
+            res.microXS = self._processor.processMicroXS(base + "_mdx0.m")
+
         return res
 
     def finalize(self, status):
