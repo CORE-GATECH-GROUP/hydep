@@ -10,7 +10,7 @@ import warnings
 import zipfile
 
 import hydep
-from hydep.internal import configmethod
+from hydep.internal import configmethod, TransportResult
 import hydep.internal.features as hdfeat
 
 from .writer import SerpentWriter
@@ -186,13 +186,16 @@ class SerpentSolver(hydep.HighFidelitySolver):
             :meth:`bosUpdate` or :meth:`beforeMain`
 
         """
-        xsnames = set() if self.hooks is None else self.hooks.macroXS
         base = str(self._tmpFile)
-        res = self._processor.processResult(base + "_res.m", xsnames)
-        if self.hooks is None:
-            return res
 
-        if hdfeat.FISSION_MATRIX in self.hooks:
+        if self.hooks is not None and self.hooks.macroXS:
+            res = self._processor.processResult(base + "_res.m", self.hooks.macroXS)
+        else:
+            keff = self._processor.getKeff(base + "_res.m")
+            fluxes = self._processor.processDetectorFluxes(base + "_det0.m", "flux")
+            res = TransportResult(fluxes, keff)
+
+        if self.hooks and hdfeat.FISSION_MATRIX in self.hooks:
             res.fmtx = self._processor.processFmtx(base + "_fmtx0.m")
 
         return res
@@ -215,4 +218,3 @@ class SerpentSolver(hydep.HighFidelitySolver):
         self._writer.burnable = orderedBumat
         self._writer.writeBaseFile("./serpent/base.sss")
         self._processor.burnable = tuple(str(m.id) for m in orderedBumat)
-
