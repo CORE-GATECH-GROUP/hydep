@@ -349,12 +349,13 @@ class InfiniteMaterial(Universe):
 
         """
 
-        if isinstance(self.material, BurnableMaterial) or memo is not None:
-            if self.material.id not in memo:
-                memo.add(self.material.id)
-                return self
-            new = self.__class__(copy.deepcopy(self.material), self.name)
-            memo.add(new.id)
-            new.name += "_{}".format(new.id)
+        if not isinstance(self.material, BurnableMaterial):
+            return self
+
+        if memo is not None and id(self) in memo:
+            new = self.__class__(self.material.copy(), self.name)
+            memo.add(id(new))
             return new
+
+        memo.add(id(self))
         return self
