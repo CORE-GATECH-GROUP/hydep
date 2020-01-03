@@ -136,6 +136,28 @@ class SerpentProcessor:
 
         return serpentFile
 
+    def getKeff(self, resultfile):
+        """Pull just the multiplication factor from a result file
+
+        Parameters
+        ----------
+        resultfile : str
+            Path to the result file to be read
+
+        Returns
+        -------
+        Iterable[float, float]
+            Multiplication factor and absolute uncertainty
+
+        """
+        results = self.read(resultfile, "results")
+
+        keff = results.resdata["absKeff"]
+        if len(keff.shape) == 2:
+            keff = keff[0]
+        keff[1] *= keff[0]
+        return keff
+
     def processResult(self, resultfile, reqXS):
         """Scrape fluxes, multiplication factor, and xs
 
