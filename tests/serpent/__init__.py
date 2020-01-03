@@ -2,7 +2,7 @@ import filecmp
 import difflib
 
 
-def showStringDiff(reference, written, fromfile="reference", tofile="reference"):
+def showStringDiff(reference, written, fromfile="reference", tofile="actual"):
     diff = difflib.unified_diff(
         reference.splitlines(keepends=True),
         written.splitlines(keepends=True),
