@@ -1,0 +1,29 @@
+<depletion_chain>
+  <nuclide name="Xe135" half_life="32904.0" decay_modes="1" decay_energy="567980.1000000001" reactions="5">
+    <decay type="beta-" target="Cs135" branching_ratio="1.0"/>
+    <reaction type="(n,2n)" Q="-6457100.0" target="Xe134"/>
+    <reaction type="(n,3n)" Q="-14996200.0" target="Xe133"/>
+    <reaction type="(n,gamma)" Q="7990390.0" target="Xe136"/>
+    <reaction type="(n,p)" Q="-1927530.0" target="I135"/>
+    <reaction type="(n,a)" Q="4361190.0" target="Te132"/>
+  </nuclide>
+  <nuclide name="U235" half_life="2.22102e+16" decay_modes="2" decay_energy="4619192.11" reactions="5">
+    <!-- Intentionally skip sf decay <decay type="sf" target="U235" branching_ratio="7.2e-11"/> -->
+    <decay type="alpha" target="Th231" branching_ratio="0.999999999928"/>
+    <reaction type="(n,2n)" Q="-5297781.0" target="U234"/>
+    <reaction type="(n,3n)" Q="-12142300.0" target="U233"/>
+    <reaction type="(n,4n)" Q="-17885600.0" target="U232"/>
+    <reaction type="(n,gamma)" Q="6545200.0" target="U236"/>
+    <reaction type="fission" Q="193405400.0"/>
+  </nuclide>
+  <nuclide name="Am241" half_life="13651800000.0" decay_modes="2" decay_energy="5627985.35" reactions="6">
+    <!-- Intentionally skip sf decay <decay type="sf" target="Am241" branching_ratio="4.3e-12"/> -->
+    <decay type="alpha" target="Np237" branching_ratio="0.9999999999957"/>
+    <reaction type="(n,2n)" Q="-6638281.0" target="Nothing"/>
+    <reaction type="(n,3n)" Q="-12596700.0" target="Nothing"/>
+    <reaction type="(n,4n)" Q="-19703000.0" target="Nothing"/>
+    <reaction type="fission" Q="201960100.0"/>
+    <reaction type="(n,gamma)" Q="5539101.0" target="Am242" branching_ratio="0.919"/>
+    <reaction type="(n,gamma)" Q="5539101.0" target="Am242_m1" branching_ratio="0.081"/>
+  </nuclide>
+</depletion_chain>
