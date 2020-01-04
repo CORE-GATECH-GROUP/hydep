@@ -67,18 +67,27 @@ class Manager:
 
     def __init__(self, chain, daysteps, power, numPreliminary=0):
         self.chain = chain
+
         daysteps = numpy.asarray(daysteps, dtype=float)
-        assert (daysteps[:1] - daysteps[:-1] > 0).all()
+        if len(daysteps.shape) > 1:
+            raise TypeError("Day steps must be vector, not array")
         self.timesteps = tuple(daysteps * 86400)
 
         self.powers = tuple(self._validatePowers(power))
 
         self._burnable = None
+
         if numPreliminary is None:
             self._nprelim = 0
         else:
-            assert isinstance(numPreliminary, numbers.Integral)
-            assert 0 <= numPreliminary < len(self.timesteps)
+            if not isinstance(numPreliminary, numbers.Integral):
+                raise TypeError(
+                    "Non-integer preliminary steps not allowed: {}".format(
+                        type(numPreliminary)))
+            elif not (0 <= numPreliminary < len(self.timesteps)):
+                raise ValueError(
+                    "Number of preliminary steps must be between [0, {}), "
+                    "not {}".format(len(self.timesteps), numPreliminary))
             self._nprelim = numPreliminary
 
     def _validatePowers(self, power):
