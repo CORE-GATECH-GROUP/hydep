@@ -10,7 +10,7 @@ from itertools import repeat
 
 import numpy
 
-from hydep import Model, BurnableMaterial, DepletionChain
+from hydep import BurnableMaterial, DepletionChain
 from hydep.typed import TypedAttr, IterableOf
 from hydep.internal.features import FeatureCollection, MICRO_REACTION_XS
 
@@ -25,8 +25,6 @@ class Manager:
 
     Parameters
     ----------
-    model : hydep.Model
-        Geometry and materials
     chain : hydep.DepletionChain
         Chain describing how isotopes decay and transmute
     daysteps : iterable of float
@@ -43,8 +41,6 @@ class Manager:
 
     Attributes
     ----------
-    model : hydep.Model
-        Geometry and materials
     chain : hydep.DepletionChain
         Depletion chain
     timesteps : numpy.ndarray
@@ -72,12 +68,10 @@ class Manager:
         active stages after any preliminary steps.
     """
 
-    model = TypedAttr("model", Model)
     chain = TypedAttr("chain", DepletionChain)
     _burnable = IterableOf("burnable", BurnableMaterial, allowNone=True)
 
-    def __init__(self, model, chain, daysteps, power, numPreliminary=0):
-        self.model = model
+    def __init__(self, chain, daysteps, power, numPreliminary=0):
         self.chain = chain
         daysteps = numpy.asarray(daysteps, dtype=float)
         assert (daysteps[:1] - daysteps[:-1] > 0).all()
