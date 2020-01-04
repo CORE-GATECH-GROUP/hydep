@@ -60,12 +60,6 @@ class Manager:
         have in order to properly perform the depletion analysis.
         Currently requires calculation of isotopic reaction cross
         sections in each burnable material, as well as the flux.
-    preliminarySteps : Iterator
-        Pairs of :attr:`timesteps` and :attr:`power` for the
-        preliminary stages.
-    activeSteps : Iterator
-        Pairs of :attr:`timesteps` and :attr:`power` for the
-        active stages after any preliminary steps.
     """
 
     chain = TypedAttr("chain", DepletionChain)
@@ -107,13 +101,34 @@ class Manager:
     def numPreliminary(self):
         return self._nprelim
 
-    @property
     def preliminarySteps(self):
-        return zip(self.timesteps[:self._nprelim], self.power[:self._nprelim])
+        """Iterate over preliminary time steps and powers
 
-    @property
+        Useful for running only a high fidelity solver before
+        substep depletion with a reduced order solver
+
+        Yields
+        ------
+        float
+            Time step [s]
+        float
+            Power [W] for current step
+        """
+        return zip(self.timesteps[:self._nprelim], self.powers[:self._nprelim])
+
     def activeSteps(self):
-        return zip(self.timesteps[self._nprelim:], self.power[self._nprelim:])
+        """Iterate over active time steps and powers
+
+        These are steps after the :meth:`preliminarySteps`.
+
+        Yields
+        ------
+        float
+            Time step [s]
+        float
+            Power [W] for current step
+        """
+        return zip(self.timesteps[self._nprelim:], self.powers[self._nprelim:])
 
     def beforeMain(self, model):
         # Count and differentiate burnable materials
