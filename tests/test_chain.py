@@ -11,12 +11,13 @@ def test_chain(simpleChain):
     for ix, iso in enumerate(sorted(simpleChain)):
         assert simpleChain[ix] is iso
         assert simpleChain.index(iso) == ix
-        assert simpleChain.find(name=iso.name) is simpleChain.find(zai=iso.triplet) is iso
+        assert (
+            simpleChain.find(name=iso.name) is simpleChain.find(zai=iso.triplet) is iso
+        )
 
 
-@pytest.fixture
-def u5Reactions():
-    data = set(
+def test_u5(simpleChain):
+    reactionData = {
         ReactionTuple(REACTION_MTS[t[0]], *t[1:])
         for t in (
             ["(n,2n)", getIsotope(name="U234"), 1.0, -5297781.0],
@@ -25,20 +26,12 @@ def u5Reactions():
             ["(n,gamma)", getIsotope(name="U236"), 1.0, 6545200.0],
             ["fission", None, 1.0, 193405400.0],
         )
-    )
+    }
+    u5Reactions = {t.mt: t for t in reactionData}
 
-    return {t.mt: t for t in data}
-
-
-@pytest.fixture
-def u5DecayModes():
-    data = set(
-        DecayTuple(getIsotope("Th231"), "alpha", 1.0),
-    )
-    return data
-
-
-def test_u5(simpleChain, u5Reactions, u5DecayModes):
+    u5DecayModes = {
+        DecayTuple(getIsotope("Th231"), "alpha", 0.999999999928),
+    }
 
     u5Index = simpleChain.index("U235")
     assert "U235" in simpleChain
@@ -60,3 +53,5 @@ def test_u5(simpleChain, u5Reactions, u5DecayModes):
         assert rxn.Q == pytest.approx(expected.Q)
 
     assert not u5Reactions, "Mismatch in reactions. Missing {}".format(u5Reactions)
+
+    assert u5.decayModes == u5DecayModes
