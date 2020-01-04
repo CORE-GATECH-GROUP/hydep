@@ -71,15 +71,7 @@ class Manager:
         assert (daysteps[:1] - daysteps[:-1] > 0).all()
         self.timesteps = tuple(daysteps * 86400)
 
-        if isinstance(power, numbers.Real):
-            assert power > 0
-            self.power = tuple(repeat(power, len(self.timesteps)))
-        elif isinstance(power, Sequence):
-            assert len(power) == len(self.timesteps)
-            for p in power:
-                assert isinstance(p, numbers.Real)
-                assert p > 0
-            self.power = tuple(power)
+        self.powers = tuple(self._validatePowers(power))
 
         self._burnable = None
         if numPreliminary is None:
@@ -88,6 +80,27 @@ class Manager:
             assert isinstance(numPreliminary, numbers.Integral)
             assert 0 <= numPreliminary < len(self.timesteps)
             self._nprelim = numPreliminary
+
+    def _validatePowers(self, power):
+        if isinstance(power, numbers.Real):
+            if power <= 0:
+                raise ValueError("Power must be positive, not {}".format(power))
+            return repeat(power, len(self.timesteps))
+        elif isinstance(power, Sequence):
+            if len(power) != len(self.timesteps):
+                raise ValueError(
+                    "Number of powers {} differ from steps {}".format(
+                        len(power), len(self.timesteps)))
+            for p in power:
+                if not isinstance(p, numbers.Real) or p <= 0:
+                    raise TypeError(
+                        "Power must be positive real, or vector of positive real. "
+                        "Found {}".format(p))
+            return power
+        else:
+            raise TypeError(
+                "Power must be positive real, or vector of positive real, "
+                "not {}".format(type(power)))
 
     @property
     def burnable(self):
