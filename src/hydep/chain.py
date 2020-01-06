@@ -86,6 +86,10 @@ class DepletionChain(tuple):
 
         return index != len(self) and self[index].triplet == key
 
+    def __repr__(self):
+        return "<{} with {} isotopes at {}>".format(
+            self.__class__.__name__, len(self), hex(id(self)))
+
     @classmethod
     def fromXml(cls, filePath):
         """Construct a chain from an OpenMC XML file
