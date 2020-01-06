@@ -16,17 +16,6 @@ class Model:
         self.root = root
         self._bounds = False  # Special value since None is valid
 
-    def findBurnableMaterials(self):
-        """Yield all burnable materials present in the problem
-
-        Yields
-        ------
-        hydep.BurnableMaterial
-            The first occurance of this material.
-
-        """
-        return self.root.findBurnableMaterials()
-
     def differentiateBurnableMaterials(self):
         """Create new burnable materials across the geometry.
 
