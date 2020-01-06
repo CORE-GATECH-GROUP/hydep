@@ -1,20 +1,48 @@
 import numbers
-
-import numpy
+from collections.abc import Sequence, Iterable
 
 from .universe import Universe
 from .typed import TypedAttr
 from hydep.internal import Boundaries
 
-__all__ = ("Model", )
+__all__ = ("Model",)
 
 
 class Model:
+    """Representation of the entire problem geometry
+
+    Mostly a wrapper around the :attr:`root` universe, but
+    aims to provides a more general interface between the
+    geometry and materials, and the transport solvers.
+    Most methods for the solvers should interact directly
+    with these models.
+
+    Parameters
+    ----------
+    root : hydep.Universe
+        Root universe for the problem.
+
+    Attributes
+    ----------
+    root : hydep.Universe
+        Root universe for the problem.
+    bounds : Optional[hydep.internal.Boundaries]
+        X, Y, and Z boundaries for the root universe. A value of
+        ``None`` is allowed, but implies the problem is unbounded in
+        all directions. This may cause issues with downstream solvers.
+
+    See Also
+    --------
+    * :meth:`hydep.Universe.boundaries`
+        Look into the root universe and determine size from contents.
+
+    """
+
     root = TypedAttr("root", (Universe))
 
     def __init__(self, root):
         self.root = root
-        self._bounds = False  # Special value since None is valid
+        self._bounds = None
 
     def differentiateBurnableMaterials(self, updateVolumes=True):
         """Create new burnable materials across the geometry.
@@ -64,8 +92,6 @@ class Model:
 
     @property
     def bounds(self):
-        if self._bounds is False:
-            self.bounds = self.root.boundaries()
         return self._bounds
 
     @bounds.setter
@@ -75,27 +101,31 @@ class Model:
             return
 
         if not isinstance(bounds, Boundaries):
-            assert len(bounds) == 3
+            if not isinstance(bounds, Iterable):
+                raise TypeError(
+                    "Boundaries must be Iterable[Tuple[Real, Real]], not ".format(
+                        bounds))
             bounds = Boundaries(*bounds)
 
-        bx, by, bz = bounds
-
-        if bx is not None:
-            assert all(isinstance(o, numbers.Real) for o in bx)
-            assert bx[0] < bx[1]
-        else:
-            bx = (-numpy.inf, numpy.inf)
-
-        if by is not None:
-            assert all(isinstance(o, numbers.Real) for o in by)
-            assert by[0] < by[1]
-        else:
-            by = (-numpy.inf, numpy.inf)
-
-        if bz is not None:
-            assert all(isinstance(o, numbers.Real) for o in bz)
-            assert bz[0] < bz[1]
-        else:
-            bz = (-numpy.inf, numpy.inf)
+        bx = self._checkBounds(bounds.x, "X")
+        by = self._checkBounds(bounds.y, "Y")
+        bz = self._checkBounds(bounds.z, "Z")
 
         self._bounds = Boundaries(bx, by, bz)
+
+    @staticmethod
+    def _checkBounds(b, dim):
+        if b is None:
+            return b
+        fmt = dim + " dimension must be None, or Tuple[Real, Real], not {}"
+        if not isinstance(b, Sequence):
+            raise TypeError(fmt.format(dim.upper(), type(b)))
+        elif not len(b) == 2:
+            raise ValueError(fmt.format(dim.upper(), b))
+        elif not all(isinstance(o, numbers.Real) for o in b):
+            raise ValueError(fmt.format(dim.upper(), b))
+        elif b[0] >= b[1]:
+            raise ValueError(
+                "Lower bound {} greater than upper bound {}".format(b[0], b[1])
+            )
+        return b
