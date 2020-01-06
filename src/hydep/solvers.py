@@ -294,3 +294,19 @@ class ReducedOrderSolver(TransportSolver):
         """
         self.substepUpdate(txResult, timestep, power)
         return super()._solve()
+
+    def processBOS(self, txResult, timestep):
+        """Process data from the beginning of step high fidelity solution
+
+        Not required to be implemented, but some solvers may want to
+        store initial values.
+
+        Parameters
+        ----------
+        txResult : hydep.internal.TransportResult
+            Transport result from the :class:`HighFidelitySolver`
+        timestep : hydep.internal.TimeStep
+            Representation of the point in calendar time, and
+            step in simulation.
+
+        """
