@@ -25,6 +25,11 @@ MICRO_REACTION_XS = Feature(
     "microscopic cross sections",
     "microscopic reaction cross sections across arbitrary sub-domain",
 )
+FISSION_YIELDS = Feature(
+    "fission yields",
+    "spectrum-representative fission yields for nuclides in burnable "
+    "regions",
+)
 
 
 class FeatureCollection(Collection):
