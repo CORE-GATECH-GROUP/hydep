@@ -118,7 +118,8 @@ class SerpentWriter:
             self._writematerials(stream)
             self._writegeometry(stream)
             self._writesettings(stream)
-            self._writehooks(stream)
+            if self.hooks:
+                self._writehooks(stream)
 
     def _writesettings(self, stream):
         self.commentblock(stream, "BEGIN SETTINGS BLOCK")

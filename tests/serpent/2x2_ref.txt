@@ -124,12 +124,3 @@ set bc 2 2 2
 % Hard set one group [0, 20] MeV for all data
 ene energies 2 1 0 20
 set nfg energies
-/*
- * BEGIN HOOKS
- */
-/*
- * BEGIN FLUX DETECTORS
- */
-det flux de energies
-du 1
-du 6
