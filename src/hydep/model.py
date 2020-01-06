@@ -60,7 +60,7 @@ class Model:
                     raise AttributeError("Volume not set for {}".format(mat))
                 mat.volume = mat.volume / counts
 
-        return self.root.differentiateBurnableMaterials()
+        self.root.differentiateBurnableMaterials()
 
     @property
     def bounds(self):
