@@ -16,25 +16,6 @@ class Model:
         self.root = root
         self._bounds = False  # Special value since None is valid
 
-    def findMaterials(self):
-        """Yield all materials present in this and contained universes
-
-        Parameters
-        ----------
-        memo : set, optional
-            Set containing ids of previously visited materials. Don't
-            pass unless you know what you're doing. If given, will
-            be modified with :attr:`hydep.Material.id` of discovered
-            materials
-
-        Yields
-        ------
-        hydep.Material
-            The first occurance of this material.
-
-        """
-        return self.root.findMaterials()
-
     def findBurnableMaterials(self):
         """Yield all burnable materials present in the problem
 
