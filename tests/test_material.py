@@ -1,3 +1,6 @@
+import numbers
+import copy
+
 import pytest
 from hydep import Material, BurnableMaterial
 import hydep.internal
@@ -98,7 +101,41 @@ def test_burnableMaterial(isotopes):
     with pytest.raises(TypeError, match=r".*BurnableMaterial\.mdens"):
         f.mdens = "1.0"
 
-    assert f.id == 1
+
+@pytest.mark.parametrize("index", (1, "1", 1.0, -1))
+def test_burnableIndex(index):
+    f = hydep.BurnableMaterial("index tester")
+
+    assert f.index is None
+
+    if isinstance(index, numbers.Real) and index < 0:
+        with pytest.raises(ValueError):
+            f.index = index
+        return
+
+    f.index = index
+    assert f.index == int(index)
+
+
+def test_fixedBurnableIndex():
+    """Test that BurnableMaterial.index is darn near fixed"""
+    original = 2
+    reference = copy.copy(original)
+
+    mat = hydep.BurnableMaterial("index constancy")
+
+    mat.index = original
+    assert mat.index == reference
+
+    with pytest.raises(AttributeError):
+        mat.index *= 2
+
+    assert mat.index == reference
+
+    original *= 2
+
+    assert original == 2 * reference
+    assert mat.index == reference
 
 
 def test_isotopes(isotopes):

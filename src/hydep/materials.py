@@ -227,14 +227,18 @@ class BurnableMaterial(Material):
         Not implemented, but will eventually support adding
         :math:`S(\alpha,\beta)` libraries for nuclides.
     id : int
-        A unique postive identifier for this material
+        A unique postive identifier for this material out of all
+        :class:`hydep.Material`
     microxs : hydep.internal.TemporalMicroXs or None
         Container for microscopic cross sections over time
+    index : Optional[int]
+        Non-negative index for this material out of all
+        :class:`hydep.BurnableMaterial` instances in a given
+        :class:`hydep.Model`. Only allowed to be set once.
 
     """
 
     microxs = TypedAttr("microxs", TemporalMicroXs, allowNone=True)
-    counts = TypedAttr("counts", int)
 
     def __init__(
         self, name, adens=None, mdens=None, temperature=None, volume=None, **nucs
@@ -248,7 +252,7 @@ class BurnableMaterial(Material):
             **nucs
         )
         self.microxs = None
-        self.counts = 0
+        self._index = None
 
     def asVector(self, order=None, default=0.0):
         """Return a vector of atom densities given some ordering
@@ -292,3 +296,20 @@ class BurnableMaterial(Material):
     def __array__(self):
         """Convert directly to numpy array using dispatching"""
         return self.asVector(order=None)  # VER numpy >= 1.16
+
+    @property
+    def index(self):
+        return self._index
+
+    @index.setter
+    def index(self, value):
+        if self._index is not None:
+            raise AttributeError("Index already set for {}".format(self))
+
+        if not isinstance(value, numbers.Integral):
+            value = int(value)
+
+        if value < 0:
+            raise ValueError("Index cannot be negative")
+
+        self._index = value
