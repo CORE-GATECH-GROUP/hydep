@@ -12,7 +12,7 @@ import numpy
 
 from hydep import BurnableMaterial, DepletionChain
 from hydep.typed import TypedAttr, IterableOf
-from hydep.internal.features import FeatureCollection, MICRO_REACTION_XS
+from hydep.internal.features import FeatureCollection, MICRO_REACTION_XS, FISSION_YIELDS
 
 
 __all__ = ["Manager"]
@@ -117,7 +117,7 @@ class Manager:
 
     @property
     def needs(self):
-        return FeatureCollection({MICRO_REACTION_XS})
+        return FeatureCollection({MICRO_REACTION_XS, FISSION_YIELDS})
 
     @property
     def numPreliminary(self):
