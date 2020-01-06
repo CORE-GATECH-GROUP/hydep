@@ -162,7 +162,7 @@ class Manager:
             :class:`hydep.BurnableMaterial`
 
         """
-        burnable = tuple(model.findBurnableMaterials())
+        burnable = tuple(model.root.findBurnableMaterials())
 
         if not burnable:
             raise ValueError("No burnable materials found in {}".format(model))
