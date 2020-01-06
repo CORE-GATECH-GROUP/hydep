@@ -14,7 +14,7 @@ def test_write2x2(serpentcfg, beavrsFuelPin, beavrsControlPin, beavrsGuideTube):
     asymmetric2x2 = hydep.CartesianLattice.fromMask(1.3, template, fill)
 
     model = hydep.Model(asymmetric2x2)
-    burnable = tuple(model.findBurnableMaterials())
+    burnable = tuple(model.root.findBurnableMaterials())
     assert len(burnable) == 2
 
     writer = hydep.serpent.SerpentWriter()
