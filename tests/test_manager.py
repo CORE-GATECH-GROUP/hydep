@@ -8,24 +8,6 @@ import numpy
 import hydep
 
 
-@pytest.fixture
-def toymodel():
-    fuel = hydep.BurnableMaterial("fuel", mdens=10.4)
-    fuel["U235"] = 8E-4
-    fuel["U238"] = 2E-2
-    fuel["O16"] = 5e-4
-
-    clad = hydep.Material("clad", mdens=6, Zr90=1.0)
-
-    water = hydep.Material("water", mdens=0.7, H1=2, O16=1)
-
-    pin = hydep.Pin([0.42, 0.45], [fuel, clad], outer=water)
-
-    lattice = hydep.CartesianLattice(2, 2, 1.2, [[pin, pin], [pin, pin]])
-
-    return hydep.Model(lattice)
-
-
 def test_badmanager(simpleChain):
     """Test failure modes for manager construction"""
 
@@ -60,7 +42,7 @@ def test_badmanager(simpleChain):
         hydep.Manager(simpleChain, [1, 1, 1, 1], 6e6, numPreliminary=4)
 
 
-def test_manager(toymodel, simpleChain):
+def test_manager(toy2x2lattice, simpleChain):
     daysteps = numpy.array([5, 10])
     powers = [6e6, 10e6]
 
@@ -77,6 +59,8 @@ def test_manager(toymodel, simpleChain):
         assert ix == 0
         assert sec == pytest.approx(daysteps[1] * 86400)
         assert power == powers[1]
+
+    toymodel = hydep.Model(toy2x2lattice)
 
     with pytest.raises(AttributeError, match=".*volume"):
         man.beforeMain(toymodel)
