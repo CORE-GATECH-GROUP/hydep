@@ -46,20 +46,6 @@ class Model:
         """
         return self.root.findBurnableMaterials()
 
-    def countBurnableMaterials(self):
-        """Count all occurances of burnable materials
-
-        Useful prior to cloning new burnable materials, so
-        that volumes can be properly scaled.
-
-        Returns
-        -------
-        Mapping[str, [hydep.BurnableMaterial, int]]
-            Map of unique hashable IDs for unique burnable materials to
-            the material and the number of instances found in the geometry.
-        """
-        return self.root.countBurnableMaterials()
-
     def differentiateBurnableMaterials(self):
         """Create new burnable materials across the geometry.
 
