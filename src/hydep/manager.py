@@ -153,17 +153,28 @@ class Manager:
         return zip(self.timesteps[self._nprelim:], self.powers[self._nprelim:])
 
     def beforeMain(self, model):
-        # Count and differentiate burnable materials
-        bumatCount = model.countBurnableMaterials()
-        for mat, count in bumatCount.values():
+        """Check that all materials have volumes and set indexes
+
+        Parameters
+        ----------
+        model : hydep.Model
+            Problem to be solved. Must contain at least one
+            :class:`hydep.BurnableMaterial`
+
+        """
+        burnable = tuple(model.findBurnableMaterials())
+
+        if not burnable:
+            raise ValueError("No burnable materials found in {}".format(model))
+
+        for ix, mat in enumerate(burnable):
             if mat.volume is None:
-                raise AttributeError("{} {} does not have volume.".format(
-                        mat.__class__.__name__, mat.name))
-            mat.volume = mat.volume / count
-        model.differentiateBurnableMaterials()
-        self._burnable = tuple(model.findBurnableMaterials())
-        for ix, mat in enumerate(self._burnable):
+                raise AttributeError(
+                    "{} {} does not have a volume set".format(mat.__class__, mat)
+                )
             mat.index = ix
+
+        self._burnable = burnable
 
     def checkCompatibility(self, hf):
         # Check for compatibility with high fidelity solver

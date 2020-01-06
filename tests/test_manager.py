@@ -93,10 +93,9 @@ def test_manager(toymodel, simpleChain):
     assert origBurnable[0] is fuelM
 
     man.beforeMain(toymodel)
-    N_EXP_BURNABLE = 4
 
     for ix, m in enumerate(toymodel.findBurnableMaterials()):
-        assert ix < N_EXP_BURNABLE, "Too many materials found"
-        assert m.volume == pytest.approx(ORIG_FUEL_VOLUME / N_EXP_BURNABLE)
+        assert ix < 1
+        assert m.volume == pytest.approx(ORIG_FUEL_VOLUME)
         assert m.index == ix
         assert m is man.burnable[ix]
