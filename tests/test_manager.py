@@ -65,21 +65,31 @@ def test_manager(toy2x2lattice, simpleChain):
     with pytest.raises(AttributeError, match=".*volume"):
         man.beforeMain(toymodel)
 
-    fuelP = toymodel.root[0, 0]
-    fuelM = fuelP.materials[0]
+    fuelM = toymodel.root[0, 0].materials[0]
     assert isinstance(fuelM, hydep.BurnableMaterial)
 
     ORIG_FUEL_VOLUME = 100
     fuelM.volume = copy.copy(ORIG_FUEL_VOLUME)
 
-    origBurnable = tuple(toymodel.findBurnableMaterials())
+    origBurnable = tuple(toymodel.root.findBurnableMaterials())
     assert len(origBurnable) == 1
     assert origBurnable[0] is fuelM
 
-    man.beforeMain(toymodel)
+    # Create new burnable materials using Model interface
+    # Update volumes along the way
+    toymodel.differentiateBurnableMaterials(True)
+    N_EXP_MATS = toymodel.root.size
 
-    for ix, m in enumerate(toymodel.findBurnableMaterials()):
-        assert ix < 1
-        assert m.volume == pytest.approx(ORIG_FUEL_VOLUME)
+    man.beforeMain(toymodel)
+    foundOrig = False
+
+    for ix, m in enumerate(toymodel.root.findBurnableMaterials()):
+        assert ix < N_EXP_MATS
+        assert m.volume == pytest.approx(ORIG_FUEL_VOLUME / N_EXP_MATS)
         assert m.index == ix
         assert m is man.burnable[ix]
+        if m is fuelM:
+            assert not foundOrig, "Found original fuel multiple times"
+            foundOrig = True
+
+    assert foundOrig, "Original fuel was not recovered"
