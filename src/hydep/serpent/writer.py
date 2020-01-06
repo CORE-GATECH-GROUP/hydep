@@ -143,7 +143,7 @@ set nfg {grid}""".format(grid=self._eneGridName))
 
     def _writematerials(self, stream):
         self.commentblock(stream, "BEGIN MATERIAL BLOCK")
-        for mat in self.model.findMaterials():
+        for mat in self.model.root.findMaterials():
             if isinstance(mat, hydep.BurnableMaterial):
                 continue
             self.writemat(stream, mat)
