@@ -468,6 +468,16 @@ cell {writeas} {writeas} {mid} -{writeas}
             bc.append(bcval)
         self.options["bc"] = bc
 
+    def _writeIterableOverLines(self, stream, lines, delim=" "):
+        for count, line in enumerate(lines):
+            stream.write(line)
+            if count and count % self._groupby == 0:
+                stream.write("\n")
+            else:
+                stream.write(delim)
+        if count % self._groupby != 0:
+            stream.write("\n")
+
     def _writehooks(self, stream):
         self.commentblock(stream, "BEGIN HOOKS")
         if hdfeat.FISSION_MATRIX in self.hooks:
@@ -481,25 +491,21 @@ cell {writeas} {writeas} {mid} -{writeas}
 
     def _writefmtx(self, stream):
         stream.write("set fmtx 2 ")
-        for count, uid in enumerate(m.id for m in self.burnable):
-            stream.write("{} ".format(uid))
-            if count and count % self._groupby == 0:
-                stream.write("\n")
+        lines = map("{}".format, (m.id for m in self.burnable))
+        self._writeIterableOverLines(stream, lines)
         stream.write("\n")
 
     def _writelocalgcu(self, stream):
         stream.write("set gcu ")
-        for count, uid in enumerate(m.id for m in self.burnable):
-            stream.write("{} ".format(uid))
-            if count and count % self._groupby == 0:
-                stream.write("\n")
+        lines = map("{}".format, (m.id for m in self.burnable))
+        self._writeIterableOverLines(stream, lines)
         stream.write("\n")
 
     def _writeFluxDetectors(self, stream):
         self.commentblock(stream, "BEGIN FLUX DETECTORS")
         stream.write("det flux de {}\n".format(self._eneGridName))
-        for u in self.burnable:
-            stream.write("du {}\n".format(u.id))
+        lines = map("du {}", (m.id for m in self.burnable))
+        self._writeIterableOverLines(stream, lines)
 
     def _writelocalmicroxs(self, stream):
         self.commentblock(stream, """BEGIN MICROSCOPIC REACTION XS BLOCK
@@ -509,9 +515,8 @@ of depletion. Add a single one day step here. Maybe hack something later""")
         for m in self.burnable:
             stream.write("set mdep {mid} 1.0 1 {mid}\n".format(mid=m.id))
             reactions = self._getReactions(set(m))
-            # TODO Some shared group by method
-            for zai, m in sorted(reactions):
-                stream.write("{} {}\n".format(zai, m))
+            lines = ("{} {}".format(z, m) for z, m in sorted(reactions))
+            self._writeIterableOverLines(stream, lines)
 
     @staticmethod
     def _getReactions(isotopes):
