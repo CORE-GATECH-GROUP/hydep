@@ -2,6 +2,7 @@ import math
 import pathlib
 
 import numpy
+from scipy.sparse import issparse, coo_matrix
 import pytest
 
 config = {"update": False}
@@ -26,7 +27,9 @@ class ResultComparator:
         String used to format a single floating point value. Passed
         to various routines like :func:`numpy.savetxt`
     """
+
     floatFormat = "%.7E"
+    intFormat = "%5d"
 
     def __init__(self, datadir):
         self.datadir = pathlib.Path(datadir)
@@ -39,6 +42,8 @@ class ResultComparator:
         """Update the reference files based on a new transport result"""
         self.updateKeff(txresult.keff)
         self.updateFlux(txresult.flux)
+        if txresult.fmtx is not None:
+            self._writeSparse(txresult.fmtx, self.getPathFor("fmtx", "reference"))
 
     def updateKeff(self, newkeff):
         """Update reference multiplication factor and absolute uncertainty"""
@@ -56,6 +61,19 @@ class ResultComparator:
             header=" ".join(map(str, flux.shape)),
         )
 
+    def _writeSparse(self, value, where):
+        if not issparse(value):
+            value = coo_matrix(value)
+        elif not isinstance(value, coo_matrix):
+            value = value.tocoo()
+
+        numpy.savetxt(
+            where,
+            numpy.transpose([value.row, value.col, value.data]),
+            fmt="{i} {i} {f}".format(i=self.intFormat, f=self.floatFormat),
+            header="{} {} {}".format(value.nnz, *value.shape),
+        )
+
     def compare(self, txresult):
         """Compare results from a regression test to the reference"""
         failures = {}
@@ -64,6 +82,11 @@ class ResultComparator:
 
         if not txresult.flux == pytest.approx(self.referenceFlux()):
             failures["flux"] = txresult.flux
+
+        if txresult.fmtx is not None:
+            fmtx = txresult.fmtx.tocoo()
+            if not self._compareFmtx(fmtx):
+                failures["fmtx"] = fmtx
 
         if failures:
             self._dumpfailures(failures)
@@ -90,10 +113,33 @@ class ResultComparator:
             flux = flux.reshape(flux.size, 1)
         return flux
 
+    def referenceFmtx(self):
+        path = self.getPathFor("fmtx", "reference")
+        with path.open("r") as stream:
+            header = stream.readline()
+        nnz, nrows, ncols = (int(x) for x in header.split()[1:])
+
+        rows, cols, data = numpy.loadtxt(path, unpack=True)
+
+        assert rows.shape == cols.shape == data.shape == (nnz,)
+
+        return coo_matrix((data, (rows, cols)), shape=(nrows, ncols))
+
+    def _compareFmtx(self, fmtx):
+        reference = self.referenceFmtx()
+        if (numpy.array_equal(fmtx.row, reference.row)
+                and numpy.array_equal(fmtx.col, reference.col)):
+            return fmtx.data == pytest.approx(reference.data)
+        # Compare the full matrices to account for small values in
+        # one matrix and zeros in the other
+        return fmtx.A == pytest.approx(reference.A)
+
     def _dumpfailures(self, fails):
         for key, value in fails.items():
-            # TODO Some check for special, non-array or sparse values
             dest = self.getPathFor(key, "fail")
+            if issparse(value):
+                self._writeSparse(value, dest)
+                continue
             numpy.savetxt(
                 dest,
                 value,
