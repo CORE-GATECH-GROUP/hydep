@@ -9,7 +9,76 @@ import numpy
 from numpy.polynomial.polynomial import polyfit, polyval
 
 
+# TODO Is the sparse structure worth it? Most isotopes have a few reactions
+# TODO of interest, with some having no more than 10
+
+
 class MicroXsVector:
+    """Microscopic cross sections for a single material
+
+    Intended to be used in conjunction with :class:`TemporalMicroXs`
+    to help with extrapolation, and in depletion. Mimics a sparse
+    array, where :attr:`zai` has fewer elements, but iteration recovers
+    the full ``(zai, reaction mt, xs)`` triplet. For consistent
+    construction, it is recommended to use :meth:`fromLongFormVectors`.
+
+    Parameters
+    ----------
+    zai : numpy.ndarray of int
+        Sorted vector containing the ZAI identifiers for reactions in
+        this instance. Expected to be sorted in increasing order,
+        and with length less than or equal to ``rxns``
+    zptr: numpy.ndarray of int
+        Pointer vector that describes where reactions for each isotope
+        are found
+    reactions : numpy.ndarray of int
+        Reaction MTS (e.g. 102, 18) such that reactions
+        ``rxns[zptr[i]:zptr[i+1]]`` belong to isotope ``zai[i]``
+    mxs : numpy.ndarray
+        Microscopic cross sections. Of similar size and ordering to
+        ``reactions, such ``mxs[zptr[i]:zptr[i+1]]`` are of MT
+        ``rxns[zptr[i]:zptr[i+1]]`` and belong to isotope ``zai[i]``
+
+    Attributes
+    ----------
+    zai : numpy.ndarray of int
+        Sorted vector containing the ZAI identifiers for reactions in
+        this instance. Expected to be sorted in increasing order,
+        and with length less than or equal to ``rxns``
+    zptr: numpy.ndarray of int
+        Pointer vector that describes where reactions for each isotope
+        are found
+    reactions : numpy.ndarray of int
+        Reaction MTS (e.g. 102, 18) such that reactions
+        ``rxns[zptr[i]:zptr[i+1]]`` belong to isotope ``zai[i]``
+    mxs : numpy.ndarray
+        Microscopic cross sections. Of similar size and ordering to
+        ``reactions, such ``mxs[zptr[i]:zptr[i+1]]`` are of MT
+        ``rxns[zptr[i]:zptr[i+1]]`` and belong to isotope ``zai[i]``
+
+    Examples
+    --------
+    >>> zai = [922350, 922350, 541350, 922380]
+    >>> rxns = [102, 18, 102, 18]
+    >>> values = [0.4, 0.05, 10, 0.01]
+    >>> microxs = MicroXsVector.fromLongFormVectors(
+    ...     zai, rxns, values, assumeSorted=False)
+    >>> microxs.zai
+    array([541350, 922350, 922380])
+    >>> microxs.zptr
+    array([0, 1, 3, 4])
+    >>> all(microxs.rxns == [102, 102, 18, 18])
+    True
+    >>> all(microxs.mxs == [10, 0.4, 0.05, 0.01])
+    True
+    >>> new = microxs * 2
+    >>> all(new.mxs == [20, 0.8, 0.1, 0.02])
+    True
+    >>> new *= 0.5
+    >>> all(new.mxs == [10, 0.4, 0.05, 0.01])
+    True
+
+    """
 
     __slots__ = ("zai", "zptr", "rxns", "mxs")
 
@@ -21,6 +90,42 @@ class MicroXsVector:
 
     @classmethod
     def fromLongFormVectors(cls, zaiVec, rxnVec, mxs, assumeSorted=True):
+        """Construction with equal length, potentially unsorted vectors
+
+        Parameters
+        ----------
+        zaiVec : Sequence[int]
+            Vector of isotope ZAI numbers
+        rxnVec : Sequence[int]
+            Vector of reaction MT numbers
+        mxs : Sequence[float]
+            Vector of microscopic cross sections such that reaction
+            ``rxnVec[i] == r``, maybe 18, of isotope
+            ``zaiVec[i] == z``, maybe ``922350``, has a value of
+            ``mxs[i]``
+        assumeSorted : bool
+            Skip sorting by ZAI under the assumption that the vectors
+            are sorted accordingly
+
+        Returns
+        -------
+        MicroXsVector
+
+        """
+
+        zaiVec = numpy.asarray(zaiVec, dtype=int).copy()
+        if not isinstance(zaiVec[0], numbers.Integral):
+            raise TypeError(
+                "Vectors must be vectors of integer, zaiVec[0] "
+                "became {}".format(zaiVec[0]))
+
+        rxnVec = numpy.asarray(rxnVec, dtype=int).copy()
+        mxs = numpy.asarray(mxs).copy()
+
+        if zaiVec.shape != rxnVec.shape != mxs.shape:
+            raise ValueError(
+                "Shapes are inconsistent. ZAI: {}, rxn: {}, mxs: {}".format(
+                    zaiVec.shape, rxnVec.shape, mxs.shape))
 
         if not assumeSorted:
             sortIx = numpy.argsort(zaiVec)
@@ -38,12 +143,7 @@ class MicroXsVector:
 
         zptr.append(rxnVec.size)
 
-        return cls(
-            numpy.array(zai, dtype=int),
-            numpy.array(zptr, dtype=int),
-            rxnVec.copy(),
-            mxs.copy(),
-        )
+        return cls(numpy.array(zai), numpy.asarray(zptr), rxnVec, mxs)
 
     def __iter__(self):
         start = self.zptr[0]
@@ -66,7 +166,7 @@ class MicroXsVector:
     def __mul__(self, scalar):
         if not isinstance(scalar, numbers.Real):
             return NotImplemented
-        new = self.__class__(self.zai, self.zptr, self.rxns, self.mxs)
+        new = self.__class__(self.zai, self.zptr, self.rxns, self.mxs.copy())
         new *= scalar
         return new
 

@@ -94,6 +94,14 @@ def test_longform(microxsDict, expectedXsVectors, microXsInputs):
         nValues = allZ.count(z)
         assert mxsVector.zptr[ix + 1] - mxsVector.zptr[ix] == nValues, (z, nValues)
 
+    orig = mxsVector.mxs.copy()
+
+    mult = mxsVector * 2
+    assert mult.mxs == pytest.approx(orig * 2)
+    mult *= 2
+    assert mult.mxs == pytest.approx(orig * 4)
+    assert mxsVector.mxs == pytest.approx(orig)
+
 
 @pytest.mark.parametrize("grow", ["init", "insert", "push", "reversed"])
 def test_temporal(expectedXsVectors, grow):

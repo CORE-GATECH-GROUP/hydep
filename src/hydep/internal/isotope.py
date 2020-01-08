@@ -22,10 +22,71 @@ _GND_REG = re.compile(r"([A-z]+)([0-9]+)[_m]{0,2}([0-9]*)")
 
 
 class Isotope:
+    """Representation of a single isotope
+
+    It is intended that a single instance be used to represent
+    a unique isotope, e.g. all occurances of U235 should use
+    the same :class:`Isotope` instance. This reduces memory
+    consumption, as these classes are really data classes,
+    useful for reactions only.
+
+    Parameters
+    ----------
+    name : str
+        GND-name of this isotope, e.g. ``"U235"``,
+        ``"Am242_m1"``, etc.
+    z : Union[int, hydep.internal.ZaiTuple]
+        Isotope numeric identifier. If ``a`` and ``i`` are
+        not given, then this must be a complete identifier, e.g.
+        one of the following:
+
+        * int - Single integer representing the ZAI identifier,
+          e.g. ``922350``
+        * :class:`hydep.internal.ZaiTuple` -
+          triplet of ``(z, a, i)``, e.g. ``(92, 235, 0)``
+    a : Optional[int]
+        Integer reflecting the number of neutrons and protons
+        in the isotope
+    i : Optional[int]
+        Integer reflecting the metastable state of the isotope
+
+    Attributes
+    ----------
+    z : int
+        Number of protons
+    a : int
+        Number of neutrons
+    i : int
+        Metastable state
+    zai : int
+        Full ``zzaaai`` number - 922350 for U235
+    triplet : hydep.internal.ZaiTuple
+        Iterable with ``(z, a, i)`` attributes. The main test for
+        equality and sorting
+    name : str
+        Name of this isotope
+    decayModes : set of DecayTuple
+        If this isotope undergoes spontaneous decay, each entry
+        describes a mechanism, target, and branching ratio for
+        a unique mode
+    decayConstant : Union[float, None]
+        If this isotope decays, this quantity describes the decay
+        constant, or :math:`ln(2)/t_{1/2}``
+    reactions : set of ReactionTuple
+        Iterable describing the various neutron-induced
+        transmutation reactions this isotope can experience
+    fissionYields : hydep.internal.FissionYieldDistribution or None
+        If this isotope has fission yields, they will populate
+        a distribution here. Can be treated as a mapping
+        ``{energy : {zai : float}}`` for various product isotopes
+        at various neutron energies
+
+    """
 
     # TODO Find existing isotopes with __new__?
     # TODO Make this a dataclass? Python >= 3.7
-    __slots__ = ("_name", "_zai", "decayModes", "reactions", "decayConstant")
+    __slots__ = ("_name", "_zai", "decayModes", "reactions",
+                 "decayConstant", "fissionYields")
 
     def __init__(self, name, z, a=None, i=None):
         self._name = name
@@ -48,8 +109,10 @@ class Isotope:
                 raise ValueError("i: {}".format(i))
             self._zai = ZaiTuple(z, a, i)
 
+        self.decayConstant = None
         self.decayModes = set()
         self.reactions = set()
+        self.fissionYields = None
 
     def __le__(self, other):
         if isinstance(other, self.__class__):
@@ -123,6 +186,30 @@ class Isotope:
 
 
 def getIsotope(name=None, zai=None):
+    """Return an isotope given a name and/or its ZAI
+
+    Either ``name`` or ``zai`` must be given. If both are
+    given, then ``zai`` will be preferred. It is not
+    guaranteed that the :attr:`Isotope.name` will always
+    match if GND names, e.g. ``"U235"``, ``"Am241_m1"``
+    are not used.
+
+    Parameters
+    ----------
+    name : Optional[str]
+        Name of this isotope. If given as the only argument,
+        then will be parsed as a GND name of the form
+        ``(atomic symbol)(number of protons +
+        neutrons)[_m(metastable state)]``
+    zai : Optional[Union[int, Iterable[int]]]
+        Isotope numeric identifier. Can be a single integer
+        representing ``zzaaai`` value, e.g. 922350 for U235,
+        or an iterable of integers ``(z, a, i)``
+
+    Returns
+    -------
+    hydep.internal.Isotope
+    """
     assert (name is not None) != (zai is not None)
 
     if name is not None:
@@ -134,9 +221,10 @@ def getIsotope(name=None, zai=None):
     if isotope is not None:
         return isotope
 
-    name = SYMBOLS[zai.z] + str(zai.a)
-    if zai.i:
-        name += "_m{}".format(zai.i)
+    if name is None:
+        name = SYMBOLS[zai.z] + str(zai.a)
+        if zai.i:
+            name += "_m{}".format(zai.i)
 
     isotope = Isotope(name, zai)
     _ISOTOPES[zai] = isotope
@@ -160,6 +248,7 @@ def parseZai(zai):
     raise TypeError(
         "Unsupported type {} cannot be converted to ZAI. Expected {}, integer, "
         "or sequence or (Z, A, [I])".format(type(zai), ZaiTuple))
+
 
 def getZaiFromName(name):
     match = _GND_REG.match(name)

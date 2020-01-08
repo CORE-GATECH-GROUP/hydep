@@ -27,6 +27,7 @@ from hydep.internal import (
     parseZai,
     getIsotope,
     Isotope,
+    FissionYieldDistribution,
 )
 from hydep.internal.symbols import REACTION_MTS
 
@@ -34,6 +35,20 @@ __all__ = ["DepletionChain"]
 
 
 class DepletionChain(tuple):
+    """Representation of a depletion chain
+
+    Rather than create one directly, use :meth:`fromXml`.
+
+    Provides a ``tuple``-like interface by storing a
+    sequence of :class:`hydep.internal.Isotopes`. An easier
+    retrieve method is :meth:`find`, which can accept more
+    varied arguments.
+
+    Parameters
+    ----------
+    isotopes : iterable of hydep.internal.Isotope
+
+    """
     # TODO Some OpenMC compatibility layer?
     def __new__(cls, isotopes):
         return super(DepletionChain, cls).__new__(cls, sorted(isotopes))
@@ -42,6 +57,23 @@ class DepletionChain(tuple):
         self._indices = {isotope.zai: i for i, isotope in enumerate(self)}
 
     def __contains__(self, key):
+        """Search for an isotope that matches the argument
+
+        Parameters
+        ----------
+        key : str or Iterable[int] or hydep.internal.Isotope
+            Isotope that may or may not exist in this chain. Strings
+            represent isotope names, like ``"Xe135"`` or ``"Am242_m"``.
+            Integers are treated as ``ZAI`` identifiers of the form
+            ``ZZAAAI``, while a tuple or three-ple can be used to pass
+            ``(z, a)`` or ``(z, a, i)`` values, respectivley.
+
+        Returns
+        -------
+        bool
+            If an isotope that matches ``key`` was found
+
+        """
         if isinstance(key, str):
             key = getZaiFromName(key)
         elif isinstance(key, (Iterable, numbers.Integral)):
@@ -60,6 +92,18 @@ class DepletionChain(tuple):
 
     @classmethod
     def fromXml(cls, filePath):
+        """Construct a chain from an OpenMC XML file
+
+        Parameters
+        ----------
+        filePath : str
+            File path to be processed
+
+        Returns
+        -------
+        DepletionChain
+
+        """
         isotopes = set()
         ln2 = math.log(2)
 
@@ -120,9 +164,29 @@ class DepletionChain(tuple):
 
                     isotope.decayModes.add(dTuple)
 
+            fyElem = child.find("neutron_fission_yields")
+
+            if fyElem is not None:
+                isotope.fissionYields = FissionYieldDistribution.from_xml_element(fyElem)
+
         return cls(isotopes)
 
     def find(self, name=None, zai=None):
+        """Return an isotope from the chain
+
+        Parameters
+        ----------
+        name : Optional[str]
+            Name of the isotope, such as ``"Am241_m1"``
+        zai : Optional[Union[int, Iterable[int]]]
+            Isotope ZAI identifier, either as ``zzaaai``
+            or ``(z, a, i)``
+
+        Returns
+        -------
+        hydep.internal.Isotope
+
+        """
         assert (name is not None) != (zai is not None)
         try:
             index = self.index(name if zai is None else zai)
@@ -132,6 +196,22 @@ class DepletionChain(tuple):
         return self[index]
 
     def index(self, key):
+        """Return the index for the isotope that matches key
+
+        Parameters
+        ----------
+        key : Union[str, int, Iterable[int]]
+            Name of the isotope, integer ``zzaaai`` identifier,
+            or iterable ``(z, a, i)``
+
+        Returns
+        -------
+        int
+            Position in the chain such that
+            ``chain[chain.index(x)] is chain.find(x)`` for valid
+            isotope identifier ``x``
+
+        """
         if isinstance(key, Isotope):
             isotope = key
         elif isinstance(key, str):
@@ -173,10 +253,9 @@ class DepletionChain(tuple):
                 if rate is None:
                     continue
                 mtx[columnIndex, columnIndex] -= rate * reaction.branch
+
                 if reaction.mt == 18:  # fission
-                    yields = fissionYields.get(isotope.zai)
-                    if yields is None:
-                        continue
+                    yields = fissionYields.get(isotope.zai, {})
                     for product, fyield in yields.items():
                         rowIndex = ordering.get(product)
                         if rowIndex is None:

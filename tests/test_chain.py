@@ -53,5 +53,18 @@ def test_u5(simpleChain):
         assert rxn.Q == pytest.approx(expected.Q)
 
     assert not u5Reactions, "Mismatch in reactions. Missing {}".format(u5Reactions)
-
     assert u5.decayModes == u5DecayModes
+
+    assert len(u5.fissionYields) == 3
+    assert sorted(u5.fissionYields) == pytest.approx([0.0253, 5e5, 1.4e7])
+
+    products = tuple(sorted(getIsotope(name=name).zai
+                     for name in ("Y91", "Zr91", "Zr93", "Zr95", "Zr96")))
+    expYields = [
+        [0.0582783, 4.41969e-10, 0.0634629, 0.0650274, 0.0633924],
+        [0.0573342, 2.00998e-10, 0.06254, 0.0643197, 0.0620232],
+        [0.0482267, 1.84979e-07, 0.0519317, 0.0517353, 0.0520296]]
+    # all fission yields in this test chain are thermal
+    for ene, fydist in zip(sorted(u5.fissionYields), expYields):
+        assert u5.fissionYields[ene].products == products
+        assert u5.fissionYields[ene].yields == pytest.approx(fydist)

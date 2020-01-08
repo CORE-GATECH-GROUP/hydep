@@ -107,11 +107,11 @@ class TransportSolver(ABC):
         """
 
     def _solve(self) -> TransportResult:
+        success = True
         try:
             runTime = self.execute()
             res = self.processResults()
             res.runTime = runTime
-            success = True
         except Exception as ee:
             success = False
             raise ee
@@ -119,6 +119,16 @@ class TransportSolver(ABC):
             self.finalize(success)
 
         return res
+
+    def configure(self, config):
+        """Configure the solver
+
+        Parameters
+        ----------
+        config : :class:`configparser.ConfigParser`
+            Configuration object that has loaded in user settings,
+            either from a file, dictionary, or in memory.
+        """
 
 
 class HighFidelitySolver(TransportSolver):
@@ -137,25 +147,44 @@ class HighFidelitySolver(TransportSolver):
         """
 
     @abstractmethod
-    def bosUpdate(self, newComps, timestep) -> None:
+    def bosUpdate(self, compositions, timestep, power) -> None:
         """Perform any updating with new compositions
+
+        Assume that new materials have already been updated
+        in memory
 
         Parameters
         ----------
-        newComps : ??
-            New compositions for this point in time
-        time : float
+        compositions : hydep.internal.CompBundle
+            New compositions for this point in time such that
+            ``compositions.densities[i][j]`` is the updated
+            atom density for ``compositions.zai[j]`` for material
+            ``i``
+        timestep : hydep.internal.TimeStep
             Current point in calendar time for the beginning
             of this coarse step
-        step : int
-            Current coarse step index
+        power : float
+            Current power [W]
         """
 
-    def bosSolve(self, newComps, timestep) -> TransportResult:
+    def bosSolve(self, newComps, timestep, power) -> TransportResult:
         """Solve BOS transport and return results
 
         Relies upon :meth:`bosUpdate`, :meth:`bosExecute`,
         :meth:`bosProcessResults` and :meth:`bosFinalize`
+
+        Parameters
+        ----------
+        compositions : hydep.internal.CompBundle
+            New compositions for this point in time such that
+            ``compositions.densities[i][j]`` is the updated
+            atom density for ``compositions.zai[j]`` for material
+            ``i``
+        timestep : hydep.internal.TimeStep
+            Current point in calendar time for the beginning
+            of this coarse step
+        power : float
+            Current power [W]
 
         Returns
         -------
@@ -164,7 +193,7 @@ class HighFidelitySolver(TransportSolver):
             is computed from :meth:`bosExecute`. Additional data
             should be included corresponding to hooks
         """
-        self.bosUpdate(newComps, timestep)
+        self.bosUpdate(newComps, timestep, power)
         return super()._solve()
 
     @abstractmethod
@@ -226,24 +255,22 @@ class ReducedOrderSolver(TransportSolver):
         """Features needed by this reduced order solver"""
 
     @abstractmethod
-    def substepUpdate(self, txResult, timestep) -> None:
+    def substepUpdate(self, txResult, timestep, power) -> None:
         """Process information from latest transport result
 
         Parameters
         ----------
         txResult : hydep.TransportResult
             Result from latest high fidelity solution **or** reduced
-            order solution. If ``substep == 0``, then ``txResult``
+            order solution. If ``timestep.substep == 0``, then ``txResult``
             will come from high fidelity solution
-        time : float
-            Current point in calendar time [d]
-        step : int
-            Current coarse step index
-        substep : int
-            Current substep index
+        timestep : hydep.internal.TimeStep
+            Time step information
+        power : float
+            Current power [W]
         """
 
-    def substepSolve(self, txResult, timestep) -> TransportResult:
+    def substepSolve(self, txResult, timestep, power) -> TransportResult:
         """Solve reduced order problem at a substep using previous results
 
         This method relies upon :meth:`substepUpdate`, :meth:`execute`,
@@ -253,13 +280,11 @@ class ReducedOrderSolver(TransportSolver):
         ----------
         txResult : hydep.TransportResult
             Result from previous solution. Will correspond to a high fidelity
-            solution if ``substep == 0``.
-        time : float
-            Current point in calendar time [d]
-        step : int
-            Current coarse step index
-        substep : int
-            Current substep index
+            solution if ``timestep.substep == 0``.
+        timestep : hydep.internal.TimeStep
+            Current time step
+        power : float
+            Current power [W]
 
         Returns
         -------
@@ -267,5 +292,5 @@ class ReducedOrderSolver(TransportSolver):
             At least flux, keff, and run time for this substep solution
 
         """
-        self.substepUpdate(txResult, timestep)
+        self.substepUpdate(txResult, timestep, power)
         return super()._solve()
