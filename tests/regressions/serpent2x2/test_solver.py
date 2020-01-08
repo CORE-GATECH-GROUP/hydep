@@ -50,6 +50,7 @@ def serpentSolver(tmpdir):
         solver.finalize(True)
 
 
+@pytest.mark.serpent
 def test_serpentSolver(serpentSolver, serpentModel):
     model = serpentModel.model
     burnable = serpentModel.burnable

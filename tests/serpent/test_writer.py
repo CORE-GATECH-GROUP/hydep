@@ -28,6 +28,7 @@ mat 4 -0.7405000
 REF_DEFS = {"fuel32": REF_FUEL, "water": REF_WATER}
 
 
+@pytest.mark.serpent
 @pytest.mark.parametrize("material", ("fuel32", "water"))
 def test_materials(beavrsMaterials, material):
     mat = beavrsMaterials[material]
@@ -41,6 +42,7 @@ def test_materials(beavrsMaterials, material):
     assert strcompare(reference, written)
 
 
+@pytest.mark.serpent
 def test_writePlainPin(beavrsInstrumentTube):
     writer = hydep.serpent.SerpentWriter()
     stream = io.StringIO()
@@ -59,6 +61,7 @@ pin p{}
     assert strcompare(reference, written)
 
 
+@pytest.mark.serpent
 def test_writeFuelPin(beavrsFuelPin):
     writer = hydep.serpent.SerpentWriter()
     stream = io.StringIO()
@@ -79,6 +82,7 @@ cell 1_r3 p1 4 1_r2
     assert strcompare(reference, written)
 
 
+@pytest.mark.serpent
 def test_writeInfMaterial(beavrsMaterials):
     reference = """% Infinite region filled with {name}
 surf inf1 inf

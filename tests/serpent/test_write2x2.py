@@ -3,11 +3,13 @@
 import pathlib
 import io
 
+import pytest
 import hydep
 import hydep.serpent
 from tests.serpent import filecompare
 
 
+@pytest.mark.serpent
 def test_write2x2(serpentcfg, beavrsFuelPin, beavrsControlPin, beavrsGuideTube):
     template = [[0, 0], [1, 2]]
     fill = {0: beavrsFuelPin, 1: beavrsGuideTube, 2: beavrsControlPin}
