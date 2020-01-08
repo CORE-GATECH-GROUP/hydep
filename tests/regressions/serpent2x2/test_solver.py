@@ -86,10 +86,4 @@ def test_serpentSolver(serpentSolver, serpentModel):
     res = serpentSolver.processResults()
 
     tester = ResultComparator(pathlib.Path(__file__).parent)
-
-    if config.get("update"):
-        tester.update(res)
-        return
-
-    failures = tester.compare(res)
-    assert not failures
+    tester.main(res)

@@ -38,6 +38,34 @@ class ResultComparator:
         """Retrive a reference or failure file for a given test quantity"""
         return self.datadir / "{}_{}.txt".format(qty, status)
 
+    def main(self, txresult):
+        """Main entry point for updating or running test
+
+        Parameters
+        ----------
+        txresult : hydep.internal.TransportResult
+            Transport result from test. Will either be used to
+            update reference data, or test against previous reference
+            data.
+
+        Returns
+        -------
+        bool
+            Status of update or test
+
+        Raises
+        ------
+        AssertionError
+            If the comparison failed
+
+        """
+        if config.get("update"):
+            self.update(txresult)
+        else:
+            failures = self.compare(txresult)
+            assert not failures, failures
+        return True
+
     def update(self, txresult):
         """Update the reference files based on a new transport result"""
         self.updateKeff(txresult.keff)
