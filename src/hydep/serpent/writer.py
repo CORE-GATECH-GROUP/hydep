@@ -136,11 +136,15 @@ class SerpentWriter:
         stream.write("set bc")
         for value in self.options.get("bc", [1]):
             stream.write(" " + str(value))
+        stream.write("\n")
 
-        stream.write("""\n% Hard set one group [0, 20] MeV for all data
+        seed = self.options.get("seed")
+        if seed is not None:
+            stream.write("set seed {}\n".format(seed))
+
+        stream.write("""% Hard set one group [0, 20] MeV for all data
 ene {grid} 2 1 0 20
 set nfg {grid}""".format(grid=self._eneGridName))
-        stream.write("\n")
 
     def _writematerials(self, stream):
         self.commentblock(stream, "BEGIN MATERIAL BLOCK")
@@ -443,6 +447,12 @@ cell {writeas} {writeas} {mid} -{writeas}
 
         if level == 0:
             return
+
+        # Just Monte Carlo settings
+
+        seed = section.getint("random seed")
+        if seed is not None:
+            self.options["seed"] = seed
 
         for key in [
             "particles",
