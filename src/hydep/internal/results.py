@@ -168,10 +168,14 @@ class TransportResult:
             return
 
         if not isinstance(value, Sequence):
-            raise TypeError("microXS must be sequence of MicroXSVector not {}".format(
-                type(value)))
+            raise TypeError(
+                "microXS must be sequence of MicroXSVector not {}".format(type(value))
+            )
         for item in value:
             if not isinstance(item, MicroXsVector):
-                raise TypeError("microXS must be sequence of {}, found {}".format(
-                    type(item)))
+                raise TypeError(
+                    "microXS must be sequence of MicroXSVector, found {}".format(
+                        type(item)
+                    )
+                )
         self._microXS = value
