@@ -52,6 +52,7 @@ class SerpentSolver(hydep.HighFidelitySolver):
 
     @hooks.setter
     def hooks(self, value):
+        # TODO Guard against hooks that aren't supported
         if not isinstance(value, hdfeat.FeatureCollection):
             raise TypeError("Hooks must be {}, not {}".format(
                 hdfeat.FeatureCollection.__name__, type(value)))

@@ -144,7 +144,8 @@ class SerpentWriter:
 
         stream.write("""% Hard set one group [0, 20] MeV for all data
 ene {grid} 2 1 0 20
-set nfg {grid}""".format(grid=self._eneGridName))
+set nfg {grid}
+""".format(grid=self._eneGridName))
 
     def _writematerials(self, stream):
         self.commentblock(stream, "BEGIN MATERIAL BLOCK")
