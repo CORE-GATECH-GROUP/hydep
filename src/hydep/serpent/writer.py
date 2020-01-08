@@ -273,16 +273,11 @@ set nfg {grid}
         stream.write("\n")
         return writeas
 
-    @staticmethod
-    def _getPinRadiusID(pin, ix):
-        # TODO Convert to a class attribute and formatter?
-        return "{}_r{}".format(pin.id, ix)
-
     def _writeburnablepin(self, stream, pin, writeas):
         # TODO Write a single surface for each unique radius?
         surfaces = deque(maxlen=2)  # [lower surf, outer surf]
         for ix, (r, m) in enumerate(pin):
-            surfaces.append(self._getPinRadiusID(pin, ix))
+            surfaces.append("{}_r{}".format(pin.id, ix))
             if isinstance(m, hydep.BurnableMaterial):
                 # Write an infinite universe of this material
                 stream.write("""surf {surf}_i inf
