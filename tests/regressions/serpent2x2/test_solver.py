@@ -57,7 +57,9 @@ def test_serpentSolver(serpentSolver, serpentModel):
 
     # Set hooks for slightly realistic problem
     XS_KEYS = {"abs", "fiss"}
-    hooks = hdfeat.FeatureCollection({hdfeat.HOMOG_LOCAL}, XS_KEYS)
+    hooks = hdfeat.FeatureCollection(
+        {hdfeat.HOMOG_LOCAL, hdfeat.FISSION_MATRIX}, XS_KEYS
+    )
 
     serpentSolver.setHooks(hooks)
 
