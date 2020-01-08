@@ -274,7 +274,6 @@ set nfg {grid}
         return writeas
 
     def _writeburnablepin(self, stream, pin, writeas):
-        # TODO Write a single surface for each unique radius?
         surfaces = deque(maxlen=2)  # [lower surf, outer surf]
         for ix, (r, m) in enumerate(pin):
             surfaces.append("{}_r{}".format(pin.id, ix))

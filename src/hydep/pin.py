@@ -45,7 +45,6 @@ class Pin(Universe):
 
     """
     outer = TypedAttr("outer", Material)
-    # TODO Positivity and non-decreasing checks for radii
     radii = IterableOf("radii", numbers.Real)
     materials = IterableOf("materials", Material)
 

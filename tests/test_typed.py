@@ -17,7 +17,6 @@ class Typed:
 
 def test_typed():
     """Test for the internal type-helpers"""
-    # TODO Parametrize?
     # Yay for dynamic languages!
 
     t = Typed()
@@ -82,7 +81,6 @@ def test_badBounded():
     with pytest.raises(AssertionError, match="ge_and_gt"):
         htypes.BoundedTyped("ge_and_gt", numbers.Real, ge=0.0, gt=1e-5)
 
-    # TODO Parametrize?
     b = Bounded()
     for attr, value in [
         ["lower", 0.5],

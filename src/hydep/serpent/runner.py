@@ -113,7 +113,6 @@ class SerpentRunner:
             raise IOError("Input file {} does not exist".format(inputpath))
 
         cmd = self.makeCmd() + [inputpath]
-        # TODO Better logging / verbosity control
         proc = subprocess.run(cmd, capture_output=True)
         if proc.returncode:
             msg = proc.stdout[-500:].decode() # TODO Improve error parsing
