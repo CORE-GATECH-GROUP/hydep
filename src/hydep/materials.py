@@ -4,7 +4,7 @@ from collections.abc import Mapping, Iterable
 import numpy
 
 from hydep.typed import TypedAttr, BoundedTyped
-from hydep.internal import Isotope, ZaiTuple, getIsotope, TemporalMicroXs
+from hydep.internal import Isotope, ZaiTuple, getIsotope
 from hydep.internal.registry import register, unregister
 
 
@@ -229,16 +229,12 @@ class BurnableMaterial(Material):
     id : int
         A unique postive identifier for this material out of all
         :class:`hydep.Material`
-    microxs : hydep.internal.TemporalMicroXs or None
-        Container for microscopic cross sections over time
     index : Optional[int]
         Non-negative index for this material out of all
         :class:`hydep.BurnableMaterial` instances in a given
         :class:`hydep.Model`. Only allowed to be set once.
 
     """
-
-    microxs = TypedAttr("microxs", TemporalMicroXs, allowNone=True)
 
     def __init__(
         self, name, adens=None, mdens=None, temperature=None, volume=None, **nucs
