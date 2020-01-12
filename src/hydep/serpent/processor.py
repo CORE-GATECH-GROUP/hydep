@@ -8,6 +8,7 @@ from functools import wraps
 import serpentTools
 
 from hydep.internal import TransportResult, MicroXsVector, FakeSequence
+from hydep.constants import CM2_PER_BARN
 from .fmtx import parseFmtx
 from hydep.internal import allIsotopes
 
@@ -431,7 +432,8 @@ class SerpentProcessor:
                 # TODO Metastable
                 m.append(xs)
 
-            out.append(MicroXsVector.fromLongFormVectors(z, r, m, assumeSorted=False))
+            xsInBarn = MicroXsVector.fromLongFormVectors(z, r, m, assumeSorted=False)
+            out.append(xsInBarn * CM2_PER_BARN)
 
         return out
 
