@@ -241,7 +241,7 @@ class TemporalMicroXs:
         self.time.insert(ix, time)
         self.mxs.insert(ix, mxs)
 
-    def push(self, time, mxs):
+    def append(self, time, mxs):
         self.time.append(time)
         self.mxs.append(mxs)
 

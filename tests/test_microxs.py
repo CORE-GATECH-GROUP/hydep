@@ -103,7 +103,7 @@ def test_longform(microxsDict, expectedXsVectors, microXsInputs):
     assert mxsVector.mxs == pytest.approx(orig)
 
 
-@pytest.mark.parametrize("grow", ["init", "insert", "push", "reversed"])
+@pytest.mark.parametrize("grow", ["init", "insert", "append", "reversed"])
 def test_temporal(expectedXsVectors, grow):
     time = [0, 1]
     mxs = expectedXsVectors.mxs, expectedXsVectors.mxs * 2
@@ -126,7 +126,7 @@ def test_temporal(expectedXsVectors, grow):
         )
         for t, m in zip(time, mxs):
             tMxs.insert(t, m)
-    elif grow == "push":
+    elif grow == "append":
         tMxs = TemporalMicroXs(
             expectedXsVectors.zai,
             expectedXsVectors.zptr,
@@ -134,7 +134,7 @@ def test_temporal(expectedXsVectors, grow):
             order=1,
         )
         for t, m in zip(time, mxs):
-            tMxs.push(t, m)
+            tMxs.append(t, m)
     elif grow == "reversed":
         tMxs = TemporalMicroXs(
             expectedXsVectors.zai,
