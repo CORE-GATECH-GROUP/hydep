@@ -344,13 +344,19 @@ class SerpentProcessor:
         detector = self.read(detectorfile, "det")[name]
         tallies = detector.tallies
 
-        if "universe" not in detector.indexes:
+        if not detector.indexes:
+            # Not uniquely binned quantities -> must be a single tallies quantity
+            if tallies.size == 1:
+                return tallies.reshape((1, 1))
+            raise ValueError("Tally with bins but no indexes found")
+
+        elif "universe" not in detector.indexes:
             raise ValueError(
                 "Detector {} does not appear to be binned against "
                 "universes. Indexes: {}".format(detector.name, detector.indexes)
             )
 
-        elif detector.indexes == ("universe",):
+        if detector.indexes == ("universe",):
             if tallies.size != len(self.burnable):
                 raise ValueError(
                     "Detector {} has {} tallies, expected {} for burnable "
