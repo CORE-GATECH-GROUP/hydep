@@ -188,6 +188,3 @@ c48_alpha0 = 2.258038182743983e-47
 Cram48Solver = IPFCramSolver(c48_alpha, c48_theta, c48_alpha0)
 
 del c48_alpha, c48_alpha0, c48_theta, alpha_r, alpha_i, theta_r, theta_i
-
-print("16", hex(id(Cram16Solver)))
-print("48", hex(id(Cram48Solver)))
