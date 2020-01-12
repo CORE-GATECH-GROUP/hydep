@@ -6,6 +6,7 @@ from .isotope import (
     ReactionTuple,
     DecayTuple,
     parseZai,
+    allIsotopes
 )
 from .timestep import TimeStep
 from .results import TransportResult

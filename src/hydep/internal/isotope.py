@@ -7,7 +7,7 @@ from .symbols import NUMBERS, SYMBOLS
 
 __all__ = [
     "ZaiTuple", "getIsotope", "getZaiFromName", "Isotope", "ReactionTuple",
-    "DecayTuple", "parseZai",
+    "DecayTuple", "parseZai", "allIsotopes",
 ]
 
 ZaiTuple = namedtuple("ZaiTuple", "z a i")
@@ -259,3 +259,8 @@ def getZaiFromName(name):
     a = int(a)
     i = int(i) if i else 0
     return ZaiTuple(z, a, i)
+
+
+def allIsotopes():
+    """Return iterator for all isotopes"""
+    return _ISOTOPES.values()
