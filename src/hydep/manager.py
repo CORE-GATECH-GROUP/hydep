@@ -5,7 +5,7 @@ Control time-steps, material divisions, depletion, etc
 """
 
 import numbers
-from collections.abc import Sequence
+from collections.abc import Sequence, Iterable
 from itertools import repeat
 
 import numpy
@@ -13,6 +13,7 @@ import numpy
 from hydep import BurnableMaterial, DepletionChain
 from hydep.constants import SECONDS_PER_DAY
 from hydep.typed import TypedAttr, IterableOf
+from hydep.internal import TemporalMicroXs, MicroXsVector
 from hydep.internal.features import FeatureCollection, MICRO_REACTION_XS, FISSION_YIELDS
 
 
@@ -63,6 +64,9 @@ class Manager:
         sections in each burnable material, as well as the flux.
     """
 
+    _nExtrapSteps = 3  # TODO Make this configurable
+
+    # TODO Make depletion chain configurable property
     chain = TypedAttr("chain", DepletionChain)
     _burnable = IterableOf("burnable", BurnableMaterial, allowNone=True)
 
@@ -93,6 +97,7 @@ class Manager:
                     "not {}".format(len(self.timesteps), numPreliminary)
                 )
             self._nprelim = numPreliminary
+        self._microxsVector = None
 
     def _validatePowers(self, power):
         if isinstance(power, numbers.Real):
@@ -184,12 +189,72 @@ class Manager:
 
         self._burnable = burnable
 
+    # TODO don't use numberKeep, just store all of them.
+    # Pass control to whatever is calling this
+    def setMicroXS(self, mxs, times, numberKeep=None, polyorder=3):
+        """Construct the initial microscopic cross section storage
 
-    def pushResults(self, time, results):
-        pass
+        Parameters
+        ----------
+        mxs : Iterable[hydep.internal.MicroXsVector]
+            Initial set of cross sections to store
+        times : Iterable[float]
+            Points in calendar time at which the cross sections
+            were generated
+        numberKeep : Optional[int]
+            Store only N values
+        polyOrder : Optional[int]
+            Fitting order
 
-    def deplete(self, time):
-        pass
+        """
+        if not isinstance(mxs, Iterable):
+            raise TypeError(
+                "mxs must be Iterable of {}, not {}".format(
+                    MicroXsVector.__name__, type(mxs)
+                )
+            )
 
-    def beforeROM(self, time):
-        pass
+        if not isinstance(times, Iterable):
+            raise TypeError(
+                "times must be Iterable of real, not {}".format(type(times))
+            )
+
+        if len(times) != len(mxs):
+            raise ValueError(
+                "Number of time points {} not equal to number of cross "
+                "sections {}".format(len(times), len(mxs))
+            )
+
+        assert isinstance(polyorder, numbers.Integral) and polyorder >= 0
+
+        if numberKeep is not None:
+            assert polyorder < numberKeep
+            if not isinstance(numberKeep, numbers.Integral):
+                raise TypeError("Number of steps to keep must be integer")
+            elif 0 > numberKeep:
+                raise ValueError("Number of steps to keep must be positive")
+            mxs = mxs[-numberKeep:]
+            times = times[-numberKeep:]
+
+        self._microXS = self._makeMicroXS(mxs, times, numberKeep, polyorder)
+
+    @staticmethod
+    def _makeMicroXS(mxs, times, maxSteps, polyorder):
+        out = []
+
+        # Is it better to create and append all TemporalMicroXs,
+        # then insert, or create them one material at a time,
+        # adding all time information, then append?
+
+        for microvector in mxs[0]:
+            out.append(
+                TemporalMicroXs.fromMicroXSVector(
+                    microvector, times[0], maxlen=maxSteps, order=polyorder
+                )
+            )
+
+        for time, vectors in zip(times[1:], mxs[1:]):
+            for tvector, microvector in zip(out, vectors):
+                tvector.append(time, microvector.mxs)
+
+        return tuple(out)
