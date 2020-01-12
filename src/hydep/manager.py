@@ -11,6 +11,7 @@ from itertools import repeat
 import numpy
 
 from hydep import BurnableMaterial, DepletionChain
+from hydep.constants import SECONDS_PER_DAY
 from hydep.typed import TypedAttr, IterableOf
 from hydep.internal.features import FeatureCollection, MICRO_REACTION_XS, FISSION_YIELDS
 
@@ -71,7 +72,7 @@ class Manager:
         daysteps = numpy.asarray(daysteps, dtype=float)
         if len(daysteps.shape) > 1:
             raise TypeError("Day steps must be vector, not array")
-        self.timesteps = tuple(daysteps * 86400)
+        self.timesteps = tuple(daysteps * SECONDS_PER_DAY)
 
         self.powers = tuple(self._validatePowers(power))
 
@@ -83,11 +84,14 @@ class Manager:
             if not isinstance(numPreliminary, numbers.Integral):
                 raise TypeError(
                     "Non-integer preliminary steps not allowed: {}".format(
-                        type(numPreliminary)))
+                        type(numPreliminary)
+                    )
+                )
             elif not (0 <= numPreliminary < len(self.timesteps)):
                 raise ValueError(
                     "Number of preliminary steps must be between [0, {}), "
-                    "not {}".format(len(self.timesteps), numPreliminary))
+                    "not {}".format(len(self.timesteps), numPreliminary)
+                )
             self._nprelim = numPreliminary
 
     def _validatePowers(self, power):
@@ -99,17 +103,21 @@ class Manager:
             if len(power) != len(self.timesteps):
                 raise ValueError(
                     "Number of powers {} differ from steps {}".format(
-                        len(power), len(self.timesteps)))
+                        len(power), len(self.timesteps)
+                    )
+                )
             for p in power:
                 if not isinstance(p, numbers.Real) or p <= 0:
                     raise TypeError(
                         "Power must be positive real, or vector of positive real. "
-                        "Found {}".format(p))
+                        "Found {}".format(p)
+                    )
             return power
         else:
             raise TypeError(
                 "Power must be positive real, or vector of positive real, "
-                "not {}".format(type(power)))
+                "not {}".format(type(power))
+            )
 
     @property
     def burnable(self):
@@ -176,9 +184,6 @@ class Manager:
 
         self._burnable = burnable
 
-    def checkCompatibility(self, hf):
-        # Check for compatibility with high fidelity solver
-        pass
 
     def pushResults(self, time, results):
         pass
