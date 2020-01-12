@@ -25,6 +25,7 @@ Serpent
 * Control over ace, decay, and nfy libraries
 * Get microscopic cross sections without second transport simulation
 * Improved parsing of error at output
+* Pull and check model.bounds, not model.root.bounds
 
 Caveats
 =======

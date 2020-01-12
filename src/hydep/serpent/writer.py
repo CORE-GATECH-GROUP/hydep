@@ -219,6 +219,7 @@ set nfg {grid}
     def _writegeometry(self, stream):
         self.commentblock(stream, "BEGIN GEOMETRY BLOCK")
         rootid = self.writeUniverse(stream, self.model.root, {})
+        # TODO Pull bounds from model if given
         self._writecellbounds(stream, self.model.root, rootid, 0)
 
     def writeUniverse(self, stream, u, memo):
@@ -480,6 +481,8 @@ cell {writeas} {writeas} {mid} -{writeas}
                 stream.write("\n")
             else:
                 stream.write(delim)
+        else:
+            return
         if count % self._groupby != 0:
             stream.write("\n")
 
@@ -509,7 +512,7 @@ cell {writeas} {writeas} {mid} -{writeas}
     def _writeFluxDetectors(self, stream):
         self.commentblock(stream, "BEGIN FLUX DETECTORS")
         stream.write("det flux de {}\n".format(self._eneGridName))
-        lines = map("du {}", (m.id for m in self.burnable))
+        lines = map("du {}".format, (m.id for m in self.burnable))
         self._writeIterableOverLines(stream, lines)
 
     def _writelocalmicroxs(self, stream):
