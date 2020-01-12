@@ -212,6 +212,30 @@ class TemporalMicroXs:
                 self.time = collections.deque(time, maxlen)
                 self.mxs = collections.deque(mxs, maxlen)
 
+    @classmethod
+    def fromMicroXsVector(cls, mxsVector, time, maxlen=3, order=1):
+        """Construct given a single set of cross sections
+
+        Parameters
+        ----------
+        mxsVector : MicroXsVector
+            Set of cross sections to be treated as starting data
+        time : float
+            Point in time at which these cross section were generated
+        maxlen : Optional[int]
+            Maximum number of points to create space for on the
+            outgoing object. Defaults to three
+        order : Optional[int]
+            Fitting order
+
+        Returns
+        -------
+        TemporalMicroXs
+
+        """
+        return cls(mxsVector.zai, mxsVector.zptr, mxsVector.rxns,
+                   mxs=(mxsVector.mxs, ), time=(time, ), maxlen=maxlen, order=order)
+
     def insert(self, time, mxs):
         ix = bisect.bisect_left(self.time, time)
         self.time.insert(ix, time)
