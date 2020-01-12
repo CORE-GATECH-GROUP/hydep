@@ -28,6 +28,7 @@ from hydep.internal import (
     getIsotope,
     Isotope,
     FissionYieldDistribution,
+    MicroXsVector
 )
 from hydep.internal.symbols import REACTION_MTS
 
@@ -227,10 +228,10 @@ class DepletionChain(tuple):
             key, self.__class__.__name__))
 
     def formMatrix(self, reactionRates, fissionYields, ordering=None):
-        assert isinstance(reactionRates, hydep.MicroXsVector)
+        assert isinstance(reactionRates, MicroXsVector)
 
         mtx = defaultdict(float)
-        indices = {isotope.zai: i for i, isotope in enumerate(self)}
+        indices = self._indices
         if ordering is None:
             ordering = indices
 
@@ -277,8 +278,10 @@ class DepletionChain(tuple):
                     if decay.target is None:
                         continue
                     rowIndex = ordering.get(decay.target.zai)
+                    if rowIndex is None:
+                        continue
                     mtx[rowIndex, columnIndex] += isotope.decayConstant * decay.branch
 
         dok = dok_matrix((len(ordering), ) * 2, dtype=reactionRates.mxs.dtype)
-        dok.update(mtx)
+        dict.update(dok, mtx)
         return dok.tocsr()
