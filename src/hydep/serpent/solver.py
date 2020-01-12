@@ -196,11 +196,16 @@ class SerpentSolver(hydep.HighFidelitySolver):
             fluxes = self._processor.processDetectorFluxes(base + "_det0.m", "flux")
             res = TransportResult(fluxes, keff)
 
-        if self.hooks and hdfeat.FISSION_MATRIX in self.hooks:
-            res.fmtx = self._processor.processFmtx(base + "_fmtx0.m")
+        if not self.hooks:
+            return res
 
-        if self.hooks and hdfeat.MICRO_REACTION_XS in self.hooks:
-            res.microXS = self._processor.processMicroXS(base + "_mdx0.m")
+        for feature in self.hooks.features:
+            if feature is hdfeat.FISSION_MATRIX:
+                res.fmtx = self._processor.processFmtx(base + "_fmtx0.m")
+            elif feature is hdfeat.MICRO_REACTION_XS:
+                res.microXS = self._processor.processMicroXS(base + "_mdx0.m")
+            elif feature is hdfeat.FISSION_YIELDS:
+                res.fissionYields = self._processor.processFissionYields()
 
         return res
 
