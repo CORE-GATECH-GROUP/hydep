@@ -65,15 +65,33 @@ class TransportResult:
 
     """
 
-    __slots__ = ("_flux", "_keff", "_runTime", "_macroXS", "_fmtx", "_microXS")
+    __slots__ = (
+        "_flux",
+        "_keff",
+        "_runTime",
+        "_macroXS",
+        "_fmtx",
+        "_microXS",
+        "_fissionYields",
+    )
 
-    def __init__(self, flux, keff, runTime=None, macroXS=None, fmtx=None, microXS=None):
+    def __init__(
+        self,
+        flux,
+        keff,
+        runTime=None,
+        macroXS=None,
+        fmtx=None,
+        microXS=None,
+        fissionYields=None,
+    ):
         self.flux = flux
         self.keff = keff
         self.runTime = runTime
         self.macroXS = macroXS
         self.fmtx = fmtx
         self.microXS = microXS
+        self.fissionYields = fissionYields
 
     @property
     def flux(self):
@@ -154,7 +172,8 @@ class TransportResult:
         if len(array.shape) != 2 or array.shape[0] != array.shape[1]:
             raise ValueError(
                 "Fission matrix must be set with a square 2D array, "
-                "got {}".format(array.shape))
+                "got {}".format(array.shape)
+            )
         self._fmtx = array
 
     @property
@@ -179,3 +198,28 @@ class TransportResult:
                     )
                 )
         self._microXS = value
+
+    @property
+    def fissionYields(self):
+        return self._fissionYields
+
+    @fissionYields.setter
+    def fissionYields(self, value):
+        if value is None:
+            self._fissionYields = None
+            return
+
+        if not isinstance(value, Sequence):
+            raise TypeError(
+                "fissionYields must be sequence of FissionYield not {}".format(
+                    type(value)
+                )
+            )
+        for item in value:
+            if not isinstance(item, Mapping):
+                raise TypeError(
+                    "fissionYields must be sequence of zai: FissionYield found {}".format(
+                        type(item)
+                    )
+                )
+        self._fissionYields = value
