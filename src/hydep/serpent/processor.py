@@ -5,11 +5,11 @@ import warnings
 import copy
 from functools import wraps
 
-import numpy
 import serpentTools
 
-from hydep.internal import TransportResult, MicroXsVector
+from hydep.internal import TransportResult, MicroXsVector, FakeSequence
 from .fmtx import parseFmtx
+from hydep.internal import allIsotopes
 
 
 __all__ = ["SerpentProcessor"]
@@ -75,6 +75,12 @@ class SerpentProcessor:
             "xs.getB1XS": False,
         },
         "microxs": {"microxs.getFlx": False},
+        "fission yield energy": 0.0253,
+    }
+    fissionYieldEnergies = {
+        "thermal": 0.0253,
+        "epithermal": 5.0e5,
+        "fast": 14e6,
     }
 
     def __init__(self, burnable=None):
@@ -278,7 +284,8 @@ class SerpentProcessor:
         if data.universes != self.burnable:
             raise ValueError(
                 "Universes are not ordered like burnable. May need to "
-                "reshuffle - TBD")
+                "reshuffle - TBD"
+            )
         return data.matrix
 
     def configure(self, section):
@@ -291,6 +298,8 @@ class SerpentProcessor:
         * ``useB1XS`` [boolean] - Pull cross sections from the
           B1 / critical leakage cross sections, e.g. ``"B1_ABS"``.
           Otherwise use infinite medium cross sections
+        * ``fission yield energy`` {thermal, epithermal, fast} - Which energy
+           group to use when pulling fission yields. Default is thermal
 
         Parameters
         ----------
@@ -300,7 +309,8 @@ class SerpentProcessor:
 
         """
 
-        self.options = copy.deepcopy(self.__class__.options)
+        if self.options is self.__class__.options:
+            self.options = copy.deepcopy(self.__class__.options)
 
         version = section.get("version")
 
@@ -309,8 +319,10 @@ class SerpentProcessor:
 
         if version is not None:
             if version not in {"2.1.31", "2.1.30", "2.1.29"}:
-                raise ValueError("Serpent version {} must be one of "
-                                 "2.1.[29|30|31]".format(version))
+                raise ValueError(
+                    "Serpent version {} must be one of "
+                    "2.1.[29|30|31]".format(version)
+                )
             self.options["results"]["serpentVersion"] = version
 
         useB1 = section.getboolean("useB1XS")
@@ -318,6 +330,20 @@ class SerpentProcessor:
         if useB1 is not None:
             self.options["results"]["xs.getInfXS"] = False
             self.options["results"]["xs.getB1XS"] = True
+
+        # TODO Document fission yield methodology
+        # TODO Improve this to be more problem-generic
+        fyEnergy = section.get("fission yield energy")
+        if fyEnergy is not None:
+            ene = self.fissionYieldEnergies.get(fyEnergy)
+            if ene is not None:
+                self.options["fission yield energy"] = ene
+            else:
+                raise ValueError(
+                    "Fission yield energy must be {}, not {}".format(
+                        ", ".join(sorted(self.fissionYieldEnergies)), fyEnergy
+                    )
+                )
 
     @requireBurnable
     def processDetectorFluxes(self, detectorfile, name):
@@ -408,3 +434,21 @@ class SerpentProcessor:
             out.append(MicroXsVector.fromLongFormVectors(z, r, m, assumeSorted=False))
 
         return out
+
+    @requireBurnable
+    def processFissionYields(self):
+        """Take fission yields for all isotopes"""
+        # TODO Properly consider space, energy in fission yields
+        # e.g. like how openmc.deplete provides a few options
+
+        allYields = {}
+        fyEne = self.options["fission yield energy"]
+
+        for isotope in allIsotopes():
+            if isotope.fissionYields is None:
+                continue
+            isoYields = isotope.fissionYields.get(fyEne)
+            if isoYields is None:
+                isoYields = isotope.fissionYields.at(0)
+            allYields[isotope.zai] = isoYields
+        return FakeSequence(allYields, len(self.burnable))

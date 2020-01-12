@@ -5,6 +5,7 @@ Big open items
 * SFV solver
 * Storing of results in a nice framework
 * Documentation outside of docstrings
+* Non-constant fission yields
 
 TODOs
 =====
