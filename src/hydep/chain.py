@@ -264,10 +264,11 @@ class DepletionChain(tuple):
 
                 elif reaction.target is None:
                     continue
-                rowIndex = ordering.get(reaction.target.triplet)
-                if rowIndex is None:
-                    continue
-                mtx[rowIndex, columnIndex] += rate * reaction.branch
+                else:
+                    rowIndex = ordering.get(reaction.target.zai)
+                    if rowIndex is None:
+                        continue
+                    mtx[rowIndex, columnIndex] += rate * reaction.branch
 
             if isotope.decayModes:
                 mtx[columnIndex, columnIndex] -= isotope.decayConstant
@@ -275,7 +276,7 @@ class DepletionChain(tuple):
                 for decay in isotope.decayModes:
                     if decay.target is None:
                         continue
-                    rowIndex = ordering.get(decay.target.triplet)
+                    rowIndex = ordering.get(decay.target.zai)
                     mtx[rowIndex, columnIndex] += isotope.decayConstant * decay.branch
 
         dok = dok_matrix((len(ordering), ) * 2, dtype=reactionRates.mxs.dtype)
