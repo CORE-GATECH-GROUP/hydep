@@ -37,8 +37,9 @@ Caveats
 Wish list
 =========
 * Verbosity control
-* OpenMC compatibility?
+* Multigroup
 * Reflective geometry
+* OpenMC compatibility?
 * Helper function for making pins with automatic subdivision
   a. la. openmc.model.pin
 * Helper for making UO2-like materials

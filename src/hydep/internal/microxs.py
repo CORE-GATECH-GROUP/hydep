@@ -343,7 +343,7 @@ class TemporalMicroXs:
     def _genCoeffs(self):
         # convert (time, reaction, group) -> (reaction, time, group)
         data = numpy.array(self.mxs).transpose(1, 0, 2)
-        coeffs = numpy.empty(data.shape[:2] + (self.order, ))
+        coeffs = numpy.empty((data.shape[0], self.order + 1, data.shape[2]))
         for index, rxn in enumerate(data):
             # group, time
             coeffs[index] = polyfit(self.time, rxn, self.order, full=False)

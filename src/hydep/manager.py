@@ -248,7 +248,7 @@ class Manager:
 
         for microvector in mxs[0]:
             out.append(
-                TemporalMicroXs.fromMicroXSVector(
+                TemporalMicroXs.fromMicroXsVector(
                     microvector, times[0], maxlen=maxSteps, order=polyorder
                 )
             )
@@ -258,3 +258,38 @@ class Manager:
                 tvector.append(time, microvector.mxs)
 
         return tuple(out)
+
+    def getReactionRatesAt(self, time, fluxes):
+        """Compute one-group reaction rates in burnable regions
+
+        Parameters
+        ----------
+        time : float
+            Time at which the reaction rates are expected
+        fluxes : numpy.ndarray
+            Flux in each burnable region such that ``fluxes[i, g]``
+            is the ``g``-th group flux in region ``i``.
+
+        Returns
+        -------
+        Tuple[MicroXsVector...]
+            Stand-in class for reaction rates in each burnable region
+
+        Raises
+        ------
+        NotImplementedError
+            If fluxes are not presented with a single energy group
+        """
+        rxnXS = [mxs(time) for mxs in self._microXS]
+        if fluxes.shape[1] == 1:
+            # Special treatement for 1-group data
+            rates = [f * micro.mxs[:, 0] for f, micro in zip(fluxes.flat, rxnXS)]
+        else:
+            raise NotImplementedError("Multigroup collapsing not implemented yet")
+
+        volumes = (m.volume for m in self.burnable)
+
+        return tuple(
+            MicroXsVector(m.zai, m.zptr, m.rxns, r / v)
+            for m, r, v in zip(rxnXS, rates, volumes)
+        )
