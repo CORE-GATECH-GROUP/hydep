@@ -1,8 +1,9 @@
 """Small helpers that don't necessitate a full file"""
 from collections import namedtuple
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from configparser import ConfigParser
 from functools import wraps
+import itertools
 from pathlib import Path
 
 __all__ = ("Boundaries", "configmethod", "CompBundle")
@@ -114,3 +115,88 @@ densities : Iterable[Iterable[float]]
     material ``i``
 
 """
+
+
+class FakeSequence(Sequence):
+    """Emulate an iterable of repeated data
+
+    Create a proxy-iterable that stores one entry, but represents
+    an iterable of multiple entries. Like ``[data] * N`` but
+    better for iteration.
+
+    .. note::
+
+        Calls to :meth:`index`, :meth:`count`, and
+        :meth:`__contains__` require comparisons
+        against the stored data, e.g. ``value == data``
+        which can be problematic for some cases. This behavior
+        is discouraged and may be prone to errors.
+
+    .. warning::
+
+        Manipulations during iteration will be propagated
+        to all future events, as the underlying data is shared across
+        all steps.
+
+    Parameters
+    ----------
+    data : object
+        Data to be stored
+    counts : int
+        Number of entries in the list to emulate
+
+    Examples
+    --------
+    >>> l = FakeSequence([1, 2, 3], 5)
+    >>> len(l)
+    5
+    >>> l[0]
+    [1, 2, 3]
+    >>> l[-1]
+    [1, 2, 3]
+    >>> for item in l:
+    ...     print(item)
+    [1, 2, 3]
+    [1, 2, 3]
+    [1, 2, 3]
+    [1, 2, 3]
+    [1, 2, 3]
+    >>> [1, 2, 3] in l
+    True
+    >>> l.index([1, 2, 3])
+    0
+
+    """
+
+    __slots__ = ("_data", "_n")
+
+    def __init__(self, data, counts):
+        self._data = data
+        self._n = counts
+
+    def __getitem__(self, index):
+        if index < 0:
+            index = self._n - 1 + index
+        if index < self._n:
+            return self._data
+        raise IndexError("Index out of range")
+
+    def __len__(self):
+        return self._n
+
+    def __iter__(self):
+        return itertools.repeat(self._data, self._n)
+
+    def __reversed__(self):
+        return iter(self)
+
+    def __contains__(self, value):
+        return value is self._data or value == self._data
+
+    def index(self, value):
+        if value in self:
+            return 0
+        raise IndexError(value)
+
+    def count(self, value):
+        return len(self) if value in self else 0
