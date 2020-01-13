@@ -49,6 +49,11 @@ class DepletionChain(tuple):
     ----------
     isotopes : iterable of hydep.internal.Isotope
 
+    Attributes
+    ----------
+    zaiOrder : Tuple[int,...]
+        Ordering of isotopes
+
     """
     # TODO Some OpenMC compatibility layer?
     def __new__(cls, isotopes):
@@ -56,6 +61,7 @@ class DepletionChain(tuple):
 
     def __init__(self, isotopes):
         self._indices = {isotope.zai: i for i, isotope in enumerate(self)}
+        self._zaiOrder = tuple(isotope.zai for isotope in self)
 
     def __contains__(self, key):
         """Search for an isotope that matches the argument
@@ -285,3 +291,7 @@ class DepletionChain(tuple):
         dok = dok_matrix((len(ordering), ) * 2, dtype=reactionRates.mxs.dtype)
         dict.update(dok, mtx)
         return dok.tocsr()
+
+    @property
+    def zaiOrder(self):
+        return self._zaiOrder
