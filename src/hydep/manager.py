@@ -6,14 +6,15 @@ Control time-steps, material divisions, depletion, etc
 
 import numbers
 from collections.abc import Sequence, Iterable
-from itertools import repeat
+from itertools import repeat, starmap
+import multiprocessing
 
 import numpy
 
 from hydep import BurnableMaterial, DepletionChain
 from hydep.constants import SECONDS_PER_DAY
 from hydep.typed import TypedAttr, IterableOf
-from hydep.internal import TemporalMicroXs, MicroXsVector
+from hydep.internal import TemporalMicroXs, MicroXsVector, Cram16Solver
 from hydep.internal.features import FeatureCollection, MICRO_REACTION_XS, FISSION_YIELDS
 
 
@@ -98,6 +99,11 @@ class Manager:
                 )
             self._nprelim = numPreliminary
         self._microxsVector = None
+
+        # TODO Make CRAM solver configurable property
+        # NOTE: Must be an importable function that we can dispatch
+        # through multiprocessing
+        self._depsolver = Cram16Solver
 
     def _validatePowers(self, power):
         if isinstance(power, numbers.Real):
@@ -293,3 +299,43 @@ class Manager:
             MicroXsVector(m.zai, m.zptr, m.rxns, r / v)
             for m, r, v in zip(rxnXS, rates, volumes)
         )
+
+    def deplete(self, start, dtSeconds, txResult):
+        """Deplete all burnable materials
+
+        Parameters
+        ----------
+        start : float
+            Starting point in time. Reaction rates will be obtained
+            at this point using :meth:`getReactionRatesAt` and
+            compositions will be depleted with compositions at
+            this point in time
+        dtSeconds : float
+            Length of depletion interval in seconds
+        txResult : hydep.internal.TransportResult
+            Previous transport result containing fluxes and fission yields
+
+        Returns
+        -------
+        list of numpy.ndarray
+            Compositions for each region such that ``out[i][j]`` is the
+            final concentration of isotope :attr:`hydep.DepletionChain.zaiOrder`
+            position ``j`` for burnable region ``i``
+
+        """
+        assert self.burnable is not None
+        assert self._microXS is not None
+
+        reactionRates = self.getReactionRatesAt(start, txResult.flux)
+        assert len(reactionRates) == len(self.burnable) == len(txResult.fissionYields)
+        concentrations = (m.asVector(order=self.chain.zaiOrder) for m in self.burnable)
+
+        matrices = starmap(self.chain.formMatrix,
+                           zip(reactionRates, txResult.fissionYields))
+
+        inputs = zip(matrices, concentrations, repeat(dtSeconds, len(self.burnable)))
+
+        with multiprocessing.Pool() as p:
+            out = p.starmap(self._depsolver, inputs)
+
+        return out

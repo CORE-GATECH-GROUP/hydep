@@ -16,6 +16,7 @@ TODOs
 * Validate configuration options to avoid typos
 * Resolve how hydep.Pin objects are handled by numpy
 * Remove most assert statements in favor of actual checks
+* Make depletion solver / CRAM order configurable
 
 Serpent
 -------
