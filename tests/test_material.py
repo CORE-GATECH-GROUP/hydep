@@ -30,6 +30,9 @@ def test_material(isotopes):
     assert water.mdens == 1.0
     water["O16"] = 0.9
     assert water[80160] == 0.9
+    assert water.get("O16") == 0.9
+    assert water.get(80160) == 0.9
+    assert water.get(isotopes["O16"]) == 0.9
 
     water["O17"] = 5e-3
     assert len(water) == 3

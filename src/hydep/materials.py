@@ -183,6 +183,10 @@ class Material(dict):
         out.update(self)
         return out
 
+    def get(self, key, default=None):
+        iso = self._getIsotopeFromKey(key)
+        return super().get(iso, default)
+
 
 class BurnableMaterial(Material):
     r"""Material to be burned comprised of isotopes and atom densities
