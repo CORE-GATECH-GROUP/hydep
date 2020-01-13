@@ -11,13 +11,13 @@ ExpectedXsAttrs = namedtuple("ExpectedXsAttrs", ["zai", "zptr", "rxn", "mxs"])
 @pytest.fixture
 def microxsDict():
     out = {
-        (922350, 18): 0.02,
-        (541350, 102): 1e3,
-        (922350, 102): 0.06,
-        (922380, 18): 0.05,
-        (10010, 102): 1e-2,
-        (641550, 102): 1e2,
-        (922380, 102): 0.07,
+        (922350, 18): numpy.array([0.02]),
+        (541350, 102): numpy.array([1e3]),
+        (922350, 102): numpy.array([0.06]),
+        (922380, 18): numpy.array([0.05]),
+        (10010, 102): numpy.array([1e-2]),
+        (641550, 102): numpy.array([1e2]),
+        (922380, 102): numpy.array([0.07]),
     }
     return out
 
@@ -150,7 +150,7 @@ def test_temporal(expectedXsVectors, grow):
     interpTime = 0.5 * (time[1] + time[0])
     interpXs = 0.5 * (mxs[1] + mxs[0])
 
-    actual = tMxs.at(interpTime)
+    actual = tMxs(interpTime)
 
     assert (actual.zai == tMxs.zai).all()
     assert (actual.rxns == tMxs.rxns).all()

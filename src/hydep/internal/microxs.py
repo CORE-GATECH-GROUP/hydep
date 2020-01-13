@@ -177,11 +177,60 @@ class MicroXsVector:
 class TemporalMicroXs:
     """Microscopic cross sections over time
 
-    ``maxlen`` defaults to 3 to support cross sections
-    from previous, current, and predicted points in time
+    Uses a similar sparse structure as :class:`MicroXsVector`.
+
+    Parameters
+    ----------
+    zai : Tuple[int...]
+        Isotope ZAI identifiers. Will have a length less than
+        or equal to ``rxns``
+    zptr : Tuple[int...]
+        Pointer vector indicating that reactions for isotope
+        ``zai[i]`` can be found in ``rxns[zptr[i:i+1]``
+    rxns : Tuple[int...]
+        Tuple of reaction numbers (MTs)
+    mxs : Optional[Iterable[MicroXsVector]]
+        Initial microscopic cross section vectors to be loaded.
+        Assumed to correspond to each point in ``time``.
+    time : Optional[Iterable[float]]
+        Initial time points for each value in ``mxs``. Can be sorted
+        or not, but ``assumeSorted`` should be passed accordingly
+    maxlen : Optional[int]
+        Number of time points and microscopic cross section vectors to
+        be stored at any one instance.
+    order : Optional[int]
+        Fitting order, e.g. assume constant cross sections if ``order==0``,
+        linear for ``order==1``, quadratic for ``order==2``, etc.
+    assumeSorted : Optional[bool]
+        If initial time and microsopic cross sections are provided, but
+        not sorted, pass a true value. This will insert the values in a
+        sorted manner.
+
+    Attributes
+    ----------
+    zai : Tuple[int...]
+        Isotope ZAI identifiers
+    zptr : Tuple[int...]
+        Pointer vector detailing where reactions and cross sections are located
+        for specific isotopes
+    rxns : Tuple[int..]
+        Reaction numbers
+    mxs : collections.deque of MicroXsVector
+        Microscopic cross sections over time
+    time : collections.deque of float
+        Time points such that ``mxs[j]`` was generated at point ``time[j]``
+    order : int
+        Fitting order
+
+    See Also
+    --------
+    * :meth:`fromMicroXsVector` - helper construction method
+
     """
 
-    __slots__ = ("zai", "zptr", "rxns", "mxs", "time", "order")
+    # TODO Hide / control access to attributes that shouldn't be touched
+
+    __slots__ = ("zai", "zptr", "rxns", "mxs", "time", "order", "_coeffs")
 
     def __init__(
         self, zai, zptr, rxns, mxs=None, time=None, maxlen=3, order=1, assumeSorted=True
@@ -212,6 +261,8 @@ class TemporalMicroXs:
                 self.time = collections.deque(time, maxlen)
                 self.mxs = collections.deque(mxs, maxlen)
 
+        self._coeffs = None
+
     @classmethod
     def fromMicroXsVector(cls, mxsVector, time, maxlen=3, order=1):
         """Construct given a single set of cross sections
@@ -236,19 +287,65 @@ class TemporalMicroXs:
         return cls(mxsVector.zai, mxsVector.zptr, mxsVector.rxns,
                    mxs=(mxsVector.mxs, ), time=(time, ), maxlen=maxlen, order=order)
 
-    def insert(self, time, mxs):
+    def insert(self, time: float, mxs: MicroXsVector) -> None:
+        """Insert microscopic cross sections to maintain ordering
+
+        Parameters
+        ----------
+        time : float
+            Value of time for this specific set of cross sections
+        mxs : numpy.ndarray
+            New cross sections to be loaded.
+
+        """
         ix = bisect.bisect_left(self.time, time)
         self.time.insert(ix, time)
         self.mxs.insert(ix, mxs)
+        self._coeffs = None
 
-    def append(self, time, mxs):
+    def append(self, time: float, mxs: numpy.ndarray) -> None:
+        """Append cross sections with no regard for ordering
+
+        Parameters
+        ----------
+        time : float
+            Value of time for this specific set of :class:`MicroXsVector`
+        mxs : numpy.ndarray
+            New cross sections to be loaded.
+
+        """
         self.time.append(time)
         self.mxs.append(mxs)
+        self._coeffs = None
 
-    def at(self, time):
-        # TODO Store mxs as array instead of in queue?
-        # self.at() will be called at least twice for every coarse step
-        # while self.push will be called once per coarse step
-        p = polyfit(self.time, self.mxs, self.order)
-        mxs = polyval(time, p)
+    def __call__(self, time: float) -> MicroXsVector:
+        """Evaluate the microscopic cross sections at a given time
+
+        Parameters
+        ----------
+        time : float
+            Point in time, consistent with units on :attr:`time`,
+            to perform the fitting
+
+        Returns
+        -------
+        MicroXsVector
+            Microscopic cross sections evaluated at ``time``
+
+        """
+        if self._coeffs is None:
+            self._coeffs = self._genCoeffs()
+        mxs = numpy.empty(self.mxs[0].shape)
+        for ix, c in enumerate(self._coeffs):
+            mxs[ix] = polyval(time, c)
         return MicroXsVector(self.zai, self.zptr, self.rxns, mxs)
+
+    def _genCoeffs(self):
+        # convert (time, reaction, group) -> (reaction, time, group)
+        data = numpy.array(self.mxs).transpose(1, 0, 2)
+        coeffs = numpy.empty(data.shape[:2] + (self.order, ))
+        for index, rxn in enumerate(data):
+            # group, time
+            coeffs[index] = polyfit(self.time, rxn, self.order, full=False)
+
+        return coeffs
