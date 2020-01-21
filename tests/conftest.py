@@ -24,6 +24,12 @@ def simpleChain():
     yield DepletionChain.fromXml(str(chainfile))
 
 
+@pytest.fixture(scope="session")
+def endfChain():
+    chainfile = pathlib.Path(__file__).parents[1] / "chains" / "chain_endfb71.xml"
+    yield DepletionChain.fromXml(str(chainfile))
+
+
 @pytest.fixture
 def toy2x2lattice():
     """A simple 2x2 model with 4 UO2 fuel pins"""
