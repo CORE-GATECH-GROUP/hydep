@@ -4,7 +4,7 @@ import pytest
 import hydep
 import hydep.serpent
 
-from tests.serpent import strcompare
+from tests import strcompare
 
 
 REF_FUEL = """% fuel32

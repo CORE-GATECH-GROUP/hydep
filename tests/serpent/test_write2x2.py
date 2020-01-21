@@ -6,7 +6,7 @@ import io
 import pytest
 import hydep
 import hydep.serpent
-from tests.serpent import filecompare
+from tests import filecompare
 
 
 @pytest.mark.serpent
