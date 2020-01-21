@@ -5,6 +5,7 @@ import pathlib
 import numpy
 from scipy.sparse import issparse, coo_matrix
 import pytest
+import hydep
 
 config = {"update": False}
 

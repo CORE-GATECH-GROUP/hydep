@@ -6,20 +6,7 @@ import hydep.internal
 import hydep.serpent
 import hydep.internal.features as hdfeat
 
-from tests.regressions import config, ResultComparator, ProblemProxy
-
-
-@pytest.fixture
-def serpentModel(simpleChain, toy2x2lattice):
-    # Include the chain so reactions are present
-    model = hydep.Model(toy2x2lattice)
-    model.differentiateBurnableMaterials(updateVolumes=False)
-
-    burnable = tuple(model.root.findBurnableMaterials())
-    for m in burnable:
-        m.volume = 1.0
-
-    yield ProblemProxy(model, burnable)
+from tests.regressions import ResultComparator
 
 
 @pytest.fixture
@@ -47,9 +34,9 @@ def serpentSolver(tmpdir):
 
 
 @pytest.mark.serpent
-def test_serpentSolver(serpentSolver, serpentModel):
-    model = serpentModel.model
-    burnable = serpentModel.burnable
+def test_serpentSolver(serpentSolver, toy2x2Problem):
+    model = toy2x2Problem.model
+    burnable = toy2x2Problem.burnable
 
     # Set hooks for slightly realistic problem
     XS_KEYS = {"abs", "fiss"}
