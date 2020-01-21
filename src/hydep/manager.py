@@ -98,7 +98,7 @@ class Manager:
                     "not {}".format(len(self.timesteps), numPreliminary)
                 )
             self._nprelim = numPreliminary
-        self._microxsVector = None
+        self._microXS = None
 
         # TODO Make CRAM solver configurable property
         # NOTE: Must be an importable function that we can dispatch
