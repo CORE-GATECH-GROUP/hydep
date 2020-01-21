@@ -9,30 +9,6 @@ import hydep.internal.features as hdfeat
 from tests.regressions import ResultComparator
 
 
-@pytest.fixture
-def serpentSolver(tmpdir):
-    options = {
-        "hydep": {"archive on success": True},
-        "hydep.serpent": {
-            "random seed": 12345678910,
-            "boundary conditions": "reflective",
-            "particles": 100,
-            "generations per batch": 2,
-            "active": 5,
-            "skipped": 2,
-            "executable": "sss2",
-        },
-    }
-
-    solver = hydep.serpent.SerpentSolver()
-    solver.configure(options)
-
-    with tmpdir.as_cwd():
-        tmpdir.mkdir("serpent")
-        yield solver
-        solver.finalize(True)
-
-
 @pytest.mark.serpent
 def test_serpentSolver(serpentSolver, toy2x2Problem):
     model = toy2x2Problem.model

@@ -3,6 +3,7 @@ import hydep
 
 from tests.regressions import ProblemProxy
 
+
 @pytest.fixture
 def toy2x2Problem(simpleChain, toy2x2lattice):
     # Include the chain so reactions are present
@@ -16,3 +17,25 @@ def toy2x2Problem(simpleChain, toy2x2lattice):
     yield ProblemProxy(model, burnable)
 
 
+@pytest.fixture
+def serpentSolver(tmpdir):
+    options = {
+        "hydep": {"archive on success": True},
+        "hydep.serpent": {
+            "random seed": 12345678910,
+            "boundary conditions": "reflective",
+            "particles": 100,
+            "generations per batch": 2,
+            "active": 5,
+            "skipped": 2,
+            "executable": "sss2",
+        },
+    }
+
+    solver = hydep.serpent.SerpentSolver()
+    solver.configure(options)
+
+    with tmpdir.as_cwd():
+        tmpdir.mkdir("serpent")
+        yield solver
+        solver.finalize(True)
