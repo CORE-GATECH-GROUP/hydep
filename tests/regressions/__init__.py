@@ -1,4 +1,5 @@
 import math
+from collections import namedtuple
 import pathlib
 
 import numpy
@@ -6,6 +7,9 @@ from scipy.sparse import issparse, coo_matrix
 import pytest
 
 config = {"update": False}
+
+
+ProblemProxy = namedtuple("ProblemProxy", "model burnable")
 
 
 class ResultComparator:

@@ -1,4 +1,3 @@
-from collections import namedtuple
 import pathlib
 
 import pytest
@@ -7,10 +6,7 @@ import hydep.internal
 import hydep.serpent
 import hydep.internal.features as hdfeat
 
-from tests.regressions import config, ResultComparator
-
-
-ProblemProxy = namedtuple("ProblemProxy", "model burnable")
+from tests.regressions import config, ResultComparator, ProblemProxy
 
 
 @pytest.fixture
