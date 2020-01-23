@@ -93,25 +93,25 @@ def configmethod(m):
     return wrapper
 
 
-CompBundle = namedtuple("CompBundle", "zai densities")
+CompBundle = namedtuple("CompBundle", "isotopes densities")
 CompBundle.__doc__ = """Updated compositions following a depletion event
 
 Parameters
 ----------
-zai : Iterable[int]
+isotope : Iterable[hydep.internal.Isotope]
     Ordering of isotopics
 densities : Iterable[Iterable[float]]
     Iterable of material compositions such that ``densities[i][j]``
-    is the atom density of isotope ``zai[j]`` for burnable
+    is the atom density [#/b-cm] of isotope ``isotope[j]`` for burnable
     material ``i``
 
 Attributes
 ----------
-zai : Iterable[int]
+isotope : Iterable[hydep.internal.Isotope]
     Ordering of isotopics
 densities : Iterable[Iterable[float]]
     Iterable of material compositions such that ``densities[i][j]``
-    is the atom density of isotope ``zai[j]`` for burnable
+    is the atom density [#/b-cm] of isotope ``isotope[j]`` for burnable
     material ``i``
 
 """
