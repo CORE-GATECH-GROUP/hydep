@@ -14,7 +14,7 @@ import numpy
 from hydep import BurnableMaterial, DepletionChain
 from hydep.constants import SECONDS_PER_DAY
 from hydep.typed import TypedAttr, IterableOf
-from hydep.internal import TemporalMicroXs, MicroXsVector, Cram16Solver
+from hydep.internal import TemporalMicroXs, MicroXsVector, Cram16Solver, CompBundle
 from hydep.internal.features import FeatureCollection, MICRO_REACTION_XS, FISSION_YIELDS
 
 
@@ -338,4 +338,4 @@ class Manager:
         with multiprocessing.Pool() as p:
             out = p.starmap(self._depsolver, inputs)
 
-        return out
+        return CompBundle(tuple(self.chain), out)
