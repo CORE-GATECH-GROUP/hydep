@@ -128,9 +128,10 @@ def test_2x2deplete(depletionHarness):
     manager = depletionHarness.manager
     txResult = depletionHarness.transportResult
     out = manager.deplete(0, manager.timesteps[0], txResult)
+    zaiOrder = tuple(iso.zai for iso in out.isotopes)
 
     zaiOrder = manager.chain.zaiOrder
-    outArray = numpy.array(out, order="F")
+    outArray = numpy.array(out.densities, order="F")
 
     datadir = pathlib.Path(__file__).parent
     reference = datadir / "concentrations_reference.txt"
