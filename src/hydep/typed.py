@@ -58,7 +58,9 @@ class BoundedTyped(Descriptor):
         if value is None:
             if self.allowNone:
                 return super().__set__(obj, None)
-            raise TypeError("Canot set {}.{} to None".format(obj.__class__.__name__, self.name))
+            raise TypeError(
+                "Cannot set {}.{} to None".format(
+                    obj.__class__.__name__, self.name))
 
         if not isinstance(value, self.types):
             raise TypeError(

@@ -59,6 +59,7 @@ def test_badTyped():
     with pytest.raises(TypeError, match=r".*Typed\.iterable"):
         t.iterable = [1, 2, 3.4]
 
+
 class Bounded:
     """Values are bounded between zero and one"""
 

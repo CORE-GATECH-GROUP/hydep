@@ -4,7 +4,7 @@ import hydep.internal.features as hdfeat
 
 def test_features():
     """Test the feature capabilities"""
-    s = hdfeat.FeatureCollection({hdfeat.FISSION_MATRIX,})
+    s = hdfeat.FeatureCollection({hdfeat.FISSION_MATRIX})
     assert hdfeat.FISSION_MATRIX in s
     assert len(s) == len(s.features) == 1
     assert bool(s)

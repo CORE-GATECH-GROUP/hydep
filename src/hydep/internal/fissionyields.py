@@ -202,7 +202,7 @@ class FissionYieldDistribution(Mapping):
         FissionYieldDistribution
         """
         all_yields = {}
-        for elem_index, yield_elem in enumerate(element.iter("fission_yields")):
+        for yield_elem in element.iter("fission_yields"):
             energy = float(yield_elem.get("energy"))
 
             products = []

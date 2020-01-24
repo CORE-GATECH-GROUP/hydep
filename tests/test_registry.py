@@ -1,4 +1,3 @@
-import pytest
 from hydep.internal.registry import register, unregister, get
 
 

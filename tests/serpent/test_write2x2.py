@@ -1,7 +1,6 @@
 """Test the ability to write an assymetric 2x2 bundle"""
 
 import pathlib
-import io
 
 import pytest
 import hydep

@@ -6,6 +6,7 @@ from hydep import Model, HighFidelitySolver, ReducedOrderSolver, Manager
 from hydep.typed import TypedAttr
 from hydep.internal import TimeStep, configmethod
 
+
 class Problem(object):
 
     model = TypedAttr("model", Model)

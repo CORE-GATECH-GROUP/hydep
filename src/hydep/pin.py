@@ -54,7 +54,7 @@ class Pin(Universe):
         assert len(radii) == len(materials)
 
         prev = 0
-        for ix, (r, m) in enumerate(zip(radii, materials)):
+        for ix, r in enumerate(radii):
             assert r > prev, (ix, r)
             prev = r
 

@@ -1,5 +1,5 @@
 import numbers
-from collections.abc import Iterable, Generator
+from collections.abc import Iterable
 
 import numpy
 
@@ -130,7 +130,7 @@ class LatticeStack(Universe):
         heights = numpy.asarray(heights, dtype=float).reshape(self.nLayers + 1)
         prev = heights.min()
         assert heights[0] == prev
-        for ix, value in enumerate(heights[1:], start=1):
+        for value in heights[1:]:
             assert value > prev
             prev = value
         self._heights = heights

@@ -3,7 +3,6 @@ Abstract base class for representing geometry that stores materials
 """
 
 import numbers
-import copy
 from abc import ABC, abstractmethod
 
 import numpy

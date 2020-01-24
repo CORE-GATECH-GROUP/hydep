@@ -3,6 +3,7 @@ import copy
 import pytest
 import hydep
 
+
 def test_model(toy2x2lattice):
 
     with pytest.raises(TypeError):

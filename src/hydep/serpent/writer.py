@@ -464,7 +464,7 @@ cell {writeas} {writeas} {mid} -{writeas}
         bc = []
         if len(conds) == 1:
             conds = conds * 3
-        for c, dim in zip(conds, ["x", "y", "z"]):
+        for c in conds:
             bcval = self.bcmap.get(c)
             if bcval is None:
                 raise ValueError(

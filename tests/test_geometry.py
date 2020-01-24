@@ -76,7 +76,7 @@ def test_pin(materials, pins, bundles, key):
 
     found = list(pin.findMaterials())
     assert len(found) == len(expectedBundle.findOrder)
-    for ix, (f, name) in enumerate(zip(found, expectedBundle.findOrder)):
+    for f, name in zip(found, expectedBundle.findOrder):
         assert f is materials[name]
 
     if "fuel" in expectedBundle.materials:
@@ -169,7 +169,7 @@ def test_cartesianLattice(materials, pins, pinArray):
     # Act on "empty" lattice
     assert len(lat) == 3
 
-    for item in lat:
+    for _item in lat:
         raise RuntimeError("Iteration on empty array should not be supported")
 
     with pytest.raises(AttributeError, match="Array not set"):
@@ -356,5 +356,5 @@ def test_minicore(materials, pins, pinArray):
     # Count new materials
     newburnable = minicore.countBurnableMaterials()
     assert len(newburnable) == count
-    for mat, count in newburnable.values():
+    for _mat, count in newburnable.values():
         assert count == 1
