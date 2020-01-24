@@ -215,12 +215,15 @@ class SerpentSolver(hydep.HighFidelitySolver):
         self._tmpdir.cleanup()
 
     def _archive(self):
+        skipExts = {".seed", ".out", ".dep"}
         with zipfile.ZipFile(
                 self._curfile.with_suffix(".zip"), "w") as myzip:
             for ff in self._tmpFile.parent.glob("*"):
-                if ff.name[-4:] in {"seed", ".out"}:
-                    continue
-                myzip.write(ff, ff.name)
+                for ext in skipExts:
+                    if ff.name.endswith(ext):
+                        break
+                else:
+                    myzip.write(ff, ff.name)
 
     def beforeMain(self, model, orderedBumat):
         self._writer.model = model

@@ -113,9 +113,10 @@ class SerpentRunner:
             raise IOError("Input file {} does not exist".format(inputpath))
 
         cmd = self.makeCmd() + [inputpath]
-        proc = subprocess.run(cmd, capture_output=True)
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         if proc.returncode:
-            msg = proc.stdout[-500:].decode() # TODO Improve error parsing
+            msg = proc.stdout[-500:].decode()
+            # TODO Improve error parsing?
             raise FailedSolverError(msg)
 
     def configure(self, section):

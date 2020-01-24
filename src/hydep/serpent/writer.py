@@ -519,7 +519,7 @@ cell {writeas} {writeas} {mid} -{writeas}
         self.commentblock(stream, """BEGIN MICROSCOPIC REACTION XS BLOCK
 Need to trick Serpent into given this information, but we don't want a ton
 of depletion. Add a single one day step here. Maybe hack something later""")
-        stream.write("dep daystep 1\n")
+        stream.write("dep daystep 1\nset pcc 0\n")
         for m in self.burnable:
             stream.write("set mdep {mid} 1.0 1 {mid}\n".format(mid=m.id))
             reactions = self._getReactions(set(m))
