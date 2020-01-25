@@ -79,7 +79,7 @@ def test_longform(microxsDict, expectedXsVectors, microXsInputs):
     assert (mxsVector.zai == expectedXsVectors.zai).all()
     assert (mxsVector.rxns == expectedXsVectors.rxn).all()
     assert (mxsVector.mxs == expectedXsVectors.mxs).all()
-    assert mxsVector.zptr.shape == (mxsVector.zai.size + 1,)
+    assert len(mxsVector.zptr) == len(mxsVector.zai) + 1
 
     # test iteration
 

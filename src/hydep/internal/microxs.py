@@ -24,14 +24,14 @@ class MicroXsVector:
 
     Parameters
     ----------
-    zai : numpy.ndarray of int
+    zai : iterable of int
         Sorted vector containing the ZAI identifiers for reactions in
         this instance. Expected to be sorted in increasing order,
         and with length less than or equal to ``rxns``
-    zptr: numpy.ndarray of int
+    zptr: iterable of int
         Pointer vector that describes where reactions for each isotope
         are found
-    reactions : numpy.ndarray of int
+    reactions : iterable of int
         Reaction MTS (e.g. 102, 18) such that reactions
         ``rxns[zptr[i]:zptr[i+1]]`` belong to isotope ``zai[i]``
     mxs : numpy.ndarray
@@ -41,14 +41,14 @@ class MicroXsVector:
 
     Attributes
     ----------
-    zai : numpy.ndarray of int
+    zai : tuple of int
         Sorted vector containing the ZAI identifiers for reactions in
         this instance. Expected to be sorted in increasing order,
         and with length less than or equal to ``rxns``
-    zptr: numpy.ndarray of int
+    zptr: tuple of int
         Pointer vector that describes where reactions for each isotope
         are found
-    reactions : numpy.ndarray of int
+    reactions : tuple of int
         Reaction MTS (e.g. 102, 18) such that reactions
         ``rxns[zptr[i]:zptr[i+1]]`` belong to isotope ``zai[i]``
     mxs : numpy.ndarray
@@ -64,15 +64,15 @@ class MicroXsVector:
     >>> microxs = MicroXsVector.fromLongFormVectors(
     ...     zai, rxns, values, assumeSorted=False)
     >>> microxs.zai
-    array([541350, 922350, 922380])
+    (541350, 922350, 922380)
     >>> microxs.zptr
-    array([0, 1, 3, 4])
-    >>> all(microxs.rxns == [102, 102, 18, 18])
+    (0, 1, 3, 4)
+    >>> microxs.rxns == (102, 102, 18, 18)
     True
-    >>> all(microxs.mxs == [10, 0.4, 0.05, 0.01])
+    >>> all(microxs.mxs == (10, 0.4, 0.05, 0.01))
     True
     >>> new = microxs * 2
-    >>> all(new.mxs == [20, 0.8, 0.1, 0.02])
+    >>> all(new.mxs == (20, 0.8, 0.1, 0.02))
     True
     >>> new *= 0.5
     >>> all(new.mxs == [10, 0.4, 0.05, 0.01])
@@ -83,9 +83,9 @@ class MicroXsVector:
     __slots__ = ("zai", "zptr", "rxns", "mxs")
 
     def __init__(self, zai, zptr, rxns, mxs):
-        self.zai = zai
-        self.zptr = zptr
-        self.rxns = rxns
+        self.zai = tuple(zai)
+        self.zptr = tuple(zptr)
+        self.rxns = tuple(rxns)
         self.mxs = mxs
 
     @classmethod
@@ -117,7 +117,8 @@ class MicroXsVector:
         if not isinstance(zaiVec[0], numbers.Integral):
             raise TypeError(
                 "Vectors must be vectors of integer, zaiVec[0] "
-                "became {}".format(zaiVec[0]))
+                "became {}".format(zaiVec[0])
+            )
 
         rxnVec = numpy.asarray(rxnVec, dtype=int).copy()
         mxs = numpy.asarray(mxs).copy()
@@ -125,7 +126,9 @@ class MicroXsVector:
         if zaiVec.shape != rxnVec.shape != mxs.shape:
             raise ValueError(
                 "Shapes are inconsistent. ZAI: {}, rxn: {}, mxs: {}".format(
-                    zaiVec.shape, rxnVec.shape, mxs.shape))
+                    zaiVec.shape, rxnVec.shape, mxs.shape
+                )
+            )
 
         if not assumeSorted:
             sortIx = numpy.argsort(zaiVec)
@@ -143,7 +146,7 @@ class MicroXsVector:
 
         zptr.append(rxnVec.size)
 
-        return cls(numpy.array(zai), numpy.asarray(zptr), rxnVec, mxs)
+        return cls(zai, zptr, rxnVec, mxs)
 
     def __iter__(self):
         start = self.zptr[0]
@@ -155,7 +158,7 @@ class MicroXsVector:
             start = stop
 
     def __len__(self):
-        return self.rxns.shape[0]
+        return len(self.rxns)
 
     def __imul__(self, scalar):
         if not isinstance(scalar, numbers.Real):
