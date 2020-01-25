@@ -116,7 +116,7 @@ def test_longform(microxsDict, expectedXsVectors, microXsInputs):
     assert mxsVector.getReaction(922380, -1) is None
 
 
-@pytest.mark.parametrize("grow", ["init", "insert", "append", "reversed"])
+@pytest.mark.parametrize("grow", ["init", "insort", "append", "reversed"])
 def test_temporal(expectedXsVectors, grow):
     time = [0, 1]
     mxs = expectedXsVectors.mxs, expectedXsVectors.mxs * 2
@@ -130,7 +130,7 @@ def test_temporal(expectedXsVectors, grow):
             mxs=mxs,
             order=1,
         )
-    elif grow == "insert":
+    elif grow == "insort":
         tMxs = TemporalMicroXs(
             expectedXsVectors.zai,
             expectedXsVectors.zptr,
@@ -138,7 +138,7 @@ def test_temporal(expectedXsVectors, grow):
             order=1,
         )
         for t, m in zip(time, mxs):
-            tMxs.insert(t, m)
+            tMxs.insort(t, m)
     elif grow == "append":
         tMxs = TemporalMicroXs(
             expectedXsVectors.zai,
@@ -156,7 +156,7 @@ def test_temporal(expectedXsVectors, grow):
             order=1,
         )
         for t, m in zip(reversed(time), reversed(mxs)):
-            tMxs.insert(t, m)
+            tMxs.insort(t, m)
     else:
         raise ValueError(grow)
 
@@ -165,7 +165,7 @@ def test_temporal(expectedXsVectors, grow):
 
     actual = tMxs(interpTime)
 
-    assert (actual.zai == tMxs.zai).all()
-    assert (actual.rxns == tMxs.rxns).all()
-    assert (actual.zptr == tMxs.zptr).all()
+    assert actual.zai == tMxs.zai
+    assert actual.rxns == tMxs.rxns
+    assert actual.zptr == tMxs.zptr
     assert actual.mxs == pytest.approx(interpXs)

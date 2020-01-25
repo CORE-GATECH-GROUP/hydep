@@ -137,6 +137,6 @@ def test_oneGroupReactionRates(microxs, manager):
     rxns = manager.getReactionRatesAt(times[0] + 0.5 * (times[1] - times[0]), flux)
 
     assert len(rxns) == len(manager.burnable) == 1
-    assert (rxns[0].zai == expectedXsVector.zai).all()
-    assert (rxns[0].rxns == expectedXsVector.rxns).all()
+    assert rxns[0].zai == expectedXsVector.zai
+    assert rxns[0].rxns == expectedXsVector.rxns
     assert rxns[0].mxs == pytest.approx(expectedRates)

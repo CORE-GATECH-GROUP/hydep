@@ -4,10 +4,12 @@ Class for handling vectorized microscopic cross sections
 import bisect
 import collections
 import numbers
+import typing
 
 import numpy
 from numpy.polynomial.polynomial import polyfit, polyval
 
+from .timetravel import CachedTimeTraveller
 
 # TODO Is the sparse structure worth it? Most isotopes have a few reactions
 # TODO of interest, with some having no more than 10
@@ -235,53 +237,56 @@ class MicroXsVector:
             return default
 
 
-class TemporalMicroXs:
+ArrayOrMicroXsVector = typing.Union[numpy.ndarray, MicroXsVector]
+
+
+class TemporalMicroXs(CachedTimeTraveller):
     """Microscopic cross sections over time
 
     Uses a similar sparse structure as :class:`MicroXsVector`.
 
     Parameters
     ----------
-    zai : Tuple[int...]
+    zai : iterable of int
         Isotope ZAI identifiers. Will have a length less than
         or equal to ``rxns``
-    zptr : Tuple[int...]
+    zptr : iterable of int
         Pointer vector indicating that reactions for isotope
         ``zai[i]`` can be found in ``rxns[zptr[i:i+1]``
-    rxns : Tuple[int...]
+    rxns : iterable of int
         Tuple of reaction numbers (MTs)
-    mxs : Optional[Iterable[MicroXsVector]]
+    mxs : iterable of MicroXsVector, optional
         Initial microscopic cross section vectors to be loaded.
-        Assumed to correspond to each point in ``time``.
-    time : Optional[Iterable[float]]
+        Must be consistent with ``zai``, ``zptr``, and ``rxns``
+        parameters passed. Assumed to correspond to each point in
+        ``time``.
+    time : iterable of float, optional
         Initial time points for each value in ``mxs``. Can be sorted
         or not, but ``assumeSorted`` should be passed accordingly
-    maxlen : Optional[int]
+    maxlen : int, optional
         Number of time points and microscopic cross section vectors to
         be stored at any one instance.
-    order : Optional[int]
+    order : int, optional
         Fitting order, e.g. assume constant cross sections if ``order==0``,
         linear for ``order==1``, quadratic for ``order==2``, etc.
-    assumeSorted : Optional[bool]
+    assumeSorted : bool, optional
         If initial time and microsopic cross sections are provided, but
         not sorted, pass a true value. This will insert the values in a
         sorted manner.
 
     Attributes
     ----------
-    zai : Tuple[int...]
+    zai : tuple of int
         Isotope ZAI identifiers
-    zptr : Tuple[int...]
+    zptr : tuple of int
         Pointer vector detailing where reactions and cross sections are located
         for specific isotopes
-    rxns : Tuple[int..]
+    rxns : tuple of int
         Reaction numbers
-    mxs : collections.deque of MicroXsVector
-        Microscopic cross sections over time
-    time : collections.deque of float
-        Time points such that ``mxs[j]`` was generated at point ``time[j]``
     order : int
         Fitting order
+    time : tuple of float
+        Copy of time points stored on the object
 
     See Also
     --------
@@ -291,14 +296,21 @@ class TemporalMicroXs:
 
     # TODO Hide / control access to attributes that shouldn't be touched
 
-    __slots__ = ("zai", "zptr", "rxns", "mxs", "time", "order", "_coeffs")
+    __slots__ = CachedTimeTraveller.__slots__ + (
+        "zai",
+        "zptr",
+        "rxns",
+        "_mxs",
+        "order",
+        "_coeffs",
+    )
 
     def __init__(
         self, zai, zptr, rxns, mxs=None, time=None, maxlen=3, order=1, assumeSorted=True
     ):
-        self.zai = zai
-        self.zptr = zptr
-        self.rxns = rxns
+        self.zai = tuple(zai)
+        self.zptr = tuple(zptr)
+        self.rxns = tuple(rxns)
 
         if (time is not None) != (mxs is not None):
             raise ValueError("time and mxs must both be None or provided")
@@ -307,20 +319,11 @@ class TemporalMicroXs:
             assert order < maxlen, (order, maxlen)
         self.order = order
 
-        if time is None:
-            self.time = collections.deque([], maxlen)
-            self.mxs = collections.deque([], maxlen)
-        else:
-            assert len(time) == len(mxs)
-            if not assumeSorted:
-                self.time = collections.deque([], maxlen)
-                self.mxs = collections.deque([], maxlen)
-                for ix in numpy.argsort(time):
-                    self.time.append(time[ix])
-                    self.mxs.append(mxs[ix])
-            else:
-                self.time = collections.deque(time, maxlen)
-                self.mxs = collections.deque(mxs, maxlen)
+        super().__init__(maxlen)
+        self._mxs = collections.deque(maxlen=maxlen)
+
+        if time is not None:
+            self.extend(time, mxs)
 
         self._coeffs = None
 
@@ -345,38 +348,140 @@ class TemporalMicroXs:
         TemporalMicroXs
 
         """
-        return cls(mxsVector.zai, mxsVector.zptr, mxsVector.rxns,
-                   mxs=(mxsVector.mxs, ), time=(time, ), maxlen=maxlen, order=order)
+        return cls(
+            mxsVector.zai,
+            mxsVector.zptr,
+            mxsVector.rxns,
+            mxs=(mxsVector.mxs,),
+            time=(time,),
+            maxlen=maxlen,
+            order=order,
+        )
 
-    def insert(self, time: float, mxs: MicroXsVector) -> None:
-        """Insert microscopic cross sections to maintain ordering
+    def _check(self, xsvector):
+        if isinstance(xsvector, MicroXsVector):
+            if (
+                xsvector.zai != self.zai
+                or xsvector.zptr != self.zptr
+                or xsvector.rxns != self.rxns
+            ):
+                raise ValueError(
+                    "Incoming cross sections do not align with currently stored "
+                    "values. In the future, passing subsets may be supported."
+                )
+            mxs = xsvector.mxs
+        else:
+            mxs = numpy.asarray(xsvector)
+
+        if len(mxs) != len(self.rxns):
+            raise ValueError(
+                "Expected array with {} reactions, got {}".format(
+                    len(self.rxns), len(mxs)
+                )
+            )
+        if self and mxs.shape != self._mxs[0].shape:
+            raise ValueError(
+                "Expected array with {} reactions and {} groups, got {}".format(
+                    *self._mxs[0].shape, mxs.shape
+                )
+            )
+        return mxs
+
+    def __getitem__(self, index: int) -> MicroXsVector:
+        return MicroXsVector(self.zai, self.zptr, self.rxns, self._mxs[index])
+
+    def __setitem__(self, index: int, mxs: ArrayOrMicroXsVector):
+        """Overwrite the cross sections at index ``index``
+
+        Parameters
+        ----------
+        index : int
+            Index of the time slot that should be overwritten
+        mxs : MicroXsVector or numpy.ndarray
+            If a cross section vector, must have identical
+            :attr:`zai`, :attr:`zptr`, and :attr:`rxns` data.
+            Number of energy groups in :attr:`MicroXsVector.mxs`
+            must be consistent as well. Otherwise, must reflect
+            some 2D array of cross sections, ``(reactions, group)``
+            that is consistent with what is currently stored.
+
+        """
+        valid = self._check(mxs)
+        self._mxs[index] = valid
+
+    def insort(self, time: float, mxs: ArrayOrMicroXsVector):
+        """Insert microscopic cross sections to maintain ordering in time
 
         Parameters
         ----------
         time : float
-            Value of time for this specific set of cross sections
-        mxs : numpy.ndarray
-            New cross sections to be loaded.
+            Point in calendar time [s] that generated the cross sections
+        mxs : MicroXsVector or numpy.ndarray
+            If a cross section vector, must have identical
+            :attr:`zai`, :attr:`zptr`, and :attr:`rxns` data.
+            Number of energy groups in :attr:`MicroXsVector.mxs`
+            must be consistent as well. Otherwise, must reflect
+            some 2D array of cross sections, ``(reactions, group)``
+            that is consistent with what is currently stored.
 
         """
-        ix = bisect.bisect_left(self.time, time)
-        self.time.insert(ix, time)
-        self.mxs.insert(ix, mxs)
+        value = self._check(mxs)
+        return super().insort(time, value)
+
+    def _insert(self, index: int, mxs: numpy.ndarray) -> None:
+        self._mxs.insert(index, mxs)
         self._coeffs = None
 
-    def append(self, time: float, mxs: numpy.ndarray) -> None:
-        """Append cross sections with no regard for ordering
+    def append(self, time: float, mxs: ArrayOrMicroXsVector):
+        """Add cross sections from a later point in time
+
+        Time must be greater than the greatest value currently
+        stored. Otherwise use :meth:`insert`.
 
         Parameters
         ----------
         time : float
-            Value of time for this specific set of :class:`MicroXsVector`
-        mxs : numpy.ndarray
-            New cross sections to be loaded.
+            Point in calendar time [s] that generated the cross sections
+        mxs : MicroXsVector or numpy.ndarray
+            If a cross section vector, must have identical
+            :attr:`zai`, :attr:`zptr`, and :attr:`rxns` data.
+            Number of energy groups in :attr:`MicroXsVector.mxs`
+            must be consistent as well. Otherwise, must reflect
+            some 2D array of cross sections, ``(reactions, group)``
+            that is consistent with what is currently stored.
 
         """
-        self.time.append(time)
-        self.mxs.append(mxs)
+        value = self._check(mxs)
+        return super().append(time, value)
+
+    def _append(self, mxs: numpy.ndarray):
+        self._mxs.append(mxs)
+        self._coeffs = None
+
+    def extend(
+        self, times: typing.Sequence[float], mxs: typing.Sequence[ArrayOrMicroXsVector]
+    ):
+        """Add a collection times and cross sections to the deque
+
+        Parameters
+        ----------
+        times : Sequence of float
+            Point in calendar time [s] that generated the cross sections
+        mxs : Sequence of numpy.ndarray or sequence of MicroXsVector
+            If cross section vectors, must have identical
+            :attr:`zai`, :attr:`zptr`, and :attr:`rxns` data.
+            Number of energy groups in :attr:`MicroXsVector.mxs`
+            must be consistent as well. Otherwise, must reflect
+            some 2D array of cross sections, ``(reactions, group)``
+            that is consistent with what is currently stored.
+        """
+        return super().extend(times, mxs)
+
+    def _extend(self, values) -> None:
+        extensions = []
+        for m in values:
+            extensions.append(self._check(m))
+        self._mxs.extend(extensions)
         self._coeffs = None
 
     def __call__(self, time: float) -> MicroXsVector:
@@ -393,20 +498,31 @@ class TemporalMicroXs:
         MicroXsVector
             Microscopic cross sections evaluated at ``time``
 
+        Raises
+        ------
+        ValueError
+            If no cross sections have been added for fitting
+
         """
+        if not self:
+            raise ValueError("No cross sections added for evaluation")
+        return super().__call__(time)
+
+    def _evaluate(self, time: float) -> MicroXsVector:
         if self._coeffs is None:
             self._coeffs = self._genCoeffs()
-        mxs = numpy.empty(self.mxs[0].shape)
+        mxs = numpy.empty(self._mxs[0].shape)
         for ix, c in enumerate(self._coeffs):
             mxs[ix] = polyval(time, c)
         return MicroXsVector(self.zai, self.zptr, self.rxns, mxs)
 
     def _genCoeffs(self):
         # convert (time, reaction, group) -> (reaction, time, group)
-        data = numpy.array(self.mxs).transpose(1, 0, 2)
+        data = numpy.array(self._mxs).transpose(1, 0, 2)
         coeffs = numpy.empty((data.shape[0], self.order + 1, data.shape[2]))
+        # TODO Vectorize?
         for index, rxn in enumerate(data):
             # group, time
-            coeffs[index] = polyfit(self.time, rxn, self.order, full=False)
+            coeffs[index] = polyfit(self._times, rxn, self.order, full=False)
 
         return coeffs
