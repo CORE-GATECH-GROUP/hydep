@@ -526,3 +526,127 @@ class TemporalMicroXs(CachedTimeTraveller):
             coeffs[index] = polyfit(self._times, rxn, self.order, full=False)
 
         return coeffs
+
+
+class XsTimeMachine:
+    """Container of cross sections for materials over time
+
+    Holds one :class:`TemporalMicroXs` for each
+    material.
+
+    Parameters
+    ----------
+    microOrder : int
+        Non-negative order for polynomial fitting
+    times : iterable of float
+        Previous time points [s] in ascending order
+    previousMicroXs : iterable of iterable of hydep.internal.MicroXsVector
+        Microscopic cross sections for each material at each point in
+        time. Should be structured that the cross sections for material
+        ``j`` at point ``i`` are located in ``previousMicroXs[i][j]``.
+    microLen : int, optional
+        Number of points to store at any given instance. A value of
+        ``None`` will retain all cross sections, while a positive
+        integer will place a limit on the number stored. Will
+        automatically push out old values.
+
+    """
+
+    def __init__(
+        self,
+        microOrder: int,
+        times,
+        previousMicroXs,
+        microLen: typing.Optional[int] = None,
+    ):
+        if not isinstance(microOrder, numbers.Integral):
+            raise TypeError(
+                "Extrapolation order must be integer, not {}".format(type(microOrder))
+            )
+        elif microOrder < 0:
+            raise ValueError(
+                "Extrapolation order must be non-negative, not {}".format(microOrder)
+            )
+
+        if microLen is not None:
+            if not isinstance(microLen, numbers.Integral):
+                raise TypeError(type(microLen))
+            elif microLen <= microOrder:
+                raise ValueError(
+                    "Cannot perform {}-order fitting with {} points".format(
+                        microOrder, microLen
+                    )
+                )
+        if len(times) != len(previousMicroXs):
+            raise ValueError(
+                "Received {} time points and {} sets of cross sections".format(
+                    len(times), len(previousMicroXs)
+                )
+            )
+
+        self._microXs = self._makeMicroXs(times, previousMicroXs, microLen, microOrder)
+
+    @staticmethod
+    def _makeMicroXs(times, mxs, maxSteps, polyorder):
+        out = []
+        for microvector in mxs[0]:
+            out.append(
+                TemporalMicroXs.fromMicroXsVector(
+                    microvector, times[0], maxlen=maxSteps, order=polyorder
+                )
+            )
+
+        # Assume all incoming microxs have the same configurations
+        # (zai, rxn, zptr orderings) for each time step
+        # TODO Guard against ^^^
+        materialXs = collections.defaultdict(list)
+        for timexs in mxs[1:]:
+            for matix, matxs in enumerate(timexs):
+                materialXs[matix].append(matxs)
+
+        for matix, matvector in enumerate(out):
+            matvector.extend(times[1:], materialXs[matix])
+
+        return tuple(out)
+
+    def getMicroXsAt(self, time: float):
+        return tuple(mxs(time) for mxs in self._microXs)
+
+    def getReactionRatesAt(self, time, fluxes):
+        """Compute one-group reaction rates in burnable regions
+
+        .. note::
+
+            Reaction rates are not scaled per region volume.
+            This should be applied to the flux prior to entry
+
+        Parameters
+        ----------
+        time : float
+            Time [s] at which the reaction rates are expected
+        fluxes : numpy.ndarray
+            Flux [#/cm^3/s] in each burnable region such that ``fluxes[i, g]``
+            is the ``g``-th group flux in region ``i``.
+
+        Returns
+        -------
+        tuple of hydep.internal.MicroXsVector
+            Stand-in class for reaction rates in each burnable region
+
+        Raises
+        ------
+        NotImplementedError
+            If fluxes are not presented with a single energy group
+        """
+        rxnXS = self.getMicroXsAt(time)
+
+        if fluxes.shape[1] == 1:
+            # Special treatement for 1-group data
+            rates = [f * micro.mxs[:, 0] for f, micro in zip(fluxes.flat, rxnXS)]
+        else:
+            raise NotImplementedError("Multigroup collapsing not implemented yet")
+
+        return tuple(
+            MicroXsVector(m.zai, m.zptr, m.rxns, r)
+            for m, r in zip(rxnXS, rates)
+        )
