@@ -119,7 +119,14 @@ def test_longform(microxsDict, expectedXsVectors, microXsInputs):
 @pytest.mark.parametrize("grow", ["init", "insort", "append", "reversed"])
 def test_temporal(expectedXsVectors, grow):
     time = [0, 1]
-    mxs = expectedXsVectors.mxs, expectedXsVectors.mxs * 2
+    mxs = [
+        MicroXsVector(
+            expectedXsVectors.zai,
+            expectedXsVectors.zptr,
+            expectedXsVectors.rxn,
+            expectedXsVectors.mxs),
+    ]
+    mxs.append(mxs[0] * 2)
 
     if grow == "init":
         tMxs = TemporalMicroXs(
@@ -161,7 +168,7 @@ def test_temporal(expectedXsVectors, grow):
         raise ValueError(grow)
 
     interpTime = 0.5 * (time[1] + time[0])
-    interpXs = 0.5 * (mxs[1] + mxs[0])
+    interpXs = 0.5 * (mxs[1].mxs + mxs[0].mxs)
 
     actual = tMxs(interpTime)
 
