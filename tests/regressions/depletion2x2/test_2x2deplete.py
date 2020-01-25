@@ -11,11 +11,11 @@ from tests import filecompare
 from tests.regressions import config, ProblemProxy
 
 
-DepBundle = namedtuple("DepBundle", "manager transportResult")
+DepBundle = namedtuple("DepBundle", "manager reactionRates fissionYields")
 THERMAL_ENERGY = 0.0253
 
 
-def fissionYields(chain, ene=THERMAL_ENERGY, fallbackIndex=0):
+def buildFissionYields(chain, ene=THERMAL_ENERGY, fallbackIndex=0):
     allYields = {}
     for isotope in chain:
         if isotope.fissionYields is None:
@@ -94,17 +94,17 @@ def depletionHarness(endfChain, depletionModel):
 
     datadir = pathlib.Path(__file__).parent
     fluxes = numpy.loadtxt(datadir / "fluxes.txt").reshape(N_BURNABLE, N_GROUPS)
-    result = hydep.internal.TransportResult(fluxes, [1.0, 0.0])
 
-    result.fissionYields = hydep.internal.FakeSequence(
-        fissionYields(endfChain, ene=THERMAL_ENERGY, fallbackIndex=0), N_BURNABLE
+    fissionYields = hydep.internal.FakeSequence(
+        buildFissionYields(endfChain, ene=THERMAL_ENERGY, fallbackIndex=0), N_BURNABLE
     )
 
     microxs = []
 
-    for ix in range(1, N_BURNABLE + 1):
-        mxsfile = datadir / f"mxs{ix}.txt"
+    for ix in range(N_BURNABLE):
+        mxsfile = datadir / "mxs{}.txt".format(ix + 1)
         assert mxsfile.is_file()
+        flux = fluxes[ix] / depletionModel.burnable[ix].volume
         mxsdata = numpy.loadtxt(mxsfile)
         zai = mxsdata[:, 0].astype(int)
         rxns = mxsdata[:, 1].astype(int)
@@ -112,22 +112,23 @@ def depletionHarness(endfChain, depletionModel):
 
         microxs.append(
             hydep.internal.MicroXsVector.fromLongFormVectors(
-                zai, rxns, mxs, assumeSorted=True
+                zai, rxns, mxs * flux, assumeSorted=True
             )
         )
 
     manager = hydep.Manager(endfChain, [50], [6e6])
     manager.beforeMain(depletionModel.model)
 
-    manager.setMicroXS([microxs], [0], polyorder=0)
-
-    yield DepBundle(manager, result)
+    yield DepBundle(manager, microxs, fissionYields)
 
 
 def test_2x2deplete(depletionHarness):
     manager = depletionHarness.manager
-    txResult = depletionHarness.transportResult
-    out = manager.deplete(0, manager.timesteps[0], txResult)
+    out = manager.deplete(
+        manager.timesteps[0],
+        depletionHarness.reactionRates,
+        depletionHarness.fissionYields,
+    )
     zaiOrder = tuple(iso.zai for iso in out.isotopes)
 
     zaiOrder = manager.chain.zaiOrder
