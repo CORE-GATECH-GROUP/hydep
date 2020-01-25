@@ -5,8 +5,7 @@ Control time-steps, material divisions, depletion, etc
 """
 
 import numbers
-from collections import defaultdict
-from collections.abc import Sequence, Iterable
+from collections.abc import Sequence
 from itertools import repeat, starmap
 import multiprocessing
 
@@ -15,7 +14,7 @@ import numpy
 from hydep import BurnableMaterial, DepletionChain
 from hydep.constants import SECONDS_PER_DAY
 from hydep.typed import TypedAttr, IterableOf
-from hydep.internal import TemporalMicroXs, MicroXsVector, Cram16Solver, CompBundle
+from hydep.internal import Cram16Solver, CompBundle
 from hydep.internal.features import FeatureCollection, MICRO_REACTION_XS, FISSION_YIELDS
 
 
@@ -99,7 +98,6 @@ class Manager:
                     "not {}".format(len(self.timesteps), numPreliminary)
                 )
             self._nprelim = numPreliminary
-        self._microXS = None
 
         # TODO Make CRAM solver configurable property
         # NOTE: Must be an importable function that we can dispatch
@@ -156,7 +154,7 @@ class Manager:
         float
             Power [W] for current step
         """
-        return zip(self.timesteps[:self._nprelim], self.powers[:self._nprelim])
+        return zip(self.timesteps[: self._nprelim], self.powers[: self._nprelim])
 
     def activeSteps(self):
         """Iterate over active time steps and powers
@@ -170,7 +168,7 @@ class Manager:
         float
             Power [W] for current step
         """
-        return zip(self.timesteps[self._nprelim:], self.powers[self._nprelim:])
+        return zip(self.timesteps[self._nprelim :], self.powers[self._nprelim :])
 
     def beforeMain(self, model):
         """Check that all materials have volumes and set indexes
@@ -196,145 +194,38 @@ class Manager:
 
         self._burnable = burnable
 
-    # TODO don't use numberKeep, just store all of them.
-    # Pass control to whatever is calling this
-    def setMicroXS(self, mxs, times, numberKeep=None, polyorder=3):
-        """Construct the initial microscopic cross section storage
-
-        Parameters
-        ----------
-        mxs : Iterable[hydep.internal.MicroXsVector]
-            Initial set of cross sections to store
-        times : Iterable[float]
-            Points in calendar time at which the cross sections
-            were generated
-        numberKeep : Optional[int]
-            Store only N values
-        polyOrder : Optional[int]
-            Fitting order
-
-        """
-        if not isinstance(mxs, Iterable):
-            raise TypeError(
-                "mxs must be Iterable of {}, not {}".format(
-                    MicroXsVector.__name__, type(mxs)
-                )
-            )
-
-        if not isinstance(times, Iterable):
-            raise TypeError(
-                "times must be Iterable of real, not {}".format(type(times))
-            )
-
-        if len(times) != len(mxs):
-            raise ValueError(
-                "Number of time points {} not equal to number of cross "
-                "sections {}".format(len(times), len(mxs))
-            )
-
-        assert isinstance(polyorder, numbers.Integral) and polyorder >= 0
-
-        if numberKeep is not None:
-            assert polyorder < numberKeep
-            if not isinstance(numberKeep, numbers.Integral):
-                raise TypeError("Number of steps to keep must be integer")
-            elif 0 > numberKeep:
-                raise ValueError("Number of steps to keep must be positive")
-            mxs = mxs[-numberKeep:]
-            times = times[-numberKeep:]
-
-        self._microXS = self._makeMicroXS(mxs, times, numberKeep, polyorder)
-
-    @staticmethod
-    def _makeMicroXS(mxs, times, maxSteps, polyorder):
-        out = []
-        for microvector in mxs[0]:
-            out.append(
-                TemporalMicroXs.fromMicroXsVector(
-                    microvector, times[0], maxlen=maxSteps, order=polyorder
-                )
-            )
-
-        # Assume all incoming microxs have the same configurations
-        # (zai, rxn, zptr orderings) for each time step
-        # TODO Guard against ^^^
-        materialXs = defaultdict(list)
-        for timexs in mxs[1:]:
-            for matix, matxs in enumerate(timexs):
-                materialXs[matix].append(matxs)
-
-        for matix, matvector in enumerate(out):
-            matvector.extend(times[1:], materialXs[matix])
-
-        return tuple(out)
-
-    def getReactionRatesAt(self, time, fluxes):
-        """Compute one-group reaction rates in burnable regions
-
-        Parameters
-        ----------
-        time : float
-            Time at which the reaction rates are expected
-        fluxes : numpy.ndarray
-            Flux in each burnable region such that ``fluxes[i, g]``
-            is the ``g``-th group flux in region ``i``.
-
-        Returns
-        -------
-        Tuple[MicroXsVector...]
-            Stand-in class for reaction rates in each burnable region
-
-        Raises
-        ------
-        NotImplementedError
-            If fluxes are not presented with a single energy group
-        """
-        rxnXS = [mxs(time) for mxs in self._microXS]
-        if fluxes.shape[1] == 1:
-            # Special treatement for 1-group data
-            rates = [f * micro.mxs[:, 0] for f, micro in zip(fluxes.flat, rxnXS)]
-        else:
-            raise NotImplementedError("Multigroup collapsing not implemented yet")
-
-        volumes = (m.volume for m in self.burnable)
-
-        return tuple(
-            MicroXsVector(m.zai, m.zptr, m.rxns, r / v)
-            for m, r, v in zip(rxnXS, rates, volumes)
-        )
-
-    def deplete(self, start, dtSeconds, txResult):
+    def deplete(self, dtSeconds, reactionRates, fissionYields):
         """Deplete all burnable materials
 
         Parameters
         ----------
-        start : float
-            Starting point in time. Reaction rates will be obtained
-            at this point using :meth:`getReactionRatesAt` and
-            compositions will be depleted with compositions at
-            this point in time
         dtSeconds : float
             Length of depletion interval in seconds
-        txResult : hydep.internal.TransportResult
-            Previous transport result containing fluxes and fission yields
+        reactionRates : iterable of hydep.internal.MicroXsVector
+            Stand in for microscopic reaction rates in each burnable
+            material
+        fissionYields : iterable of hydep.internal.FissionYield
+            Fission yields in each burnable material
 
         Returns
         -------
-        list of numpy.ndarray
-            Compositions for each region such that ``out[i][j]`` is the
-            final concentration of isotope :attr:`hydep.DepletionChain.zaiOrder`
-            position ``j`` for burnable region ``i``
+        hydep.internal.CompBundle
+            New compositions for each burnable material and the isotope
+            ordering
 
         """
-        assert self.burnable is not None
-        assert self._microXS is not None
-
-        reactionRates = self.getReactionRatesAt(start, txResult.flux)
-        assert len(reactionRates) == len(self.burnable) == len(txResult.fissionYields)
+        if not len(reactionRates) == len(self.burnable) == len(fissionYields):
+            raise ValueError(
+                "Inconsistent number of reaction rates {} to burnable "
+                "materials {} and fission yields {}".format(
+                    *(len(x) for x in (reactionRates, self.burnable, fissionYields))
+                )
+            )
         concentrations = (m.asVector(order=self.chain.zaiOrder) for m in self.burnable)
 
-        matrices = starmap(self.chain.formMatrix,
-                           zip(reactionRates, txResult.fissionYields))
+        matrices = starmap(
+            self.chain.formMatrix, zip(reactionRates, fissionYields)
+        )
 
         inputs = zip(matrices, concentrations, repeat(dtSeconds, len(self.burnable)))
 
