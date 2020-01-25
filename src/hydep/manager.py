@@ -5,6 +5,7 @@ Control time-steps, material divisions, depletion, etc
 """
 
 import numbers
+from collections import defaultdict
 from collections.abc import Sequence, Iterable
 from itertools import repeat, starmap
 import multiprocessing
@@ -247,11 +248,6 @@ class Manager:
     @staticmethod
     def _makeMicroXS(mxs, times, maxSteps, polyorder):
         out = []
-
-        # Is it better to create and append all TemporalMicroXs,
-        # then insert, or create them one material at a time,
-        # adding all time information, then append?
-
         for microvector in mxs[0]:
             out.append(
                 TemporalMicroXs.fromMicroXsVector(
@@ -259,9 +255,16 @@ class Manager:
                 )
             )
 
-        for time, vectors in zip(times[1:], mxs[1:]):
-            for tvector, microvector in zip(out, vectors):
-                tvector.append(time, microvector.mxs)
+        # Assume all incoming microxs have the same configurations
+        # (zai, rxn, zptr orderings) for each time step
+        # TODO Guard against ^^^
+        materialXs = defaultdict(list)
+        for timexs in mxs[1:]:
+            for matix, matxs in enumerate(timexs):
+                materialXs[matix].append(matxs)
+
+        for matix, matvector in enumerate(out):
+            matvector.extend(times[1:], materialXs[matix])
 
         return tuple(out)
 
