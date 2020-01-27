@@ -4,7 +4,8 @@ import numbers
 
 import numpy
 
-from hydep import Universe, Material, BurnableMaterial
+from hydep.lib import Universe
+from hydep import Material, BurnableMaterial
 from .typed import IterableOf, TypedAttr
 
 

@@ -19,12 +19,12 @@ class Model:
 
     Parameters
     ----------
-    root : hydep.Universe
+    root : hydep.lib.Universe
         Root universe for the problem.
 
     Attributes
     ----------
-    root : hydep.Universe
+    root : hydep.lib.Universe
         Root universe for the problem.
     bounds : Optional[hydep.internal.Boundaries]
         X, Y, and Z boundaries for the root universe. A value of
@@ -33,7 +33,7 @@ class Model:
 
     See Also
     --------
-    * :meth:`hydep.Universe.boundaries`
+    * :meth:`hydep.lib.Universe.boundaries`
         Look into the root universe and determine size from contents.
 
     """

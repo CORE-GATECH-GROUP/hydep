@@ -4,7 +4,8 @@ from collections.abc import Iterable
 import numpy
 
 
-from hydep import Universe, Pin, InfiniteMaterial, Material
+from hydep.lib import Universe
+from hydep import Pin, InfiniteMaterial, Material
 from .typed import BoundedTyped, TypedAttr
 from hydep.internal import Boundaries
 
@@ -30,7 +31,7 @@ class LatticeStack(Universe):
     heights : Iterable[float], optional
         Boundaries for each layer, so must have :attr:`nLayers` + 1 entries. Must
         all be increasing
-    items : Iterable[hydep.Universe], optional
+    items : iterable of hydep.lib.Universe, optional
         Iterable of universes that fill each layer.
         Must have :attr:`nLayers` elements.
         Ordered such that ``items[i]`` occupies the space between ``heights
@@ -46,7 +47,7 @@ class LatticeStack(Universe):
     heights : Iterable[float], optional
         Boundaries for each layer. Must have :attr:`nLayers` + 1 entries.
         Must all be increasing in value.
-    items : Iterable[hydep.Universe], optional
+    items : iterable of hydep.lib.Universe or None
         Iterable of universes that fill each layer. Must have
         :attr:`nLayers` elements. Ordered such that ``items[i]`` occupies
         the space between ``heights[i]`` and ``heights[i + 1]``
@@ -98,13 +99,13 @@ class LatticeStack(Universe):
         return iter([] if self._items is None else self._items)
 
     def __getitem__(self, index) -> Universe:
-        """Return the :class:`hydep.Universe` at ``index``"""
+        """Return the :class:`hydep.lib.Universe` at ``index``"""
         if self._items is None:
             raise AttributeError("Vertical stack not set")
         return self._items[index]
 
     def __setitem__(self, index, universe):
-        """Set the :class:`hydep.Universe` at ``index`` to be ``universe``"""
+        """Set the :class:`hydep.lib.Universe` at ``index`` to be ``universe``"""
         if self._items is None:
             raise AttributeError("Vertical stack not set")
         assert isinstance(index, numbers.Integral)

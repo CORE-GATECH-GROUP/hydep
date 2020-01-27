@@ -2,7 +2,8 @@
 Primary class for handling geometry and material information
 """
 
-from hydep import Model, HighFidelitySolver, ReducedOrderSolver, Manager
+from hydep.lib import HighFidelitySolver, ReducedOrderSolver
+from hydep import Model, Manager
 from hydep.typed import TypedAttr
 from hydep.internal import TimeStep, configmethod
 

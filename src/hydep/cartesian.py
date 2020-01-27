@@ -4,7 +4,8 @@ from collections.abc import Iterable
 
 import numpy
 
-from hydep import Universe, Pin, InfiniteMaterial, Material, BurnableMaterial
+from hydep.lib import Universe
+from hydep import Pin, InfiniteMaterial, Material, BurnableMaterial
 from .typed import BoundedTyped, TypedAttr
 from hydep.internal import Boundaries
 
@@ -27,7 +28,7 @@ class CartesianLattice(Universe):
         Number of items in the y direction
     pitch : float
         Center to center distance between adjacent items
-    array : Iterable[Iterable[hydep.Universe]], optional
+    array : iterable of iterable of hydep.lib.Universe optional
         Initial array of universes.
     name : str, optional
         Name of this lattice. No need for uniquness
@@ -42,7 +43,7 @@ class CartesianLattice(Universe):
         Number of items in the y direction
     pitch : float
         Center to center distance between adjacent items
-    array : Iterable[Iterable[hydep.Universe]] or None
+    array : itererable of iterable of hydep.lib.Universe or None
         Initial array of universes.
     name : str or None
         Name of this lattice. No need for uniquness
@@ -107,7 +108,7 @@ class CartesianLattice(Universe):
             Template for this array where each item is a key
             in ``fillmap``. Every location in the resulting
             array will be filled according to this template
-        fillmap : Mapping[int, hydep.Universe]
+        fillmap : Mapping[int, hydep.lib.Universe]
             Map used to populate final array
         kwargs:
             Additional arguments to be passed to the constructor

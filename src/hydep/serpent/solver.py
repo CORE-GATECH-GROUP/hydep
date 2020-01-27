@@ -18,7 +18,7 @@ from .runner import SerpentRunner
 from .processor import SerpentProcessor
 
 
-class SerpentSolver(hydep.HighFidelitySolver):
+class SerpentSolver(hydep.lib.HighFidelitySolver):
     """Primary entry point for using Serpent as high fidelity solver
 
     Configuration should be done through the :meth:`configure` method.

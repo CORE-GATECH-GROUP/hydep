@@ -229,7 +229,7 @@ set nfg {grid}
         ----------
         stream : writable
             Object onto which to write the geometry
-        u : hydep.Universe
+        u : hydep.lib.Universe
             Universe to be written
         memo : dict[str, str]
             Dictionary mapping previously written universe ids to their
