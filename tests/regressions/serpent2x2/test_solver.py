@@ -6,10 +6,7 @@ import hydep.internal
 import hydep.serpent
 import hydep.internal.features as hdfeat
 
-from tests.regressions import ResultComparator
-
-
-ProblemProxy = namedtuple("ProblemProxy", "model burnable")
+from tests.regressions import ResultComparator, ProblemProxy
 
 
 @pytest.fixture
