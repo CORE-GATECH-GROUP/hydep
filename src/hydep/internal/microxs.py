@@ -173,6 +173,64 @@ class MicroXsVector:
     def __rmul__(self, scalar):
         return self * scalar
 
+    def getReactions(self, zai: numbers.Integral, default=None):
+        """Retrieve all reactions for a given isotope, if present
+
+        Parameters
+        ----------
+        zai : int
+            Isotope ZAI identifier, e.g. ``922350``
+        default : optional
+            Item to be returned if ``zai`` is not found. Defaults
+            to ``None``
+
+        Returns
+        -------
+        dict or type(default)
+            If ``zai`` is found, return a dictionary of ``{rxn: xs}``,
+            where ``rxn`` is an integer reaction number and ``xs`` is
+            the, potentially multi-group, cross section for
+            ``zai, rxn``. If ``zai`` is not found, return ``default``
+
+        """
+        assert isinstance(zai, numbers.Integral)
+        ix = bisect.bisect_left(self.zai, zai)
+        if ix == len(self.zai) or self.zai[ix] != zai:
+            return default
+        s = slice(self.zptr[ix], self.zptr[ix + 1])
+        return dict(zip(self.rxns[s], self.mxs[s]))
+
+    def getReaction(self, zai, rxn, default=None):
+        """Retrieve a specific reaction, if present
+
+        Parameters
+        ----------
+        zai : int
+            Isotope ZAI identifier, e.g. ``922350``
+        rxn : int
+            Reaction MT of interest
+        default : optional
+            Item to be returned if reaction ``rxn`` for isotope
+            ``zai`` is not found. Defaults to None
+
+        Returns
+        -------
+        float or iterable of float or type(default)
+            Potentially multi-group cross section for reaction ``rxn``
+            of isotope ``zai`` if found. Otherwise return ``default``
+
+        """
+        assert isinstance(zai, numbers.Integral)
+        ix = bisect.bisect_left(self.zai, zai)
+        if ix == len(self.zai) or self.zai[ix] != zai:
+            return default
+        s = slice(self.zptr[ix], self.zptr[ix + 1])
+        for r, m in zip(self.rxns[s], self.mxs[s]):
+            if r == rxn:
+                return m
+        else:
+            return default
+
 
 class TemporalMicroXs:
     """Microscopic cross sections over time

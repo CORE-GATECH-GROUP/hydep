@@ -85,6 +85,7 @@ def test_longform(microxsDict, expectedXsVectors, microXsInputs):
 
     for z, r, m in mxsVector:
         assert microxsDict[z, r] == m, (z, r)
+        assert mxsVector.getReaction(z, r) == m
 
     # test z pointer
     allZ = list(k[0] for k in microxsDict)
@@ -101,6 +102,18 @@ def test_longform(microxsDict, expectedXsVectors, microXsInputs):
     mult *= 2
     assert mult.mxs == pytest.approx(orig * 4)
     assert mxsVector.mxs == pytest.approx(orig)
+
+    rxnMap = mxsVector.getReactions(922380)
+    assert rxnMap
+    expectedNum = len([k for k in microxsDict if k[0] == 922380])
+    assert len(rxnMap) == expectedNum
+    for key, value in rxnMap.items():
+        assert (value == microxsDict[922380, key]).all(), key
+
+    assert mxsVector.getReactions(-1) is None
+    assert mxsVector.getReactions(-1, default=False) is False
+    assert mxsVector.getReaction(-1, 18) is None
+    assert mxsVector.getReaction(922380, -1) is None
 
 
 @pytest.mark.parametrize("grow", ["init", "insert", "append", "reversed"])
