@@ -80,30 +80,25 @@ class TransportSolver(ABC):
     def processResults(self) -> TransportResult:
         """Process output of solution
 
-        Parameters
-        ----------
-        runTime : float
-            Wall time [s] computed from :meth:`execute`
-
         Returns
         -------
         TransportResult
-            Flux, multiplication factor, and run time.
-            Other results can be added as needed depending
-            on hooks
+            Containing at least the flux and multiplication
+            factor.
 
         """
 
     def finalize(self, success) -> None:
         """Perform any final actions before moving on or terminating
 
-        This method should be called regardless if :meth:`bosExecute`
-        or :meth:`bosProcessResults` succeed.
+        This method will be called regardless if :meth:`execute`
+        or :meth:`processResults` succeeded. Subclasses can take
+        separate actions, or take no actions.
 
         Parameters
         ----------
         success : bool
-            Flag indicating if :meth:`bosExecute` has succeeded.
+            Flag indicating the success of the current solution
         """
 
     def _solve(self) -> TransportResult:
@@ -144,6 +139,20 @@ class HighFidelitySolver(TransportSolver):
         """Features this solver is capable of
 
         Items should be subclass of :class:`hydep.features.Feature`
+        """
+
+    @abstractmethod
+    def processResults(self) -> TransportResult:
+        """Process output of solution
+
+        Returns
+        -------
+        TransportResult
+            Containing flux, multiplication factor, and any
+            information needed by reduced order solver and
+            depletion manager. These will be declared through
+            :meth:`setHooks`
+
         """
 
     @abstractmethod
