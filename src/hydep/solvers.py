@@ -37,6 +37,7 @@ local reaction rates
 from abc import ABC, abstractmethod
 
 from hydep.internal import TransportResult
+from hydep.internal.features import FeatureCollection
 from hydep.exceptions import IncompatibityError
 
 
@@ -220,7 +221,7 @@ class HighFidelitySolver(TransportSolver):
 
         Parameters
         ----------
-        needs : Iterable[hydep.features.Feature]
+        needs : hydep.internal.feature.FeatureCollection
             The needs of both the reduced order solver
             and the depletion manager
 
@@ -252,7 +253,9 @@ class HighFidelitySolver(TransportSolver):
                     slv=solver.__class__.__name__,
                     needs=", ".join(sorted(solver.needs)),
                     has=", ".join(sorted(self.features)),
-                    diff=", ".join(difference)))
+                    diff=", ".join(difference),
+                )
+            )
 
 
 class ReducedOrderSolver(TransportSolver):
@@ -260,7 +263,7 @@ class ReducedOrderSolver(TransportSolver):
 
     @property
     @abstractmethod
-    def needs(self) -> frozenset:
+    def needs(self) -> FeatureCollection:
         """Features needed by this reduced order solver"""
 
     @abstractmethod
