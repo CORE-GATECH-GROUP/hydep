@@ -1,6 +1,8 @@
 import math
 from collections import namedtuple
 import pathlib
+import typing
+from abc import ABC, abstractmethod
 
 import numpy
 from scipy.sparse import issparse, coo_matrix
@@ -13,7 +15,85 @@ config = {"update": False}
 ProblemProxy = namedtuple("ProblemProxy", "model burnable")
 
 
-class ResultComparator:
+class CompareBase(ABC):
+    """Helper class for fetching, dumping test data
+
+    Parameters
+    ----------
+    datadir : str or pathlib.Path
+        Directory where test files should be found and/or written
+
+    Attributes
+    ----------
+    datadir : pathlib.Path
+        Directory where test files will be found / written
+    floatFormat : str
+        Python-2 style format string for floats. Currently ``"%.7E"``
+    intFormat : str
+        Python-2 style format string for integers. Currently ``"%5d"``
+
+    """
+    floatFormat = "%.7E"
+    intFormat = "%5d"
+
+    def __init__(self, datadir: typing.Union[str, pathlib.Path]):
+        self.datadir = pathlib.Path(datadir)
+
+    def getPathFor(self, qty: str, status: str):
+        """Retrive a reference or failure file for a given test quantity"""
+        return self.datadir / "{}_{}.dat".format(qty, status)
+
+    def main(self, *args, **kwargs):
+        """Perform the main test / update
+
+        All args and kwargs will be passed to the abstract
+        :meth:`compare` and/or :meth:`update` methods, depending
+        on the pytest mode. On failure, failures will be dumped
+        using :meth:`dumpFailures`
+
+        Returns
+        -------
+        bool
+            Status of the update or test
+
+        Raises
+        ------
+        AssertionError
+            If the comparisons failed
+
+        """
+
+        if config.get("update"):
+            self.update(*args, **kwargs)
+        else:
+            failures = self.compare(*args, **kwargs)
+            assert not failures, failures
+        return True
+
+    @abstractmethod
+    def update(self, *args, **kwargs):
+        """Write new reference test data"""
+
+    @abstractmethod
+    def compare(self, *args, **kwargs):
+        """
+        Perform a comparison against reference data
+
+        Returns
+        -------
+        dict
+            Dictionary with string keys indicating quantities that
+            did not pass the comparison, and their corresponding
+            failed values
+
+        """
+
+    @abstractmethod
+    def dumpFailures(self, failures: dict):
+        """Write failures from :meth:`compare`"""
+
+
+class ResultComparator(CompareBase):
     """
     Class for fetching / comparing transport results for testing
 
@@ -32,16 +112,6 @@ class ResultComparator:
         String used to format a single floating point value. Passed
         to various routines like :func:`numpy.savetxt`
     """
-
-    floatFormat = "%.7E"
-    intFormat = "%5d"
-
-    def __init__(self, datadir):
-        self.datadir = pathlib.Path(datadir)
-
-    def getPathFor(self, qty, status):
-        """Retrive a reference or failure file for a given test quantity"""
-        return self.datadir / "{}_{}.dat".format(qty, status)
 
     def main(self, txresult):
         """Main entry point for updating or running test
@@ -64,12 +134,7 @@ class ResultComparator:
             If the comparison failed
 
         """
-        if config.get("update"):
-            self.update(txresult)
-        else:
-            failures = self.compare(txresult)
-            assert not failures, failures
-        return True
+        return super().main(txresult)
 
     def update(self, txresult):
         """Update the reference files based on a new transport result"""
@@ -124,7 +189,7 @@ class ResultComparator:
         if failures:
             self._dumpfailures(failures)
             return list(sorted(failures))
-        return []
+        return {}
 
     def _compareKeff(self, keff):
         refK, refU = self.referenceKeff()
@@ -167,7 +232,7 @@ class ResultComparator:
         # one matrix and zeros in the other
         return fmtx.A == pytest.approx(reference.A)
 
-    def _dumpfailures(self, fails):
+    def dumpFailures(self, fails):
         for key, value in fails.items():
             dest = self.getPathFor(key, "fail")
             if issparse(value):
