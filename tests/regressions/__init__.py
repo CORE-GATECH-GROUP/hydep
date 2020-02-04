@@ -41,7 +41,7 @@ class ResultComparator:
 
     def getPathFor(self, qty, status):
         """Retrive a reference or failure file for a given test quantity"""
-        return self.datadir / "{}_{}.txt".format(qty, status)
+        return self.datadir / "{}_{}.dat".format(qty, status)
 
     def main(self, txresult):
         """Main entry point for updating or running test

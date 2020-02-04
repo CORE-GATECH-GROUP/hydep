@@ -36,7 +36,7 @@ def depletionModel():
     )
 
     ISO_THRESH = 1e-10
-    CONC_FILE = pathlib.Path(__file__).parent / "partial_burned.txt"
+    CONC_FILE = pathlib.Path(__file__).parent / "partial_burned.dat"
     with CONC_FILE.open("r") as stream:
         for line in stream:
             za, adens = line.split()
@@ -93,7 +93,7 @@ def depletionHarness(endfChain, depletionModel):
     # Get microscopic cross sections, flux
 
     datadir = pathlib.Path(__file__).parent
-    fluxes = numpy.loadtxt(datadir / "fluxes.txt").reshape(N_BURNABLE, N_GROUPS)
+    fluxes = numpy.loadtxt(datadir / "fluxes.dat").reshape(N_BURNABLE, N_GROUPS)
 
     fissionYields = hydep.internal.FakeSequence(
         buildFissionYields(endfChain, ene=THERMAL_ENERGY, fallbackIndex=0), N_BURNABLE
@@ -102,7 +102,7 @@ def depletionHarness(endfChain, depletionModel):
     microxs = []
 
     for ix in range(N_BURNABLE):
-        mxsfile = datadir / "mxs{}.txt".format(ix + 1)
+        mxsfile = datadir / "mxs{}.dat".format(ix + 1)
         assert mxsfile.is_file()
         flux = fluxes[ix] / depletionModel.burnable[ix].volume
         mxsdata = numpy.loadtxt(mxsfile)
@@ -135,12 +135,12 @@ def test_2x2deplete(depletionHarness):
     outArray = numpy.array(out.densities, order="F")
 
     datadir = pathlib.Path(__file__).parent
-    reference = datadir / "concentrations_reference.txt"
+    reference = datadir / "concentrations_reference.dat"
 
     if config.get("update"):
         writepath = reference
     else:
-        writepath = datadir / "concentrations_test.txt"
+        writepath = datadir / "concentrations_test.dat"
         assert reference.is_file()
 
     with writepath.open("w") as stream:
@@ -156,6 +156,6 @@ def test_2x2deplete(depletionHarness):
     if config.get("update"):
         return
 
-    compare = filecompare(reference, writepath, datadir / "concentrations_fail.txt")
+    compare = filecompare(reference, writepath, datadir / "concentrations_fail.dat")
     assert compare, "Depletion results have regressed"
     writepath.unlink()
