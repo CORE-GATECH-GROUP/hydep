@@ -5,14 +5,79 @@ import typing
 from abc import ABC, abstractmethod
 
 import numpy
-from scipy.sparse import issparse, coo_matrix
+from scipy.sparse import issparse, coo_matrix, isspmatrix_coo
 import pytest
-import hydep
 
 config = {"update": False}
 
 
 ProblemProxy = namedtuple("ProblemProxy", "model burnable")
+
+
+def dumpSparseMatrix(writable, mtx, floatfmt="%.7E", intfmt="%5d"):
+    """Write a sparse or dense matrix in sparse form
+
+    Parameters
+    ----------
+    writable : str or pathlib.Path or writable object
+        Location to write the data. Must be understood by
+        :func:`numpy.savetxt`
+    mtx : numpy.ndarray or scipy.sparse.coo_matrix
+        Dense or sparse matrix to be written
+    floatfmt : str, optional
+        Format to apply to floats, or values in the matrix
+    intfmt : str, optional
+        Format to apply to integers, used as row and column indexes
+
+    See Also
+    --------
+    * :func:`loadSparseMatrix` - companion function
+
+    """
+    if not issparse(mtx):
+        mtx = coo_matrix(mtx)
+    elif not isspmatrix_coo(mtx):
+        mtx = mtx.tocoo()
+
+    numpy.savetxt(
+        writable,
+        numpy.transpose([mtx.row, mtx.col, mtx.data]),
+        fmt=f"{intfmt} {intfmt} {floatfmt}",
+        header="{} {} {}".format(mtx.nnz, *mtx.shape),
+    )
+
+
+def loadSparseMatrix(stream) -> coo_matrix:
+    """Load a sparse matrix from a file or stream
+
+    Parameters
+    ----------
+    stream : str or pathlib.Path or readable object
+        Location to pass to :func:`numpy.loadtxt` that contains
+        the matrix
+
+    Returns
+    -------
+    scipy.sparse.coo_matrix
+        Sparse representation of the matrix contained in ``stream``
+
+    See Also
+    --------
+    * :func:`dumpSparseMatrix` - Companion function
+
+    """
+    if isinstance(stream, (str, pathlib.Path)):
+        with open(stream) as s:
+            return loadSparseMatrix(s)
+
+    header = stream.readline()
+    nnz, nrows, ncols = (int(x) for x in header.split()[1:])
+
+    rows, cols, data = numpy.loadtxt(stream, unpack=True)
+
+    assert rows.shape == cols.shape == data.shape == (nnz,)
+
+    return coo_matrix((data, (rows, cols)), shape=(nrows, ncols))
 
 
 class CompareBase(ABC):
@@ -33,6 +98,7 @@ class CompareBase(ABC):
         Python-2 style format string for integers. Currently ``"%5d"``
 
     """
+
     floatFormat = "%.7E"
     intFormat = "%5d"
 
@@ -141,7 +207,12 @@ class ResultComparator(CompareBase):
         self.updateKeff(txresult.keff)
         self.updateFlux(txresult.flux)
         if txresult.fmtx is not None:
-            self._writeSparse(txresult.fmtx, self.getPathFor("fmtx", "reference"))
+            dumpSparseMatrix(
+                self.getPathFor("fmtx", "reference"),
+                txresult.fmtx,
+                intfmt=self.intFormat,
+                floatfmt=self.floatFormat,
+            )
 
     def updateKeff(self, newkeff):
         """Update reference multiplication factor and absolute uncertainty"""
@@ -157,19 +228,6 @@ class ResultComparator(CompareBase):
             flux,
             fmt=self.floatFormat,
             header=" ".join(map(str, flux.shape)),
-        )
-
-    def _writeSparse(self, value, where):
-        if not issparse(value):
-            value = coo_matrix(value)
-        elif not isinstance(value, coo_matrix):
-            value = value.tocoo()
-
-        numpy.savetxt(
-            where,
-            numpy.transpose([value.row, value.col, value.data]),
-            fmt="{i} {i} {f}".format(i=self.intFormat, f=self.floatFormat),
-            header="{} {} {}".format(value.nnz, *value.shape),
         )
 
     def compare(self, txresult):
@@ -214,19 +272,13 @@ class ResultComparator(CompareBase):
     def referenceFmtx(self):
         path = self.getPathFor("fmtx", "reference")
         with path.open("r") as stream:
-            header = stream.readline()
-        nnz, nrows, ncols = (int(x) for x in header.split()[1:])
-
-        rows, cols, data = numpy.loadtxt(path, unpack=True)
-
-        assert rows.shape == cols.shape == data.shape == (nnz,)
-
-        return coo_matrix((data, (rows, cols)), shape=(nrows, ncols))
+            return loadSparseMatrix(stream)
 
     def _compareFmtx(self, fmtx):
         reference = self.referenceFmtx()
-        if (numpy.array_equal(fmtx.row, reference.row)
-                and numpy.array_equal(fmtx.col, reference.col)):
+        if numpy.array_equal(fmtx.row, reference.row) and numpy.array_equal(
+            fmtx.col, reference.col
+        ):
             return fmtx.data == pytest.approx(reference.data)
         # Compare the full matrices to account for small values in
         # one matrix and zeros in the other
@@ -236,7 +288,9 @@ class ResultComparator(CompareBase):
         for key, value in fails.items():
             dest = self.getPathFor(key, "fail")
             if issparse(value):
-                self._writeSparse(value, dest)
+                dumpSparseMatrix(
+                    value, dest, intfmt=self.intFormat, floatfmt=self.floatFormat
+                )
                 continue
             numpy.savetxt(
                 dest,
