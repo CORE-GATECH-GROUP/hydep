@@ -535,6 +535,8 @@ of depletion. Add a single one day step here. Maybe hack something later""")
             if iso in previous:
                 continue
             previous.add(iso)
+            if iso.zai > 992550:  # Serpent upper limit
+                continue
             for reaction in iso.reactions:
                 if reaction.target not in previous:
                     isotopes.add(reaction.target)
