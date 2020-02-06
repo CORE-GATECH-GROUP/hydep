@@ -100,7 +100,9 @@ class TransportResult:
     @flux.setter
     def flux(self, value):
         f = numpy.ascontiguousarray(value, dtype=float)
-        if len(f.shape) != 2:
+        if len(f.shape) == 1:
+            f = f.reshape(f.size, 1)
+        elif len(f.shape) != 2:
             raise ValueError("Expected flux to be 2D array, got {}".format(f.shape))
         self._flux = f
 
