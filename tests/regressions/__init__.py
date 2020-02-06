@@ -114,8 +114,8 @@ class CompareBase(ABC):
 
         All args and kwargs will be passed to the abstract
         :meth:`compare` and/or :meth:`update` methods, depending
-        on the pytest mode. On failure, failures will be dumped
-        using :meth:`dumpFailures`
+        on the pytest mode. Concrete classes are responsible for
+        logging failures in :meth:`compare`, if applicable
 
         Returns
         -------
@@ -153,10 +153,6 @@ class CompareBase(ABC):
             failed values
 
         """
-
-    @abstractmethod
-    def dumpFailures(self, failures: dict):
-        """Write failures from :meth:`compare`"""
 
 
 class ResultComparator(CompareBase):
