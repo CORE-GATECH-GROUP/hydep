@@ -29,3 +29,6 @@ Constants
 """
 SECONDS_PER_DAY = 86400  # Doc: Number of seconds per day
 CM2_PER_BARN = 1e-24  # Doc: Number of squared centimeters per barn
+BARN_PER_CM2 = 1 / CM2_PER_BARN  # Doc: Number of barns per squared cm
+JOULES_PER_EV = 1.602176634E-19  # Doc: Joules per EV
+EV_PER_JOULE = 1 / JOULES_PER_EV
