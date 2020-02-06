@@ -267,36 +267,51 @@ class ReducedOrderSolver(TransportSolver):
         """Features needed by this reduced order solver"""
 
     @abstractmethod
-    def substepUpdate(self, txResult, timestep, power) -> None:
-        """Process information from latest transport result
+    def processResults(self) -> TransportResult:
+        """Process output of solution
+
+        Returns
+        -------
+        TransportResult
+            Containing at least the flux and multiplication
+            factor.
+
+        """
+
+    @abstractmethod
+    def substepUpdate(self, timestep, compositions, microCrossSections) -> None:
+        """Prepare for solution phase with new information
 
         Parameters
         ----------
-        txResult : hydep.TransportResult
-            Result from latest high fidelity solution **or** reduced
-            order solution. If ``timestep.substep == 0``, then ``txResult``
-            will come from high fidelity solution
         timestep : hydep.internal.TimeStep
-            Time step information
-        power : float
-            Current power [W]
+            Current time step information
+        compositions : hydep.internal.CompBundle
+            Updated compositions for this ``timestep``
+        microCrossSections : iterable of hydep.internal.MicroXsVector
+            Microscopic cross sections extrapolated for this time step.
+            Each entry corresponds to a burnable material, ordered
+            conisistent with the remainder of the framework
         """
 
-    def substepSolve(self, txResult, timestep, power) -> TransportResult:
-        """Solve reduced order problem at a substep using previous results
+    def substepSolve(
+        self, timestep, compositions, microCrossSections
+    ) -> TransportResult:
+        """Solve reduced order problem at a substep
 
         This method relies upon :meth:`substepUpdate`, :meth:`execute`,
         :meth:`processResults`, and :meth:`finalize`
 
         Parameters
         ----------
-        txResult : hydep.TransportResult
-            Result from previous solution. Will correspond to a high fidelity
-            solution if ``timestep.substep == 0``.
         timestep : hydep.internal.TimeStep
-            Current time step
-        power : float
-            Current power [W]
+            Current time step information
+        compositions : hydep.internal.CompBundle
+            Updated compositions for this ``timestep``
+        microCrossSections : iterable of hydep.internal.MicroXsVector
+            Microscopic cross sections extrapolated for this time step.
+            Each entry corresponds to a burnable material, ordered
+            consistent with the remainder of the framework
 
         Returns
         -------
@@ -304,7 +319,7 @@ class ReducedOrderSolver(TransportSolver):
             At least flux, keff, and run time for this substep solution
 
         """
-        self.substepUpdate(txResult, timestep, power)
+        self.substepUpdate(timestep, compositions, microCrossSections)
         return super()._solve()
 
     def processBOS(self, txResult, timestep, power):
