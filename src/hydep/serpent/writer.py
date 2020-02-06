@@ -539,6 +539,9 @@ of depletion. Add a single one day step here. Maybe hack something later""")
                 if reaction.target not in previous:
                     isotopes.add(reaction.target)
                 reactions.add((iso.zai, reaction.mt))
+            for decay in iso.decayModes:
+                if decay.target not in previous:
+                    isotopes.add(decay.target)
             if iso.fissionYields is None:
                 continue
             for prod in (getIsotope(zai=z) for z in iso.fissionYields.products):
