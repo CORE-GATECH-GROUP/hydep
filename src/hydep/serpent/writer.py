@@ -591,6 +591,7 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
             bc.append(bcval)
         self.options["bc"] = bc
 
+    # TODO Replace with textwrap VVVV
     def _writeIterableOverLines(self, stream, lines, delim=" "):
         for count, line in enumerate(lines):
             stream.write(line)

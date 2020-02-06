@@ -11,6 +11,7 @@ TODOs
 =====
 
 * Status reporting 
+* Standardize microXS vs microXs
 * Guard against hooks that aren't supported by solvers
 * Validate configuration options to avoid typos
 * Resolve how hydep.Pin objects are handled by numpy

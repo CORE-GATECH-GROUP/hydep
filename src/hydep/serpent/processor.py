@@ -247,6 +247,7 @@ class SerpentProcessor:
             source = getattr(universe, xsLeader + "Exp")
             allFluxes.append(source[xsLeader + "Flx"])
             for reqKey in reqXS:
+                # TODO Cache the map or avoid this call in twice nested loop?
                 xsdata[reqKey] = source[self._mapMacroXS(xsLeader, reqKey)]
             allXS.append(xsdata)
 

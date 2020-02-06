@@ -610,6 +610,7 @@ class XsTimeMachine:
         return tuple(out)
 
     def getMicroXsAt(self, time: float):
+        # TODO Rename to __call__?
         return tuple(mxs(time) for mxs in self._microXs)
 
     def getReactionRatesAt(self, time, fluxes):
