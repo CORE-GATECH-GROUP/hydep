@@ -147,10 +147,9 @@ class CompareBase(ABC):
 
         Returns
         -------
-        dict
-            Dictionary with string keys indicating quantities that
-            did not pass the comparison, and their corresponding
-            failed values
+        list of str
+            List of failed values. Actual failures should be
+            reported in :meth:`compare`
 
         """
 
@@ -173,6 +172,8 @@ class ResultComparator(CompareBase):
     floatFormat : str
         String used to format a single floating point value. Passed
         to various routines like :func:`numpy.savetxt`
+    intFormat : str
+        String used to format integers
     """
 
     def main(self, txresult):
@@ -242,8 +243,8 @@ class ResultComparator(CompareBase):
 
         if failures:
             self.dumpFailures(failures)
-            return list(sorted(failures))
-        return {}
+            return sorted(failures)
+        return []
 
     def _compareKeff(self, keff):
         refK, refU = self.referenceKeff()
