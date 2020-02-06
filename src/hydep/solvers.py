@@ -307,7 +307,7 @@ class ReducedOrderSolver(TransportSolver):
         self.substepUpdate(txResult, timestep, power)
         return super()._solve()
 
-    def processBOS(self, txResult, timestep):
+    def processBOS(self, txResult, timestep, power):
         """Process data from the beginning of step high fidelity solution
 
         Not required to be implemented, but some solvers may want to
@@ -320,5 +320,8 @@ class ReducedOrderSolver(TransportSolver):
         timestep : hydep.internal.TimeStep
             Representation of the point in calendar time, and
             step in simulation.
+        power : float
+            Current system power[W]. To be held constant across the
+            substep interval.
 
         """
