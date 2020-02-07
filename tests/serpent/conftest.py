@@ -16,7 +16,7 @@ import pytest
 import hydep
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def beavrsMaterials():
     """Dictionary of materials from the BEAVRS specification
 
