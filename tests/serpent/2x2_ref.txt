@@ -119,7 +119,7 @@ cell 4_2 0 outside 4_x
 set acelib "sss_endfb7u.xsdata"
 set declib "sss_endfb7.dec"
 set nfylib "sss_endfb7.nfy"
-set pop 200 25 10 1.00000 5
+set pop 200 25 10 1.00000 % 5
 set bc 2 2 2
 therm HinH2O_600.00 lwe6.12t
 % Hard set one group [0, 20] MeV for all data

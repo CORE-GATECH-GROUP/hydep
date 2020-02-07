@@ -192,7 +192,9 @@ class SerpentWriter:
         active = self.options["active"]
         skipped = self.options["skipped"]
         stream.write("{} {}".format(gen * active, gen * skipped))
-        stream.write(" {:.5f} {}\n".format(self.options.get("k0", 1.0), gen))
+        # Batching is problematic for power reconstruction through INF_FLX
+        # https://ttuki.vtt.fi/serpent/viewtopic.php?f=25&t=3306
+        stream.write(" {:.5f} % {}\n".format(self.options.get("k0", 1.0), gen))
 
         stream.write("set bc")
         for value in self.options.get("bc", [1]):
