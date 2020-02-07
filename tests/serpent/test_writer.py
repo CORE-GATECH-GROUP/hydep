@@ -67,17 +67,15 @@ def test_writeFuelPin(beavrsFuelPin):
     stream = io.StringIO()
 
     writer.writeUniverse(stream, beavrsFuelPin, {})
-    reference = """surf 1_r0_i inf
-cell 1_r0_i 1 1 -1_r0
-surf 1_r0 cyl 0.0 0.0 0.39218
-cell 1_r0 p1 fill 1 -1_r0
-surf 1_r1 cyl 0.0 0.0 0.40005
-cell 1_r1 p1 5 1_r0 -1_r1
-surf 1_r2 cyl 0.0 0.0 0.45720
-cell 1_r2 p1 3 1_r1 -1_r2
-cell 1_r3 p1 4 1_r2
+    reference = """surf 1_r0 inf
+cell 1_r0 1 1 -1_r0
+pin p1
+fill 1 0.3921800
+5 0.4000500
+3 0.4572000
+4
 
-""".format(beavrsFuelPin.id)
+"""
     written = stream.getvalue()
     assert strcompare(reference, written)
 

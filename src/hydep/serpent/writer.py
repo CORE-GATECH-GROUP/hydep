@@ -344,50 +344,26 @@ set nfg {self._eneGridName}
         if pin.name is not None:
             stream.write(f"% {pin.name}\n")
 
-        if any(isinstance(m, hydep.BurnableMaterial) for m in pin.materials):
-            self._writeburnablepin(stream, pin, writeas)
-        else:
-            stream.write(f"pin {writeas}\n")
-            for r, m in zip(pin.radii, pin.materials):
-                stream.write(f"{m.id} {r:.7f}\n")
-            stream.write(f"{pin.outer.id}\n")
-        stream.write("\n")
-        return writeas
+        infiniteCells = []
+        pindef = [f"pin {writeas}"]
 
-    def _writeburnablepin(self, stream, pin, writeas):
-        surfaces = deque(maxlen=2)  # [lower surf, outer surf]
-        for ix, (r, m) in enumerate(pin):
-            surfaces.append("{}_r{}".format(pin.id, ix))
+        # Drop universes inside pin definition like magic
+        # https://ttuki.vtt.fi/serpent/viewtopic.php?f=18&t=3092#p9345
+
+        for ix, (r, m) in enumerate(zip(pin.radii, pin.materials)):
             if isinstance(m, hydep.BurnableMaterial):
-                # Write an infinite universe of this material
-                stream.write(
-                    """surf {surf}_i inf
-cell {surf}_i {uid} {uid} -{surf}
-""".format(
-                        surf=surfaces[-1], uid=m.id
-                    )
+                surf = f"{pin.id}_r{ix}"
+                infiniteCells.append(
+                    f"surf {surf} inf\ncell {surf} {m.id} {m.id} -{surf}"
                 )
-                filler = "fill {}".format(m.id)
+                pindef.append(f"fill {m.id} {r:.7f}")
             else:
-                filler = m.id
+                pindef.append(f"{m.id} {r:.7f}")
+        pindef.append(f"{pin.outer.id}\n\n")  # extra new line after pin
 
-            if r < numpy.inf:
-                stream.write("surf {} cyl 0.0 0.0 {:.5f}\n".format(surfaces[-1], r))
-                stream.write(
-                    "cell {surf} {pid} {fill} ".format(
-                        surf=surfaces[-1], pid=writeas, fill=filler
-                    )
-                )
-                if ix:
-                    stream.write("{} -{}\n".format(*surfaces))
-                else:
-                    stream.write("-{}\n".format(surfaces[0]))
-            else:
-                stream.write(
-                    "cell {outer} {pid} {fill} {inner}\n".format(
-                        outer=surfaces[1], inner=surfaces[0], pid=writeas, fill=filler
-                    )
-                )
+        stream.write("\n".join(infiniteCells + pindef))
+
+        return writeas
 
     def _writelattice(self, stream, lat, memo):
         previous = memo.get(lat.id)

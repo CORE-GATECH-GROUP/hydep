@@ -71,40 +71,31 @@ mat 7 -8.0300000
 /*
  * BEGIN GEOMETRY BLOCK
  */
-surf 1_r0_i inf
-cell 1_r0_i 1 1 -1_r0
-surf 1_r0 cyl 0.0 0.0 0.39218
-cell 1_r0 p1 fill 1 -1_r0
-surf 1_r1 cyl 0.0 0.0 0.40005
-cell 1_r1 p1 5 1_r0 -1_r1
-surf 1_r2 cyl 0.0 0.0 0.45720
-cell 1_r2 p1 3 1_r1 -1_r2
-cell 1_r3 p1 4 1_r2
+surf 1_r0 inf
+cell 1_r0 1 1 -1_r0
+pin p1
+fill 1 0.3921800
+5 0.4000500
+3 0.4572000
+4
 
 pin p3
 4 0.5041900
 3 0.5641000
 4
 
-surf 2_r0 cyl 0.0 0.0 0.21400
-cell 2_r0 p2 2 -2_r0
-surf 2_r1 cyl 0.0 0.0 0.23050
-cell 2_r1 p2 7 2_r0 -2_r1
-surf 2_r2 cyl 0.0 0.0 0.24130
-cell 2_r2 p2 5 2_r1 -2_r2
-surf 2_r3_i inf
-cell 2_r3_i 6 6 -2_r3
-surf 2_r3 cyl 0.0 0.0 0.42670
-cell 2_r3 p2 fill 6 2_r2 -2_r3
-surf 2_r4 cyl 0.0 0.0 0.43690
-cell 2_r4 p2 5 2_r3 -2_r4
-surf 2_r5 cyl 0.0 0.0 0.48390
-cell 2_r5 p2 7 2_r4 -2_r5
-surf 2_r6 cyl 0.0 0.0 0.56130
-cell 2_r6 p2 4 2_r5 -2_r6
-surf 2_r7 cyl 0.0 0.0 0.60200
-cell 2_r7 p2 3 2_r6 -2_r7
-cell 2_r8 p2 4 2_r7
+surf 2_r3 inf
+cell 2_r3 6 6 -2_r3
+pin p2
+2 0.2140000
+7 0.2305000
+5 0.2413000
+fill 6 0.4267000
+5 0.4369000
+7 0.4839000
+4 0.5613000
+3 0.6020000
+4
 
 lat cl4 1 0.0 0.0 2 2 1.30000
 p3 p2
