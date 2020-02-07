@@ -198,7 +198,7 @@ class SerpentWriter:
 
         stream.write("set bc")
         for value in self.options.get("bc", [1]):
-            stream.write(" " + str(value))
+            stream.write(f" {value}")
         stream.write("\n")
 
         if sabLibraries:
@@ -209,16 +209,13 @@ class SerpentWriter:
 
         seed = self.options.get("seed")
         if seed is not None:
-            stream.write("set seed {}\n".format(seed))
+            stream.write(f"set seed {seed}\n")
 
         stream.write(
-            """% Hard set one group [0, 20] MeV for all data
-ene {grid} 2 1 0 20
-set nfg {grid}
-""".format(
-                grid=self._eneGridName
-            )
-        )
+            f"""% Hard set one group [0, 20] MeV for all data
+ene {self._eneGridName} 2 1 0 20
+set nfg {self._eneGridName}
+""")
 
     def _writematerials(self, stream, materials):
         self.commentblock(stream, "BEGIN MATERIAL BLOCK")
@@ -240,7 +237,7 @@ set nfg {grid}
 
         """
         if material.name:
-            stream.write("% {}\n".format(material.name))
+            stream.write(f"% {material.name}\n")
         stream.write(
             "mat {} {}{:<9.7f}".format(
                 material.id,
@@ -249,10 +246,10 @@ set nfg {grid}
             )
         )
         if material.volume is not None:
-            stream.write(" vol {:9.7f}".format(material.volume))
+            stream.write(f" vol {material.volume:9.7f}")
         if material.temperature is not None:
             if material.temperature not in self._temps:
-                stream.write(" tmp {:9.7f}".format(material.temperature))
+                stream.write(f" tmp {material.temperature:9.7f}")
             tempkey = f"{material.temperature:.2f}"
             for table in material.sab:
                 if table.startswith("Graphite"):
@@ -274,9 +271,7 @@ set nfg {grid}
 
         for isotope, adens in sorted(material.items()):
             # TODO Metastable
-            stream.write(
-                "{}{:03}.{} {:13.9E}\n".format(*isotope.triplet[:2], tlib, adens)
-            )
+            stream.write(f"{isotope.z:}{isotope.a:03}.{tlib} {adens:13.9E}\n")
 
     def _getmatlib(self, mat):
         """Return the continuous energy library, "03c", given material"""
@@ -343,19 +338,19 @@ set nfg {grid}
         if previous is not None:
             return previous
 
-        writeas = "p" + str(pin.id)
+        writeas = f"p{pin.id}"
         memo[pin.id] = writeas
 
         if pin.name is not None:
-            stream.write("% {}\n".format(pin.name))
+            stream.write(f"% {pin.name}\n")
 
         if any(isinstance(m, hydep.BurnableMaterial) for m in pin.materials):
             self._writeburnablepin(stream, pin, writeas)
         else:
-            stream.write("pin {}\n".format(writeas))
+            stream.write(f"pin {writeas}\n")
             for r, m in zip(pin.radii, pin.materials):
-                stream.write("{} {:.7f}\n".format(m.id, r))
-            stream.write(str(pin.outer.id) + "\n")
+                stream.write(f"{m.id} {r:.7f}\n")
+            stream.write(f"{pin.outer.id}\n")
         stream.write("\n")
         return writeas
 
@@ -399,7 +394,7 @@ cell {surf}_i {uid} {uid} -{surf}
         if previous is not None:
             return previous
 
-        outermost = "cl" + str(lat.id)
+        outermost = f"cl{lat.id}"
         if lat.outer is None:
             innermost = outermost
         else:
@@ -420,13 +415,9 @@ cell {surf}_i {uid} {uid} -{surf}
             univrows.append(items)
 
         if lat.name is not None:
-            stream.write("% {}\n".format(lat.name))
+            stream.write(f"% {lat.name}\n")
 
-        stream.write(
-            "lat {name} 1 0.0 0.0 {nx} {ny} {pitch:.5f}\n".format(
-                name=innermost, nx=lat.nx, ny=lat.ny, pitch=lat.pitch
-            )
-        )
+        stream.write(f"lat {innermost} 1 0.0 0.0 {lat.nx} {lat.ny} {lat.pitch:.5f}\n")
         while univrows:
             stream.write(" ".join(map(str, univrows.pop())) + "\n")
 
@@ -444,23 +435,15 @@ cell {surf}_i {uid} {uid} -{surf}
             map("{:.5f}".format, (bounds.x[0], bounds.x[1], bounds.y[0], bounds.y[1]),)
         )
         if bounds.z is None or (-bounds.z[0] == bounds.z[1] == numpy.inf):
-            surf = "rect {xy}".format(xy=xybounds)
+            surf = f"rect {xybounds}"
         else:
-            surf = "cuboid {xy} {mnz:.5f} {mxz:.5f}".format(
-                xy=xybounds, mnz=bounds.z[0], mxz=bounds.z[1]
-            )
+            surf = f"cuboid {xybounds} {bounds.z[0]:.5f} {bounds.z[1]:.5f}"
         stream.write(
-            """
-surf {lid}_x {surf}
-cell {lid}_1 {u} fill {filler} -{lid}_x
-cell {lid}_2 {u} {outer} {lid}_x
-""".format(
-                surf=surf,
-                lid=universe.id,
-                filler=filler,
-                outer=outer,
-                u=universenumber,
-            )
+            f"""
+surf {universe.id}_x {surf}
+cell {universe.id}_1 {universenumber} fill {filler} -{universe.id}_x
+cell {universe.id}_2 {universenumber} {outer} {universe.id}_x
+"""
         )
 
     def _writestack(self, stream, lstack, memo):
@@ -468,7 +451,7 @@ cell {lid}_2 {u} {outer} {lid}_x
         if previous is not None:
             return previous
 
-        writeas = "ls" + str(lstack.id)
+        writeas = f"ls{lstack.id}"
 
         memo[lstack.id] = writeas
 
@@ -481,11 +464,11 @@ cell {lid}_2 {u} {outer} {lid}_x
             subids.append(uid)
 
         if lstack.name is not None:
-            stream.write("% {}\n".format(lstack.name))
+            stream.write(f"% {lstack.name}\n")
 
-        stream.write("lat {} 9 0.0 0.0 {}\n".format(writeas, lstack.nLayers))
+        stream.write(f"lat {writeas} 9 0.0 0.0 {lstack.nLayers}\n")
         for lower, sub in zip(lstack.heights[:-1], subids):
-            stream.write("{:.5f} {}\n".format(lower, sub))
+            stream.write(f"{lower:.5f} {sub}\n")
 
         return writeas
 
@@ -494,20 +477,16 @@ cell {lid}_2 {u} {outer} {lid}_x
         if previous is not None:
             return previous
 
-        writeas = "inf" + str(infmat.id)
+        writeas = f"inf{infmat.id}"
         memo[infmat.id] = writeas
 
         if infmat.material.name is not None:
-            stream.write(
-                "% Infinite region filled with {}\n".format(infmat.material.name)
-            )
+            stream.write(f"% Infinite region filled with {infmat.material.name}\n")
 
         stream.write(
-            """surf {writeas} inf
-cell {writeas} {writeas} {mid} -{writeas}
-""".format(
-                writeas=writeas, mid=infmat.material.id
-            )
+            f"""surf {writeas} inf
+cell {writeas} {writeas} {infmat.material.id} -{writeas}
+"""
         )
 
         return writeas
@@ -673,7 +652,7 @@ cell {writeas} {writeas} {mid} -{writeas}
 
     def _writeFluxDetectors(self, stream):
         self.commentblock(stream, "BEGIN FLUX DETECTORS")
-        stream.write("det flux de {}\n".format(self._eneGridName))
+        stream.write(f"det flux de {self._eneGridName}\n")
         lines = map("du {}".format, (m.id for m in self.burnable))
         self._writeIterableOverLines(stream, lines)
 
@@ -686,9 +665,9 @@ of depletion. Add a single one day step here. Maybe hack something later""",
         )
         stream.write("dep daystep 1\nset pcc 0\n")
         for m in self.burnable:
-            stream.write("set mdep {mid} 1.0 1 {mid}\n".format(mid=m.id))
+            stream.write(f"set mdep {m.id} 1.0 1 {m.id}\n")
             reactions = self._getReactions(set(m))
-            lines = ("{} {}".format(z, m) for z, m in sorted(reactions))
+            lines = (f"{z} {m}" for z, m in sorted(reactions))
             self._writeIterableOverLines(stream, lines)
 
     @staticmethod
@@ -757,7 +736,7 @@ Base file : {}""".format(
                 ),
             )
             stream.write('include "{}"\n'.format(self.base.absolute()))
-            stream.write("set power {:.7E}\n".format(power))
+            stream.write(f"set power {power:.7E}\n")
 
             for m in self.burnable:
                 self.writemat(stream, m)
