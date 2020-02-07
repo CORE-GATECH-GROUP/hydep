@@ -444,7 +444,7 @@ cell {surf}_i {uid} {uid} -{surf}
             map("{:.5f}".format, (bounds.x[0], bounds.x[1], bounds.y[0], bounds.y[1]),)
         )
         if bounds.z is None or (-bounds.z[0] == bounds.z[1] == numpy.inf):
-            surf = "rect {xy}".format(lid=universe.id, xy=xybounds)
+            surf = "rect {xy}".format(xy=xybounds)
         else:
             surf = "cuboid {xy} {mnz:.5f} {mxz:.5f}".format(
                 xy=xybounds, mnz=bounds.z[0], mxz=bounds.z[1]
