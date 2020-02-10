@@ -186,3 +186,17 @@ def test_badIsotope(attr):
     kwargs[attr] = -1
     with pytest.raises(ValueError, match=attr):
         hydep.internal.Isotope("not integer", **kwargs)
+
+
+def test_salphabeta():
+    mat = Material("water", mdens=1)
+    mat[1001] = 2
+    mat[8016] = 1
+
+    assert mat.temperature is None
+
+    with pytest.warns(UserWarning):
+        mat.addSAlphaBeta("HinH20")
+
+    assert mat.temperature is not None
+    assert mat.sab == {"HinH20"}

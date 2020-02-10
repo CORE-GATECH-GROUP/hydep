@@ -1,9 +1,10 @@
+import warnings
 import numbers
 from collections.abc import Mapping, Iterable
 
 import numpy
 
-from hydep.typed import TypedAttr, BoundedTyped
+from hydep.typed import BoundedTyped
 from hydep.internal import Isotope, ZaiTuple, getIsotope
 from hydep.internal.registry import register, unregister
 
@@ -48,9 +49,10 @@ class Material(dict):
         Temperature [K]
     volume : numbers.Real or None
         Volume [cm^3]
-    sab : dict
-        Not implemented, but will eventually support adding
-        :math:`S(\alpha,\beta)` libraries for nuclides.
+    sab : set of str
+        Names of :math:`S(\alpha,\beta)` thermal scattering tables to
+        be included for this material. Should be added through
+        :meth:`addSAlphaBeta`
     id : int
         A unique positive identifier for this material.
 
@@ -81,7 +83,7 @@ class Material(dict):
         self._mdens = mdens
         self.temperature = temperature
         self.volume = volume
-        self.sab = {}  # TODO this
+        self.sab = set()
         super().__init__()
         self._id = register(Material)
         self.update(nucs)
@@ -187,6 +189,32 @@ class Material(dict):
         iso = self._getIsotopeFromKey(key)
         return super().get(iso, default)
 
+    def addSAlphaBeta(self, table: str):
+        r"""Add S(alpha, beta) thermal scattering table
+
+        Parameters
+        ----------
+        table : str
+            Name of the :math:`S(\alpha,\beta)` thermal scattering
+            table to be used in this material, e.g. ``"HinH20"``.
+            If the :attr:`temperature` for this material is not set,
+            it will be set to 600 K, as these tables are temperature
+            dependent.
+
+        Warns
+        -----
+        UserWarning
+            If :attr:`temperature` is not set prior to calling this
+            method.
+
+        """
+        if self.temperature is None:
+            warnings.warn(
+                f"Temperature on {self!r} not set. Defaulting to 600 K", UserWarning
+            )
+            self.temperature = 600
+        self.sab.add(str(table))
+
 
 class BurnableMaterial(Material):
     r"""Material to be burned comprised of isotopes and atom densities
@@ -249,7 +277,7 @@ class BurnableMaterial(Material):
             mdens=mdens,
             temperature=temperature,
             volume=volume,
-            **nucs
+            **nucs,
         )
         self.microxs = None
         self._index = None
