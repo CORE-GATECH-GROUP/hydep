@@ -3,8 +3,10 @@ Serpent writer
 """
 
 import pathlib
+import os
 import warnings
-from collections import deque
+from collections import deque, namedtuple
+import re
 
 import numpy
 
@@ -12,6 +14,8 @@ import hydep
 from hydep.internal import getIsotope
 from hydep.typed import TypedAttr, IterableOf
 import hydep.internal.features as hdfeat
+
+DataLibraries = namedtuple("DataLibraries", "xs decay nfy sab")
 
 
 class SerpentWriter:
@@ -37,15 +41,17 @@ class SerpentWriter:
         must be run.
     options : dict
         Dictionary of various attributes to create the base file
+    datafiles : None or DataLibraries
+        Configured through :meth:`configure`
+
     """
 
     _temps = (300, 600, 900, 1200, 1500)
     # TODO Allow config control over default material temperature
     _defaulttemp = 600
-    # TODO Allow config control over ace, dec, nfy libraries
-    acelib = "sss_endfb7u.xsdata"
-    declib = "sss_endfb7.dec"
-    nfylib = "sss_endfb7.nfy"
+    _DEFAULT_ACELIB = "sss_endfb7u.xsdata"
+    _DEFAULT_DECLIB = "sss_endfb7.dec"
+    _DEFAULT_NFYLIB = "sss_endfb7.nfy"
     bcmap = {"reflective": 2, "vacuum": 1, "periodic": 3}
     model = TypedAttr("model", hydep.Model, allowNone=True)
     burnable = IterableOf("burnable", hydep.BurnableMaterial, allowNone=True)
@@ -59,6 +65,7 @@ class SerpentWriter:
         self.base = None
         self.hooks = hdfeat.FeatureCollection()
         self.options = {}
+        self.datafiles = None
 
     @staticmethod
     def _setupfile(path):
@@ -108,23 +115,77 @@ class SerpentWriter:
         """
         if self.model is None:
             raise AttributeError("Geometry not passed to {}".format(self))
-        if not self.options:
-            # TODO Improve - only really need pop?
+        if not self.options or self.datafiles is None:
             raise AttributeError("Not well configured")
 
         self.base = self._setupfile(path)
 
+        materials = tuple(self.model.root.findMaterials())
+        sabLibraries = self._findSABTables(materials, self.datafiles.sab)
+
         with self.base.open("w") as stream:
-            self._writematerials(stream)
+            self._writematerials(stream, materials)
             self._writegeometry(stream)
-            self._writesettings(stream)
+            self._writesettings(stream, sabLibraries)
             if self.hooks:
                 self._writehooks(stream)
 
-    def _writesettings(self, stream):
+    def _findSABTables(self, materials, sab: pathlib.Path) -> dict:
+        replace = {
+            "HinH2O": "HinH20",
+            "DinH2O": "DinH20",
+        }  # Error in early distributed sssth1 files
+
+        found = set()
+        for mat in materials:
+            for table in mat.sab:
+                found.add((table, f"{mat.temperature:.2f}"))
+
+        if not found:
+            return {}
+
+        if not sab.is_file():
+            raise FileNotFoundError(
+                f"Model contains S(a,b) tables, but file {sab} not found"
+            )
+
+        patterns = {}
+        for table, temp in found:
+            tail = r"\({} at {}K\)".format(
+                replace.get(table, table), temp.replace(".", r"\."),
+            )
+            patterns[table, temp] = re.compile(tail)
+
+        tables = {}
+
+        with sab.open("r") as stream:
+            prev = None
+            for line in stream:
+                for key, pattern in patterns.items():
+                    if pattern.search(line) is not None:
+                        tables[key] = prev.split()[0]
+                        break
+                else:
+                    prev = line
+                    continue
+                del patterns[key]
+                if patterns:
+                    prev = line
+                    continue
+                else:
+                    break
+
+        return tables
+
+    def _writesettings(self, stream, sabLibraries):
         self.commentblock(stream, "BEGIN SETTINGS BLOCK")
-        for attr in ["acelib", "declib", "nfylib"]:
-            stream.write('set {} "{}"\n'.format(attr, getattr(self, attr)))
+
+        libraries = []
+        for attr, lib in (("xs", "ace"), ("decay", "dec"), ("nfy", "nfy")):
+            userlib = getattr(self.datafiles, attr)
+            libraries.append(f'set {lib}lib "{userlib}"')
+        stream.write("\n".join(libraries) + "\n")
+
         stream.write("set pop {} ".format(self.options["particles"]))
 
         gen = self.options["generations per batch"]
@@ -138,18 +199,28 @@ class SerpentWriter:
             stream.write(" " + str(value))
         stream.write("\n")
 
+        if sabLibraries:
+            sab = []
+            for (tablename, tempstr), tablelib in sabLibraries.items():
+                sab.append(f"therm {tablename}_{tempstr} {tablelib}")
+            stream.write("\n".join(sab) + "\n")
+
         seed = self.options.get("seed")
         if seed is not None:
             stream.write("set seed {}\n".format(seed))
 
-        stream.write("""% Hard set one group [0, 20] MeV for all data
+        stream.write(
+            """% Hard set one group [0, 20] MeV for all data
 ene {grid} 2 1 0 20
 set nfg {grid}
-""".format(grid=self._eneGridName))
+""".format(
+                grid=self._eneGridName
+            )
+        )
 
-    def _writematerials(self, stream):
+    def _writematerials(self, stream, materials):
         self.commentblock(stream, "BEGIN MATERIAL BLOCK")
-        for mat in self.model.root.findMaterials():
+        for mat in materials:
             if isinstance(mat, hydep.BurnableMaterial):
                 continue
             self.writemat(stream, mat)
@@ -177,9 +248,21 @@ set nfg {grid}
         )
         if material.volume is not None:
             stream.write(" vol {:9.7f}".format(material.volume))
-        if (material.temperature is not None
-                and material.temperature not in self._temps):
-            stream.write(" tmp {:9.7f}".format(material.temperature))
+        if material.temperature is not None:
+            if material.temperature not in self._temps:
+                stream.write(" tmp {:9.7f}".format(material.temperature))
+            tempkey = f"{material.temperature:.2f}"
+            for table in material.sab:
+                if table.startswith("Graphite"):
+                    iso = "12000"
+                elif table.startswith("H"):
+                    iso = "1001"
+                elif table.startswith("D"):
+                    iso = "1002"
+                else:
+                    raise ValueError(f"Unknown S(a,b) table {table}")
+                libname = "_".join((table, tempkey))
+                stream.write(f" moder {libname} {iso}")
 
         if isinstance(material, hydep.BurnableMaterial):
             stream.write(" burn 1")
@@ -280,9 +363,13 @@ set nfg {grid}
             surfaces.append("{}_r{}".format(pin.id, ix))
             if isinstance(m, hydep.BurnableMaterial):
                 # Write an infinite universe of this material
-                stream.write("""surf {surf}_i inf
+                stream.write(
+                    """surf {surf}_i inf
 cell {surf}_i {uid} {uid} -{surf}
-""".format(surf=surfaces[-1], uid=m.id))
+""".format(
+                        surf=surfaces[-1], uid=m.id
+                    )
+                )
                 filler = "fill {}".format(m.id)
             else:
                 filler = m.id
@@ -409,12 +496,17 @@ cell {lid}_2 {u} {outer} {lid}_x
         memo[infmat.id] = writeas
 
         if infmat.material.name is not None:
-            stream.write("% Infinite region filled with {}\n".format(
-                infmat.material.name))
+            stream.write(
+                "% Infinite region filled with {}\n".format(infmat.material.name)
+            )
 
-        stream.write("""surf {writeas} inf
+        stream.write(
+            """surf {writeas} inf
 cell {writeas} {writeas} {mid} -{writeas}
-""".format(writeas=writeas, mid=infmat.material.id))
+""".format(
+                writeas=writeas, mid=infmat.material.id
+            )
+        )
 
         return writeas
 
@@ -459,6 +551,74 @@ cell {writeas} {writeas} {mid} -{writeas}
             value = section.getint(key)
             if value is not None:
                 self.options[key] = value
+
+        if level == 1:
+            return
+
+        # Serpent settings
+
+        datafiles = self._fetchDataLibraries(section)
+        self.datafiles = DataLibraries(
+            xs=datafiles["acelib"],
+            decay=datafiles["declib"],
+            nfy=datafiles["nfylib"],
+            sab=datafiles["thermal scattering"],
+        )
+
+    def _fetchDataLibraries(self, section):
+        datadir = section.get("data directory")
+        files = {}
+        missing = set()
+        acekey = "acelib"
+        deckey = "declib"
+        nfykey = "nfylib"
+        sabkey = "thermal scattering"
+
+        for key in {acekey, deckey, nfykey}:
+            v = section.get(key)
+            if v is None:
+                missing.add(key)
+            else:
+                files[key] = v
+
+        sab = section.get(sabkey)
+        if sab is None:
+            missing.add(sabkey)
+        else:
+            files[sabkey] = pathlib.Path(sab)
+
+        if not missing:
+            return files
+
+        if datadir is not None:
+            datadir = pathlib.Path(datadir)
+        else:  # try to fetch from SERPENT_DATA
+            datadir = os.environ.get("SERPENT_DATA")
+            if datadir is None:
+                raise ValueError(
+                    'Need to pass "data directory" or set SERPENT_DATA '
+                    f"environment variable. Missing {missing} files"
+                )
+            datadir = pathlib.Path(datadir)
+        if not datadir.is_dir():
+            raise NotADirectoryError(datadir)
+
+        for key, replace in {
+            acekey: self._DEFAULT_ACELIB,
+            deckey: self._DEFAULT_DECLIB,
+            nfykey: self._DEFAULT_NFYLIB,
+        }.items():
+            if key in missing:
+                warnings.warn("Replacing Serpent {} with {}", RuntimeWarning)
+                missing.remove(key)
+                files[key] = replace
+
+        if sabkey in missing:
+            # Don't check for existence, because it may not be needed
+            files[sabkey] = datadir / "acedata" / "sssth1"
+            missing.remove(sabkey)
+
+        return files
 
     def _parseboundaryconditions(self, conds):
         bc = []
@@ -516,9 +676,12 @@ cell {writeas} {writeas} {mid} -{writeas}
         self._writeIterableOverLines(stream, lines)
 
     def _writelocalmicroxs(self, stream):
-        self.commentblock(stream, """BEGIN MICROSCOPIC REACTION XS BLOCK
+        self.commentblock(
+            stream,
+            """BEGIN MICROSCOPIC REACTION XS BLOCK
 Need to trick Serpent into given this information, but we don't want a ton
-of depletion. Add a single one day step here. Maybe hack something later""")
+of depletion. Add a single one day step here. Maybe hack something later""",
+        )
         stream.write("dep daystep 1\nset pcc 0\n")
         for m in self.burnable:
             stream.write("set mdep {mid} 1.0 1 {mid}\n".format(mid=m.id))

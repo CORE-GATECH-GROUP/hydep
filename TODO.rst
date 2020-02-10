@@ -10,7 +10,6 @@ Big open items
 TODOs
 =====
 
-* Mark isotopes in materials as requiring S(a, b)
 * Status reporting 
 * Guard against hooks that aren't supported by solvers
 * Validate configuration options to avoid typos
@@ -23,8 +22,6 @@ Serpent
 
 * Writing metastable isotopes
 * Writing / working with metastable isotopes
-* Incorporate thermal scattering
-* Control over ace, decay, and nfy libraries
 * Get microscopic cross sections without second transport simulation
 * Improved parsing of error at output
 * Pull and check model.bounds, not model.root.bounds
