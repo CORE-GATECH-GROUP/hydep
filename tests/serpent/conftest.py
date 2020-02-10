@@ -9,6 +9,7 @@ Proc. Int. Conf. Mathematics and Computational Methods Applied to Nuclear
 Science and Engineering, Sun Valley, Idaho, May 5--9 (2013).
 
 """
+import os
 import configparser
 
 import pytest
@@ -49,8 +50,10 @@ def beavrsMaterials():
         Sn120=1.5697E-04, Sn122=2.2308E-05, Sn124=2.7897E-05,
     )
     water = hydep.Material(
-        "water", mdens=0.7405, B11=3.2210E-5, H1=4.9458E-2,
+        "water", mdens=0.7405, temperature=600, B11=3.2210E-5, H1=4.9458E-2,
         H2=5.6883E-6, O16=2.4672E-2, O17=9.3981E-06)
+    water.addSAlphaBeta("HinH2O")
+
     helium = hydep.Material(
         "helium", mdens=0.0015981, He3=3.2219E-10, He4=2.4044E-4)
 
@@ -140,11 +143,18 @@ def beavrsControlPin(beavrsMaterials):
 @pytest.fixture
 def serpentcfg():
     """Fixture with just the "hydep.serpent" configuration options"""
+    assert "SERPENT_DATA" in os.environ
     options = {
         "hydep.serpent": {
-            "boundary conditions": "reflective", "particles": 200,
-            "generations per batch": 5, "active": 5, "skipped": 2,
-            "executable": "sss2"},
+            "boundary conditions": "reflective",
+            "particles": 200,
+            "generations per batch": 5,
+            "active": 5, "skipped": 2,
+            "executable": "sss2",
+            "acelib": "sss_endfb7u.xsdata",
+            "declib": "sss_endfb7.dec",
+            "nfylib": "sss_endfb7.nfy",
+        },
     }
     cfg = configparser.ConfigParser()
     cfg.read_dict(options)

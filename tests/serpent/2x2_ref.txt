@@ -33,7 +33,7 @@ mat 3 -6.5500000
 50122.06c 2.230800000E-05
 50124.06c 2.789700000E-05
 % water
-mat 4 -0.7405000
+mat 4 -0.7405000 moder HinH2O_600.00 1001
 1001.06c 4.945800000E-02
 1002.06c 5.688300000E-06
 5011.06c 3.221000000E-05
@@ -121,6 +121,7 @@ set declib "sss_endfb7.dec"
 set nfylib "sss_endfb7.nfy"
 set pop 200 25 10 1.00000 5
 set bc 2 2 2
+therm HinH2O_600.00 lwe6.12t
 % Hard set one group [0, 20] MeV for all data
 ene energies 2 1 0 20
 set nfg energies
