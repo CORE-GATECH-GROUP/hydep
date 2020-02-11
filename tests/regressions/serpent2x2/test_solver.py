@@ -31,7 +31,7 @@ def serpentSolver(tmpdir):
             "boundary conditions": "reflective",
             "particles": 100,
             "generations per batch": 2,
-            "active": 5,
+            "active": 10,
             "skipped": 2,
             "executable": "sss2",
             "acelib": "sss_endfb7u.xsdata",
