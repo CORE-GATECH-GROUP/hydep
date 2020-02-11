@@ -144,7 +144,7 @@ import typing
 import numpy
 import h5py
 
-from .base import BaseStore
+from .store import BaseStore
 
 
 class HdfStore(BaseStore):

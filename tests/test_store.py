@@ -2,7 +2,7 @@ import numpy
 import h5py
 import scipy.sparse
 import pytest
-from hydep.store import HdfStore
+from hydep.h5store import HdfStore
 from hydep.internal import TimeStep, TransportResult, CompBundle
 
 
