@@ -50,9 +50,9 @@ def serpentSolver(tmpdir):
 
 
 @pytest.mark.serpent
-def test_serpentSolver(serpentSolver, toy2x2Problem):
-    model = toy2x2Problem.model
-    burnable = toy2x2Problem.burnable
+def test_serpentSolver(serpentSolver, serpentModel):
+    model = serpentModel.model
+    burnable = serpentModel.burnable
 
     # Set hooks for slightly realistic problem
     XS_KEYS = {"abs", "fiss"}
