@@ -289,7 +289,7 @@ class ResultComparator(CompareBase):
             dest = self.getPathFor(key, "fail")
             if issparse(value):
                 dumpSparseMatrix(
-                    value, dest, intfmt=self.intFormat, floatfmt=self.floatFormat
+                    dest, value, intfmt=self.intFormat, floatfmt=self.floatFormat
                 )
                 continue
             numpy.savetxt(
