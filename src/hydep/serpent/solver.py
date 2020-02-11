@@ -9,6 +9,7 @@ import pathlib
 import warnings
 import zipfile
 
+import numpy
 import hydep
 from hydep.internal import configmethod, TransportResult
 import hydep.internal.features as hdfeat
@@ -45,6 +46,7 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
         self._runner = SerpentRunner()
         self._processor = SerpentProcessor()
         self._archiveOnSuccess = False
+        self._volumes = None
 
     @property
     def hooks(self):
@@ -196,6 +198,8 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
             fluxes = self._processor.processDetectorFluxes(base + "_det0.m", "flux")
             res = TransportResult(fluxes, keff)
 
+        res.flux = res.flux / self._volumes
+
         if not self.hooks:
             return res
 
@@ -228,5 +232,10 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
     def beforeMain(self, model, orderedBumat):
         self._writer.model = model
         self._writer.burnable = orderedBumat
+        self._volumes = numpy.fromiter(
+            (m.volume for m in orderedBumat),
+            count=len(orderedBumat),
+            dtype=float,
+        ).reshape(len(orderedBumat), 1)
         self._writer.writeBaseFile("./serpent/base.sss")
         self._processor.burnable = tuple(str(m.id) for m in orderedBumat)
