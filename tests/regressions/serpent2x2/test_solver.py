@@ -34,6 +34,9 @@ def serpentSolver(tmpdir):
             "active": 5,
             "skipped": 2,
             "executable": "sss2",
+            "acelib": "sss_endfb7u.xsdata",
+            "declib": "sss_endfb7.dec",
+            "nfylib": "sss_endfb7.nfy",
         },
     }
 
