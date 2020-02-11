@@ -17,7 +17,7 @@ def serpentModel(simpleChain, toy2x2lattice):
 
     burnable = tuple(model.root.findBurnableMaterials())
     for m in burnable:
-        m.volume = 1.0
+        m.volume = 2.0  # enforce some division in volumes
 
     yield ProblemProxy(model, burnable)
 
