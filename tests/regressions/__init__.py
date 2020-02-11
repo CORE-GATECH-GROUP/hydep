@@ -245,7 +245,7 @@ class ResultComparator(CompareBase):
                 failures["fmtx"] = fmtx
 
         if failures:
-            self._dumpfailures(failures)
+            self.dumpFailures(failures)
             return list(sorted(failures))
         return {}
 
