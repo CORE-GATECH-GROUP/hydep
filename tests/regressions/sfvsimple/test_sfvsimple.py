@@ -39,4 +39,5 @@ def test_sfvsimple(simpleSfvProblem, sfvMacroData, sfvMicroXS, sfvNewComps):
         siga1=solver.macroAbs1,
         sigf1=solver.macroFis1,
         nubar1=solver.extrapolatedNubar,
+        kappaSigf1=solver.kappaSigf1,
     )

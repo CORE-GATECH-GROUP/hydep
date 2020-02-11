@@ -195,7 +195,7 @@ class SfvSolver(ReducedOrderSolver):
         return tuple(self._macroData[:, self._INDEX_PHI_0])
 
     @property
-    def kappaFis1(self):
+    def kappaSigf1(self):
         if self._macroData is None:
             return None
         return tuple(self._macroData[:, self._INDEX_XS_Q_FIS])

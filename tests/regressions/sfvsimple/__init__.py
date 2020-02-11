@@ -17,7 +17,8 @@ class SfvDataHarness:
     ixPhi0 = 4
     ixPhi1 = 5
     ixNubar1 = 6
-    numIndexes = 7
+    ixKappaSigf1 = 7
+    numIndexes = 8
     floatFormat = "%.7E"
     intFormat = "%5d"
 
@@ -53,6 +54,10 @@ class SfvDataHarness:
     @property
     def nubar1(self) -> numpy.ndarray:
         return self._xsdata[self.ixNubar1]
+
+    @property
+    def kappaSigf1(self) -> numpy.ndarray:
+        return self._xsdata[self.ixKappaSigf1]
 
     def toTransportResult(self) -> TransportResult:
         res = TransportResult(
@@ -102,17 +107,21 @@ class SfvDataHarness:
         phi0,
         phi1,
         nubar1,
+        kappaSigf1,
         fmtx,
     ):
         harness = cls.fromPieceWise(
-            keff0, siga0, nsf0, siga1, sigf1, phi0, phi1, nubar1, fmtx,
+            keff0, siga0, nsf0, siga1, sigf1, phi0, phi1, nubar1, kappaSigf1, fmtx,
         )
         harness.dump(xsfile)
 
     @classmethod
-    def fromPieceWise(cls, keff0, siga0, nsf0, siga1, sigf1, phi0, phi1, nubar1, fmtx):
+    def fromPieceWise(
+        cls, keff0, siga0, nsf0, siga1, sigf1, phi0, phi1, nubar1, kappaSigf1, fmtx
+    ):
         shapes = {
-            numpy.shape(v) for v in [siga0, nsf0, siga1, sigf1, phi0, phi1, nubar1]
+            numpy.shape(v)
+            for v in [siga0, nsf0, siga1, sigf1, phi0, phi1, nubar1, kappaSigf1]
         }
         assert len(shapes) == 1
         shape = shapes.pop()
@@ -127,6 +136,7 @@ class SfvDataHarness:
         data[cls.ixPhi0, :] = phi0
         data[cls.ixPhi1, :] = phi1
         data[cls.ixNubar1, :] = nubar1
+        data[cls.ixKappaSigf1, :] = kappaSigf1
 
         if not scipy.sparse.issparse(fmtx):
             fmtx = scipy.sparse.csr_matrix(numpy.asarray(fmtx))
@@ -167,8 +177,8 @@ class SfvComparator(CompareBase):
         super().__init__(datadir)
         self.harness = harness
 
-    def main(self, siga1, sigf1, nubar1, phi1):
-        super().main(siga1, sigf1, nubar1, phi1)
+    def main(self, siga1, sigf1, nubar1, phi1, kappaSigf1):
+        super().main(siga1, sigf1, nubar1, phi1, kappaSigf1)
 
     def _computeDifferences(self, key, value):
         refData = getattr(self.harness, key)
@@ -182,12 +192,13 @@ class SfvComparator(CompareBase):
 
         return out
 
-    def update(self, siga1, sigf1, nubar1, phi1):
+    def update(self, siga1, sigf1, nubar1, phi1, kappaSigf1):
         for qty, value in (
             ("siga1", siga1),
             ("sigf1", sigf1),
             ("nubar1", nubar1),
             ("phi1", phi1),
+            ("kappaSigf1", kappaSigf1),
         ):
             diffs = self._computeDifferences(qty, value).T
             numpy.savetxt(
@@ -197,13 +208,15 @@ class SfvComparator(CompareBase):
                 header="{} 2\nAbsolute Error, Relative Error %".format(len(value),),
             )
 
-    def compare(self, siga1, sigf1, nubar1, phi1):
+    def compare(self, siga1, sigf1, nubar1, phi1, kappaSigf1):
         fails = {}
+        # TODO Pull from locals?
         for qty, value in (
             ("siga1", siga1),
             ("sigf1", sigf1),
             ("nubar1", nubar1),
             ("phi1", phi1),
+            ("kappaSigf1", kappaSigf1),
         ):
             actual = self._computeDifferences(qty, value)
             expected = numpy.loadtxt(self.getPathFor(qty, "reference"), unpack=True)
