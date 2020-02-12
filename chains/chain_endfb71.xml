@@ -13182,7 +13182,7 @@
     <reaction type="(n,3n)" Q="-12646700.0" target="Th225"/>
     <reaction type="(n,4n)" Q="-18404100.0" target="Th224"/>
     <reaction type="(n,gamma)" Q="7105300.0" target="Th228"/>
-    <reaction type="fission" Q="182286000.0"/>
+    <reaction type="fission" Q="190640950.14927194"/>
     <neutron_fission_yields>
       <energies>0.0253</energies>
       <fission_yields energy="0.0253">
@@ -13203,7 +13203,7 @@
     <reaction type="(n,3n)" Q="-12362300.0" target="Th227"/>
     <reaction type="(n,4n)" Q="-17824500.0" target="Th226"/>
     <reaction type="(n,gamma)" Q="6793860.0" target="Th230"/>
-    <reaction type="fission" Q="183811000.0"/>
+    <reaction type="fission" Q="192235847.44789958"/>
     <neutron_fission_yields>
       <energies>0.0253</energies>
       <fission_yields energy="0.0253">
@@ -13235,7 +13235,7 @@
     <reaction type="(n,gamma)" Q="4786000.0" target="Th233"/>
     <reaction type="(n,p)" Q="-2918000.0" target="Ac232"/>
     <reaction type="(n,a)" Q="8655000.0" target="Ra229"/>
-    <reaction type="fission" Q="188470000.0"/>
+    <reaction type="fission" Q="197108389.42449385"/>
     <neutron_fission_yields>
       <energies>500000.0 14000000.0</energies>
       <fission_yields energy="500000.0">
@@ -13357,7 +13357,7 @@
     <reaction type="(n,3n)" Q="-12611000.0" target="Pa229"/>
     <reaction type="(n,gamma)" Q="5553000.0" target="Pa232"/>
     <reaction type="(n,p)" Q="393000.0" target="Th231"/>
-    <reaction type="fission" Q="185593400.0"/>
+    <reaction type="fission" Q="194099942.4938497"/>
     <neutron_fission_yields>
       <energies>500000.0</energies>
       <fission_yields energy="500000.0">
@@ -13465,7 +13465,7 @@
     <reaction type="(n,2n)" Q="-7267950.0" target="U231"/>
     <reaction type="(n,3n)" Q="-13146600.0" target="U230"/>
     <reaction type="(n,gamma)" Q="5762090.0" target="U233"/>
-    <reaction type="fission" Q="184584000.0"/>
+    <reaction type="fission" Q="193044277.35730234"/>
     <neutron_fission_yields>
       <energies>0.0253</energies>
       <fission_yields energy="0.0253">
@@ -13480,7 +13480,7 @@
     <reaction type="(n,3n)" Q="-13032500.0" target="U231"/>
     <reaction type="(n,4n)" Q="-18903900.0" target="U230"/>
     <reaction type="(n,gamma)" Q="6844200.0" target="U234"/>
-    <reaction type="fission" Q="191040000.0"/>
+    <reaction type="fission" Q="199796183.56054175"/>
     <neutron_fission_yields>
       <energies>0.0253 500000.0 14000000.0</energies>
       <fission_yields energy="0.0253">
@@ -13503,7 +13503,7 @@
     <reaction type="(n,2n)" Q="-6844500.0" target="U233"/>
     <reaction type="(n,3n)" Q="-12587900.0" target="U232"/>
     <reaction type="(n,4n)" Q="-19852200.0" target="U231"/>
-    <reaction type="fission" Q="191840000.0"/>
+    <reaction type="fission" Q="200632850.9958874"/>
     <reaction type="(n,gamma)" Q="5297800.0" target="U235" branching_ratio="0.5"/>
     <reaction type="(n,gamma)" Q="5297800.0" target="U235_m1" branching_ratio="0.5"/>
     <neutron_fission_yields>
@@ -13525,7 +13525,7 @@
     <reaction type="(n,3n)" Q="-12142300.0" target="U233"/>
     <reaction type="(n,4n)" Q="-17885600.0" target="U232"/>
     <reaction type="(n,gamma)" Q="6545200.0" target="U236"/>
-    <reaction type="fission" Q="193405400.0"/>
+    <reaction type="fission" Q="202270000.0"/>
     <neutron_fission_yields>
       <energies>0.0253 500000.0 14000000.0</energies>
       <fission_yields energy="0.0253">
@@ -13552,7 +13552,7 @@
     <reaction type="(n,3n)" Q="-11842700.0" target="U234"/>
     <reaction type="(n,4n)" Q="-18686900.0" target="U233"/>
     <reaction type="(n,gamma)" Q="5125900.0" target="U237"/>
-    <reaction type="fission" Q="194490000.0"/>
+    <reaction type="fission" Q="203404311.87546986"/>
     <neutron_fission_yields>
       <energies>500000.0 14000000.0</energies>
       <fission_yields energy="500000.0">
@@ -13571,7 +13571,7 @@
     <reaction type="(n,3n)" Q="-11671000.0" target="U235"/>
     <reaction type="(n,4n)" Q="-16968700.0" target="U234"/>
     <reaction type="(n,gamma)" Q="6153800.0" target="U238"/>
-    <reaction type="fission" Q="187821000.0"/>
+    <reaction type="fission" Q="196429642.96756968"/>
     <neutron_fission_yields>
       <energies>500000.0</energies>
       <fission_yields energy="500000.0">
@@ -13587,7 +13587,7 @@
     <reaction type="(n,3n)" Q="-11278600.0" target="U236"/>
     <reaction type="(n,4n)" Q="-17823700.0" target="U235"/>
     <reaction type="(n,gamma)" Q="4806500.0" target="U239"/>
-    <reaction type="fission" Q="197786000.0"/>
+    <reaction type="fission" Q="206851381.70909396"/>
     <neutron_fission_yields>
       <energies>500000.0 14000000.0</energies>
       <fission_yields energy="500000.0">
@@ -13688,7 +13688,7 @@
     <reaction type="(n,3n)" Q="-12320000.0" target="Np235"/>
     <reaction type="(n,4n)" Q="-19297800.0" target="Np234"/>
     <reaction type="(n,gamma)" Q="5482000.0" target="Np238"/>
-    <reaction type="fission" Q="196370000.0"/>
+    <reaction type="fission" Q="205370480.34853214"/>
     <neutron_fission_yields>
       <energies>0.0253 500000.0 14000000.0</energies>
       <fission_yields energy="0.0253">
@@ -13711,7 +13711,7 @@
     <reaction type="(n,3n)" Q="-12065700.0" target="Np236"/>
     <reaction type="(n,4n)" Q="-17802400.0" target="Np235"/>
     <reaction type="(n,gamma)" Q="6215200.0" target="Np239"/>
-    <reaction type="fission" Q="199553000.0"/>
+    <reaction type="fission" Q="208699370.90691367"/>
     <neutron_fission_yields>
       <energies>500000.0</energies>
       <fission_yields energy="500000.0">
@@ -13804,7 +13804,7 @@
     <reaction type="(n,3n)" Q="-12877580.0" target="Pu236"/>
     <reaction type="(n,4n)" Q="-20234890.0" target="Pu235"/>
     <reaction type="(n,gamma)" Q="5646600.0" target="Pu239"/>
-    <reaction type="fission" Q="200356800.0"/>
+    <reaction type="fission" Q="209540012.5125772"/>
     <neutron_fission_yields>
       <energies>500000.0</energies>
       <fission_yields energy="500000.0">
@@ -13821,7 +13821,7 @@
     <reaction type="(n,3n)" Q="-12648000.0" target="Pu237"/>
     <reaction type="(n,4n)" Q="-18508300.0" target="Pu236"/>
     <reaction type="(n,gamma)" Q="6533700.0" target="Pu240"/>
-    <reaction type="fission" Q="198902000.0"/>
+    <reaction type="fission" Q="208018532.78140113"/>
     <neutron_fission_yields>
       <energies>0.0253 500000.0 2000000.0 14000000.0</energies>
       <fission_yields energy="0.0253">
@@ -13849,7 +13849,7 @@
     <reaction type="(n,3n)" Q="-12180100.0" target="Pu238"/>
     <reaction type="(n,4n)" Q="-19180600.0" target="Pu237"/>
     <reaction type="(n,gamma)" Q="5241520.0" target="Pu241"/>
-    <reaction type="fission" Q="199470000.0"/>
+    <reaction type="fission" Q="208612566.66049656"/>
     <neutron_fission_yields>
       <energies>0.0253 500000.0 14000000.0</energies>
       <fission_yields energy="0.0253">
@@ -13872,7 +13872,7 @@
     <reaction type="(n,2n)" Q="-5248041.0" target="Pu240"/>
     <reaction type="(n,3n)" Q="-11701000.0" target="Pu239"/>
     <reaction type="(n,gamma)" Q="6300801.0" target="Pu242"/>
-    <reaction type="fission" Q="201980100.0"/>
+    <reaction type="fission" Q="211237715.32232296"/>
     <neutron_fission_yields>
       <energies>0.0253 500000.0</energies>
       <fission_yields energy="0.0253">
@@ -13892,7 +13892,7 @@
     <reaction type="(n,3n)" Q="-11551200.0" target="Pu240"/>
     <reaction type="(n,4n)" Q="-18085400.0" target="Pu239"/>
     <reaction type="(n,gamma)" Q="5034200.0" target="Pu243"/>
-    <reaction type="fission" Q="202778000.0"/>
+    <reaction type="fission" Q="212072186.50565082"/>
     <neutron_fission_yields>
       <energies>0.0253 500000.0 14000000.0</energies>
       <fission_yields energy="0.0253">
@@ -13986,7 +13986,7 @@
     <reaction type="(n,2n)" Q="-6638281.0" target="Am240"/>
     <reaction type="(n,3n)" Q="-12596700.0" target="Am239"/>
     <reaction type="(n,4n)" Q="-19703000.0" target="Am238"/>
-    <reaction type="fission" Q="201960100.0"/>
+    <reaction type="fission" Q="211216798.63643932"/>
     <reaction type="(n,gamma)" Q="5539101.0" target="Am242" branching_ratio="0.919"/>
     <reaction type="(n,gamma)" Q="5539101.0" target="Am242_m1" branching_ratio="0.081"/>
     <neutron_fission_yields>
@@ -14019,7 +14019,7 @@
     <reaction type="(n,2n)" Q="-5490450.0" target="Am241"/>
     <reaction type="(n,3n)" Q="-12128700.0" target="Am240"/>
     <reaction type="(n,gamma)" Q="6370000.0" target="Am243"/>
-    <reaction type="fission" Q="205716500.0"/>
+    <reaction type="fission" Q="215145370.5791048"/>
     <neutron_fission_yields>
       <energies>0.0253</energies>
       <fission_yields energy="0.0253">
@@ -14038,7 +14038,7 @@
     <reaction type="(n,2n)" Q="-6365280.0" target="Am242"/>
     <reaction type="(n,3n)" Q="-11904400.0" target="Am241"/>
     <reaction type="(n,4n)" Q="-18542600.0" target="Am240"/>
-    <reaction type="fission" Q="203620000.0"/>
+    <reaction type="fission" Q="212952778.98135212"/>
     <reaction type="(n,gamma)" Q="5362900.0" target="Am244" branching_ratio="0.0626"/>
     <reaction type="(n,gamma)" Q="5362900.0" target="Am244_m1" branching_ratio="0.9374"/>
     <neutron_fission_yields>
@@ -14130,7 +14130,7 @@
     <reaction type="(n,2n)" Q="-6969520.0" target="Cm241"/>
     <reaction type="(n,3n)" Q="-13062800.0" target="Cm240"/>
     <reaction type="(n,gamma)" Q="5692940.0" target="Cm243"/>
-    <reaction type="fission" Q="203461000.0"/>
+    <reaction type="fission" Q="212786491.32857716"/>
     <neutron_fission_yields>
       <energies>500000.0</energies>
       <fission_yields energy="500000.0">
@@ -14145,7 +14145,7 @@
     <reaction type="(n,2n)" Q="-5692940.0" target="Cm242"/>
     <reaction type="(n,3n)" Q="-12662500.0" target="Cm241"/>
     <reaction type="(n,gamma)" Q="6801260.0" target="Cm244"/>
-    <reaction type="fission" Q="204024000.0"/>
+    <reaction type="fission" Q="213375296.0362017"/>
     <neutron_fission_yields>
       <energies>0.0253 500000.0</energies>
       <fission_yields energy="0.0253">
@@ -14164,7 +14164,7 @@
     <reaction type="(n,2n)" Q="-6801260.0" target="Cm243"/>
     <reaction type="(n,3n)" Q="-12494200.0" target="Cm242"/>
     <reaction type="(n,gamma)" Q="5520260.0" target="Cm245"/>
-    <reaction type="fission" Q="208376000.0"/>
+    <reaction type="fission" Q="217926766.88448203"/>
     <neutron_fission_yields>
       <energies>500000.0</energies>
       <fission_yields energy="500000.0">
@@ -14182,7 +14182,7 @@
     <reaction type="(n,3n)" Q="-12321500.0" target="Cm243"/>
     <reaction type="(n,4n)" Q="-18014500.0" target="Cm242"/>
     <reaction type="(n,gamma)" Q="6457580.0" target="Cm246"/>
-    <reaction type="fission" Q="205218000.0"/>
+    <reaction type="fission" Q="214624022.18345505"/>
     <neutron_fission_yields>
       <energies>0.0253</energies>
       <fission_yields energy="0.0253">
@@ -14197,7 +14197,7 @@
     <reaction type="(n,2n)" Q="-6457580.0" target="Cm245"/>
     <reaction type="(n,3n)" Q="-11977800.0" target="Cm244"/>
     <reaction type="(n,gamma)" Q="5155860.0" target="Cm247"/>
-    <reaction type="fission" Q="210530000.0"/>
+    <reaction type="fission" Q="220179493.9541502"/>
     <neutron_fission_yields>
       <energies>500000.0</energies>
       <fission_yields energy="500000.0">
@@ -14220,7 +14220,7 @@
     <reaction type="(n,3n)" Q="-11368900.0" target="Cm246"/>
     <reaction type="(n,4n)" Q="-17826500.0" target="Cm245"/>
     <reaction type="(n,gamma)" Q="4713370.0" target="Cm249"/>
-    <reaction type="fission" Q="212006000.0"/>
+    <reaction type="fission" Q="221723145.3723629"/>
     <neutron_fission_yields>
       <energies>500000.0</energies>
       <fission_yields energy="500000.0">
@@ -14396,7 +14396,7 @@
     <reaction type="(n,3n)" Q="-12553600.0" target="Cf247"/>
     <reaction type="(n,4n)" Q="-18580100.0" target="Cf246"/>
     <reaction type="(n,gamma)" Q="6625150.0" target="Cf250"/>
-    <reaction type="fission" Q="211730000.0"/>
+    <reaction type="fission" Q="221434495.10716867"/>
     <neutron_fission_yields>
       <energies>0.0253</energies>
       <fission_yields energy="0.0253">
@@ -14419,7 +14419,7 @@
     <reaction type="(n,3n)" Q="-11733600.0" target="Cf249"/>
     <reaction type="(n,4n)" Q="-17319100.0" target="Cf248"/>
     <reaction type="(n,gamma)" Q="6171950.0" target="Cf252"/>
-    <reaction type="fission" Q="213386000.0"/>
+    <reaction type="fission" Q="223166396.6983342"/>
     <neutron_fission_yields>
       <energies>0.0252</energies>
       <fission_yields energy="0.0252">
@@ -14540,7 +14540,7 @@
     <reaction type="(n,3n)" Q="-11444600.0" target="Es252"/>
     <reaction type="(n,4n)" Q="-16734200.0" target="Es251"/>
     <reaction type="(n,gamma)" Q="5974430.0" target="Es255"/>
-    <reaction type="fission" Q="222337000.0"/>
+    <reaction type="fission" Q="232527659.46555784"/>
     <neutron_fission_yields>
       <energies>0.0253</energies>
       <fission_yields energy="0.0253">
@@ -14648,7 +14648,7 @@
     <reaction type="(n,3n)" Q="-11692900.0" target="Fm253"/>
     <reaction type="(n,4n)" Q="-17232100.0" target="Fm252"/>
     <reaction type="(n,gamma)" Q="6384460.0" target="Fm256"/>
-    <reaction type="fission" Q="227619000.0"/>
+    <reaction type="fission" Q="238051756.2074275"/>
     <neutron_fission_yields>
       <energies>0.0253</energies>
       <fission_yields energy="0.0253">
