@@ -22,6 +22,8 @@ TODOs
 * Make all tests less flaky. Failures can fill up the Material or
   Universe register. Some of the writer tests require strict orderings
   of Materials and Universes.
+* Use procedurally generated reference files, e.g. with Jinja, for
+  testing Serpent writer
 
 Serpent
 -------
