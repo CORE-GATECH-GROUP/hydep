@@ -122,6 +122,7 @@ def depletionHarness(endfChain, depletionModel):
     yield DepBundle(manager, microxs, fissionYields)
 
 
+@pytest.mark.flaky
 def test_2x2deplete(depletionHarness):
     manager = depletionHarness.manager
     out = manager.deplete(
