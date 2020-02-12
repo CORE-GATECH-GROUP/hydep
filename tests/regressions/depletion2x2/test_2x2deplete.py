@@ -7,8 +7,8 @@ import pytest
 import hydep
 import hydep.internal
 
-from tests import filecompare
-from tests.regressions import config, ProblemProxy
+from tests.regressions import ProblemProxy
+from . import DepletionComparator
 
 
 DepBundle = namedtuple("DepBundle", "manager reactionRates fissionYields")
@@ -129,33 +129,6 @@ def test_2x2deplete(depletionHarness):
         depletionHarness.reactionRates,
         depletionHarness.fissionYields,
     )
-    zaiOrder = tuple(iso.zai for iso in out.isotopes)
 
-    zaiOrder = manager.chain.zaiOrder
-    outArray = numpy.array(out.densities, order="F")
-
-    datadir = pathlib.Path(__file__).parent
-    reference = datadir / "concentrations_reference.dat"
-
-    if config.get("update"):
-        writepath = reference
-    else:
-        writepath = datadir / "concentrations_test.dat"
-        assert reference.is_file()
-
-    with writepath.open("w") as stream:
-        for zIndex, zai in enumerate(zaiOrder):
-            concs = outArray[:, zIndex]
-            if not (concs > 0).any():
-                continue
-            stream.write(f"{zai:<7}")
-            for conc in outArray[:, zIndex]:
-                stream.write(f"{conc: .12E} ")
-            stream.write("\n")
-
-    if config.get("update"):
-        return
-
-    compare = filecompare(reference, writepath, datadir / "concentrations_fail.dat")
-    assert compare, "Depletion results have regressed"
-    writepath.unlink()
+    compare = DepletionComparator(pathlib.Path(__file__).parent)
+    compare.main(out)
