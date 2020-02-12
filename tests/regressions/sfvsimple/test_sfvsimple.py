@@ -17,7 +17,7 @@ def test_sfvsimple(simpleSfvProblem, sfvMacroData, sfvMicroXS, sfvNewComps):
     # Emulate BOS result
     bos = sfvMacroData.toTransportResult()
     timestep = TimeStep(0, 0, 0, 0)
-    POWER = 1.16135E4
+    POWER = 1E4
 
     solver.processBOS(bos, timestep, POWER)
 

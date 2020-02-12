@@ -17,6 +17,8 @@ TODOs
 * Resolve how hydep.Pin objects are handled by numpy
 * Remove most assert statements in favor of actual checks
 * Make depletion solver / CRAM order configurable
+* Find a way to add regression test file (setup, post-process) into
+  the repository
 
 Serpent
 -------
