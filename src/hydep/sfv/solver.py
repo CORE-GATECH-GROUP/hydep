@@ -30,7 +30,7 @@ class SfvSolver(ReducedOrderSolver):
     .. note::
 
         Attributes :attr:`macroAbs0`, :attr:`macroNsf0`,
-        :attr:`macroAbs1`, :attr:`macroFis1`,
+        :attr:`macroAbs1`, :attr:`macroFis1`, :attr:`kappaSigf1`,
         :attr:`extrapolatedNubar`, and :attr:`normalizedPhi0` will
         all be ``None`` until the first call to :meth:`processBOS`.
         These are exposed primarily for the sake of testing and
@@ -73,16 +73,18 @@ class SfvSolver(ReducedOrderSolver):
         substep. Value is meaningless until :meth:`substepUpdate`
     macroFis1 : tuple of float or None
         Read-only view into macroscopic fission cross sections
-        econstructed at the current substep. Value is meaningless
+        reconstructed at the current substep. Value is meaningless
         until :meth:`substepUpdate`
     extrapolatedNubar : tuple of float or None
         Read-only view into homogenized :math:`\bar{\nu}` data
         projected to the current substep. Value is meaningless until
         :meth:`substepUpdate`.
     kappaFis1 : tuple of float or None
-        Read-only view into energy-production per fission, assuming all
-        energy is deposited at fission site. Value is meaningless until
-        :meth:`substepUpdate` and reflects the current substep.
+        Read-only view into product of node-homogenized energy
+        deposited per fission :math:`\kappa` and :math:`\Sigma_f`
+        [eV/cm]. Assumes all energy is deposited at fission site.
+        Value is meaningless until :meth:`substepUpdate` and reflects
+        the current substep.
 
     References
     ----------
@@ -94,7 +96,7 @@ class SfvSolver(ReducedOrderSolver):
     _INDEX_XS_NSF_0 = 1
     _INDEX_XS_ABS_1 = 2
     _INDEX_XS_FIS_1 = 3  # NOTE Not nu-sigma fission
-    _INDEX_XS_Q_FIS = 4
+    _INDEX_VOL_K_FIS = 4  # NOTE node volumes * kappa * sigma f
     _INDEX_NUBAR = 5
     _INDEX_PHI_0 = 6
     _INDEX_PHI_1 = 7
@@ -198,7 +200,7 @@ class SfvSolver(ReducedOrderSolver):
     def kappaSigf1(self):
         if self._macroData is None:
             return None
-        return tuple(self._macroData[:, self._INDEX_XS_Q_FIS])
+        return tuple(self._macroData[:, self._INDEX_VOL_K_FIS] / self._volumes)
 
     def beforeMain(self, _model, burnedmats):
         """Prepare solver before main solution routines
@@ -360,11 +362,11 @@ class SfvSolver(ReducedOrderSolver):
 
             self._macroData[matix, self._INDEX_XS_ABS_1] = macroSigA
             self._macroData[matix, self._INDEX_XS_FIS_1] = macroSigF
-            self._macroData[matix, self._INDEX_XS_Q_FIS] = qSigmaF
+            self._macroData[matix, self._INDEX_VOL_K_FIS] = qSigmaF
 
         self._macroData[:, (self._INDEX_XS_ABS_1, self._INDEX_XS_FIS_1)] *= BARN_PER_CM2
 
-        self._macroData[:, self._INDEX_XS_Q_FIS] *= numpy.multiply(
+        self._macroData[:, self._INDEX_VOL_K_FIS] *= numpy.multiply(
             BARN_PER_CM2, self._volumes
         )
 
@@ -397,7 +399,7 @@ class SfvSolver(ReducedOrderSolver):
         data[:, self._INDEX_PHI_1] = (
             normPrediction
             * self._currentPower
-            / (normPrediction * self._macroData[:, self._INDEX_XS_Q_FIS]).sum()
+            / (normPrediction * self._macroData[:, self._INDEX_VOL_K_FIS]).sum()
         )
 
         return time.time() - start
