@@ -24,7 +24,7 @@ def simpleChain():
     yield DepletionChain.fromXml(str(chainfile))
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def endfChain():
     chainfile = pathlib.Path(__file__).parents[1] / "chains" / "chain_endfb71.xml"
     yield DepletionChain.fromXml(str(chainfile))
