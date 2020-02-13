@@ -10,38 +10,47 @@ import hydep.constants
 import hydep.internal
 
 
-def test_badmanager(simpleChain):
-    """Test failure modes for manager construction"""
+def test_managerConstruct(simpleChain):
+    """Test manager construction"""
 
+    safepower = 6e6
+
+    # Test that chain must be provided
     with pytest.raises(TypeError):
-        hydep.Manager(None, [1], 6e6)
+        hydep.Manager(None, [1], safepower)
 
+    # Test that timesteps must be 1D
     with pytest.raises(TypeError):
-        hydep.Manager(simpleChain, [[1, 1], [2, 2]], [6e6])
+        hydep.Manager(simpleChain, [[1, 1], [2, 2]], safepower)
 
+    # Test that power must be > 0
     with pytest.raises(ValueError):
         hydep.Manager(simpleChain, [1], 0)
 
     with pytest.raises(ValueError):
-        hydep.Manager(simpleChain, [1], [1, 2, 3])
-
-    with pytest.raises(TypeError):
-        hydep.Manager(simpleChain, [1, 1], [1, 0])
-
-    with pytest.raises(TypeError):
-        hydep.Manager(simpleChain, [1, 1], [1, -6e6])
-
-    with pytest.raises(TypeError):
-        hydep.Manager(simpleChain, [1, 1], {1, 2, 3})
-
-    with pytest.raises(TypeError):
-        hydep.Manager(simpleChain, [1], 6e6, numPreliminary=[1])
+        hydep.Manager(simpleChain, [1, 1], [safepower, 0])
 
     with pytest.raises(ValueError):
-        hydep.Manager(simpleChain, [1, 1, 1, 1], 6e6, numPreliminary=-1)
+        hydep.Manager(simpleChain, [1, 1], [safepower, -safepower])
+
+    # Test that number of time steps == number of powers
+    with pytest.raises(ValueError):
+        hydep.Manager(simpleChain, [1], [safepower] * 3)
+
+    # Test that power must be sequence (orderable)
+    with pytest.raises(TypeError):
+        hydep.Manager(simpleChain, [1, 1], {safepower, 2*safepower})
+
+    # Test that number of preliminary must be non-negative integer
+    with pytest.raises(TypeError):
+        hydep.Manager(simpleChain, [1], safepower, numPreliminary=[1])
 
     with pytest.raises(ValueError):
-        hydep.Manager(simpleChain, [1, 1, 1, 1], 6e6, numPreliminary=4)
+        hydep.Manager(simpleChain, [1, 1, 1, 1], safepower, numPreliminary=-1)
+
+    # Test that number of preliminary < number of provided time steps
+    with pytest.raises(ValueError):
+        hydep.Manager(simpleChain, [1, 1, 1, 1], safepower, numPreliminary=4)
 
 
 @pytest.fixture

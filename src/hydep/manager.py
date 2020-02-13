@@ -114,11 +114,17 @@ class Manager:
                     f"{len(self.timesteps)}"
                 )
             for p in power:
-                if not isinstance(p, numbers.Real) or p <= 0:
+                if not isinstance(p, numbers.Real):
                     raise TypeError(
                         "Power must be positive real, or vector of positive real. "
                         f"Found {p}"
                     )
+                elif p <= 0:
+                    raise ValueError(
+                        "Power must be positive real, or vector of positive real. "
+                        f"Found {p}"
+                    )
+
             return power
         else:
             raise TypeError(
@@ -137,6 +143,10 @@ class Manager:
     @property
     def numPreliminary(self):
         return self._nprelim
+
+    @property
+    def substeps(self):
+        return self._substeps
 
     def preliminarySteps(self):
         """Iterate over preliminary time steps and powers
@@ -220,9 +230,7 @@ class Manager:
             )
         concentrations = (m.asVector(order=self.chain.zaiOrder) for m in self.burnable)
 
-        matrices = starmap(
-            self.chain.formMatrix, zip(reactionRates, fissionYields)
-        )
+        matrices = starmap(self.chain.formMatrix, zip(reactionRates, fissionYields))
 
         inputs = zip(matrices, concentrations, repeat(dtSeconds, len(self.burnable)))
 
