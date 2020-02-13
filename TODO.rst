@@ -1,8 +1,6 @@
 Big open items
 ==============
 
-* Depletion framework
-* SFV solver
 * Storing of results in a nice framework
 * Documentation outside of docstrings
 * Non-constant fission yields
@@ -22,8 +20,6 @@ TODOs
 * Make all tests less flaky. Failures can fill up the Material or
   Universe register. Some of the writer tests require strict orderings
   of Materials and Universes.
-* Use procedurally generated reference files, e.g. with Jinja, for
-  testing Serpent writer
 
 Serpent
 -------
@@ -51,3 +47,5 @@ Wish list
 * Helper for making UO2-like materials
 * Weakref for Isotopes
 * Share some code between CartesianLattice and LatticeStack
+* Use procedurally generated reference files, e.g. with Jinja, for
+  testing Serpent writer
