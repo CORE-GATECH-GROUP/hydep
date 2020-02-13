@@ -88,14 +88,12 @@ class Manager:
         else:
             if not isinstance(numPreliminary, numbers.Integral):
                 raise TypeError(
-                    "Non-integer preliminary steps not allowed: {}".format(
-                        type(numPreliminary)
-                    )
+                    f"Non-integer preliminary steps not allowed: {type(numPreliminary)}"
                 )
             elif not (0 <= numPreliminary < len(self.timesteps)):
                 raise ValueError(
-                    "Number of preliminary steps must be between [0, {}), "
-                    "not {}".format(len(self.timesteps), numPreliminary)
+                    "Number of preliminary steps must be between [0, "
+                    f"{len(self.timesteps)}), not {numPreliminary}"
                 )
             self._nprelim = numPreliminary
 
@@ -107,26 +105,25 @@ class Manager:
     def _validatePowers(self, power):
         if isinstance(power, numbers.Real):
             if power <= 0:
-                raise ValueError("Power must be positive, not {}".format(power))
+                raise ValueError(f"Power must be positive, not {power}")
             return repeat(power, len(self.timesteps))
         elif isinstance(power, Sequence):
             if len(power) != len(self.timesteps):
                 raise ValueError(
-                    "Number of powers {} differ from steps {}".format(
-                        len(power), len(self.timesteps)
-                    )
+                    f"Number of powers {len(power)} differ from steps "
+                    f"{len(self.timesteps)}"
                 )
             for p in power:
                 if not isinstance(p, numbers.Real) or p <= 0:
                     raise TypeError(
                         "Power must be positive real, or vector of positive real. "
-                        "Found {}".format(p)
+                        f"Found {p}"
                     )
             return power
         else:
             raise TypeError(
                 "Power must be positive real, or vector of positive real, "
-                "not {}".format(type(power))
+                f"not {type(power)}"
             )
 
     @property
@@ -183,12 +180,12 @@ class Manager:
         burnable = tuple(model.root.findBurnableMaterials())
 
         if not burnable:
-            raise ValueError("No burnable materials found in {}".format(model))
+            raise ValueError(f"No burnable materials found in {model}")
 
         for ix, mat in enumerate(burnable):
             if mat.volume is None:
                 raise AttributeError(
-                    "{} {} does not have a volume set".format(mat.__class__, mat)
+                    f"{mat.__class__} {mat.name} does not have a volume set"
                 )
             mat.index = ix
 
