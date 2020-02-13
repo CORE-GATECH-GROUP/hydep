@@ -116,7 +116,10 @@ def depletionHarness(endfChain, depletionModel):
             )
         )
 
-    manager = hydep.Manager(endfChain, [50], [6e6])
+    timestep = 50
+    power = 6e6
+    divisions = 1
+    manager = hydep.Manager(endfChain, [timestep], [power], divisions)
     manager.beforeMain(depletionModel.model)
 
     yield DepBundle(manager, microxs, fissionYields)
