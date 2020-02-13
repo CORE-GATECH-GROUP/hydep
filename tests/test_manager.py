@@ -90,13 +90,75 @@ def test_managerConstruct(simpleChain):
         )
 
 
+def test_managerSubsteps(simpleChain):
+    ntimesteps = 3
+    safeargs = SafeManagerArgs(simpleChain, (1,) * ntimesteps, 6e6, 1)
+
+    m1 = hydep.Manager(*safeargs)
+
+    assert len(m1.substeps) == ntimesteps
+    assert all(s == safeargs.divisions for s in m1.substeps)
+
+    scaled = list(safeargs.divisions * x for x in range(1, ntimesteps + 1))
+    m2 = hydep.Manager(
+        safeargs.chain,
+        safeargs.timesteps,
+        safeargs.power,
+        scaled,
+    )
+
+    assert len(m2.substeps) == ntimesteps
+    assert all(a == r for a, r in zip(m2.substeps, scaled)), (scaled, m2.substeps)
+
+    # Test number of divisions must be positive integer
+    with pytest.raises(ValueError):
+        hydep.Manager(safeargs.chain, safeargs.timesteps, safeargs.power, 0)
+
+    with pytest.raises(TypeError):
+        hydep.Manager(safeargs.chain, safeargs.timesteps, safeargs.power, 1.5)
+
+    with pytest.raises(ValueError):
+        hydep.Manager(safeargs.chain, safeargs.timesteps, safeargs.power, -1)
+
+    with pytest.raises(ValueError):
+        hydep.Manager(safeargs.chain, safeargs.timesteps, safeargs.power, [-1])
+
+    baddivisions = [safeargs.divisions] * (ntimesteps - 1) + [1.5]
+    with pytest.raises(TypeError):
+        hydep.Manager(safeargs.chain, safeargs.timesteps, safeargs.power, baddivisions)
+
+    baddivisions[-1] = -1
+    with pytest.raises(ValueError):
+        hydep.Manager(safeargs.chain, safeargs.timesteps, safeargs.power, baddivisions)
+
+    # Test that divisions must be orderable
+    divset = {safeargs.divisions * x for x in range(1, ntimesteps + 1)}
+    assert len(divset) == ntimesteps
+
+    with pytest.raises(TypeError):
+        hydep.Manager(safeargs.chain, safeargs.timesteps, safeargs.power, divset)
+
+    # Test number of provided divisions equal to number of active steps
+    with pytest.raises(ValueError):
+        hydep.Manager(
+            safeargs.chain,
+            [1, 1, 1],
+            safeargs.power,
+            [safeargs.divisions],
+            numPreliminary=1,
+        )
+
+
 @pytest.fixture
 def manager(simpleChain):
     daysteps = numpy.array([5, 10])
     powers = [6e6, 10e6]
+    divisions = 1
 
-    manager = hydep.Manager(simpleChain, daysteps, powers, numPreliminary=1)
-    assert manager.timesteps == pytest.approx(daysteps * hydep.constants.SECONDS_PER_DAY)
+    manager = hydep.Manager(simpleChain, daysteps, powers, divisions, numPreliminary=1)
+    assert manager.timesteps == pytest.approx(
+        daysteps * hydep.constants.SECONDS_PER_DAY
+    )
     return manager
 
 
