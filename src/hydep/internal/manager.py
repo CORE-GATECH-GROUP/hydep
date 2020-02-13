@@ -1,3 +1,0 @@
-"""
-Depletion Manager
-"""
