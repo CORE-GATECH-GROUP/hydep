@@ -2,6 +2,7 @@
 Tests for the depletion manager
 """
 import copy
+import collections
 
 import pytest
 import numpy
@@ -9,48 +10,84 @@ import hydep
 import hydep.constants
 import hydep.internal
 
+SafeManagerArgs = collections.namedtuple(
+    "SafeManagerArgs", "chain timesteps power divisions"
+)
+
 
 def test_managerConstruct(simpleChain):
     """Test manager construction"""
 
-    safepower = 6e6
+    safeargs = SafeManagerArgs(simpleChain, (1, 1), 6e6, 1)
 
     # Test that chain must be provided
     with pytest.raises(TypeError):
-        hydep.Manager(None, [1], safepower)
+        hydep.Manager(None, [1], safeargs.power, safeargs.divisions)
 
     # Test that timesteps must be 1D
     with pytest.raises(TypeError):
-        hydep.Manager(simpleChain, [[1, 1], [2, 2]], safepower)
+        hydep.Manager(
+            safeargs.chain, [[1, 1], [2, 2]], safeargs.power, safeargs.divisions
+        )
 
     # Test that power must be > 0
     with pytest.raises(ValueError):
-        hydep.Manager(simpleChain, [1], 0)
+        hydep.Manager(safeargs.chain, safeargs.timesteps, 0, safeargs.divisions)
 
     with pytest.raises(ValueError):
-        hydep.Manager(simpleChain, [1, 1], [safepower, 0])
+        hydep.Manager(
+            safeargs.chain, safeargs.timesteps, [safeargs.power, 0], safeargs.divisions,
+        )
 
     with pytest.raises(ValueError):
-        hydep.Manager(simpleChain, [1, 1], [safepower, -safepower])
+        hydep.Manager(
+            safeargs.chain,
+            [1, 1],
+            [safeargs.power, -safeargs.power],
+            safeargs.divisions,
+        )
 
     # Test that number of time steps == number of powers
     with pytest.raises(ValueError):
-        hydep.Manager(simpleChain, [1], [safepower] * 3)
+        hydep.Manager(safeargs.chain, [1], [safeargs.power] * 3, safeargs.divisions)
 
     # Test that power must be sequence (orderable)
     with pytest.raises(TypeError):
-        hydep.Manager(simpleChain, [1, 1], {safepower, 2*safepower})
+        hydep.Manager(
+            safeargs.chain,
+            [1, 1],
+            {safeargs.power, 2 * safeargs.power},
+            safeargs.divisions,
+        )
 
     # Test that number of preliminary must be non-negative integer
     with pytest.raises(TypeError):
-        hydep.Manager(simpleChain, [1], safepower, numPreliminary=[1])
+        hydep.Manager(
+            safeargs.chain,
+            safeargs.timesteps,
+            safeargs.power,
+            safeargs.divisions,
+            numPreliminary=[1],
+        )
 
     with pytest.raises(ValueError):
-        hydep.Manager(simpleChain, [1, 1, 1, 1], safepower, numPreliminary=-1)
+        hydep.Manager(
+            safeargs.chain,
+            [1, 1, 1, 1],
+            safeargs.power,
+            safeargs.divisions,
+            numPreliminary=-1,
+        )
 
     # Test that number of preliminary < number of provided time steps
     with pytest.raises(ValueError):
-        hydep.Manager(simpleChain, [1, 1, 1, 1], safepower, numPreliminary=4)
+        hydep.Manager(
+            safeargs.chain,
+            [1, 1, 1, 1],
+            safeargs.power,
+            safeargs.divisions,
+            numPreliminary=4,
+        )
 
 
 @pytest.fixture

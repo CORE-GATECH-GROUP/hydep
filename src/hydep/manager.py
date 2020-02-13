@@ -16,6 +16,7 @@ from hydep.constants import SECONDS_PER_DAY
 from hydep.typed import TypedAttr, IterableOf
 from hydep.internal import Cram16Solver, CompBundle
 from hydep.internal.features import FeatureCollection, MICRO_REACTION_XS, FISSION_YIELDS
+from hydep.internal.utils import FakeSequence
 
 
 __all__ = ["Manager"]
@@ -37,6 +38,11 @@ class Manager:
         is given, a constant power will be used. Otherwise, must
         have the same number of elements as ``daysteps``, corresponding
         to a constant power in each depletion step
+    substepDivision : int or sequence of int
+        Number of substeps to divide each entry in ``daysteps``, also
+        the number of transport solutions, high fidelity and reduced
+        order, per entry. If an integer, the value will be applied to
+        all entries.
     numPreliminary : int, optional
         Number of coarse depletion steps to take before engaging in
         coupled behavior. Useful for approaching some equilibrium value
@@ -63,6 +69,10 @@ class Manager:
         have in order to properly perform the depletion analysis.
         Currently requires calculation of isotopic reaction cross
         sections in each burnable material, as well as the flux.
+    substeps : sequence of int
+        Number of transport solutions, high fidelity and reduced order,
+        per coarse depletion step. Not writable.
+
     """
 
     _nExtrapSteps = 3  # TODO Make this configurable
@@ -71,7 +81,7 @@ class Manager:
     chain = TypedAttr("chain", DepletionChain)
     _burnable = IterableOf("burnable", BurnableMaterial, allowNone=True)
 
-    def __init__(self, chain, daysteps, power, numPreliminary=0):
+    def __init__(self, chain, daysteps, power, substepDivision, numPreliminary=0):
         self.chain = chain
 
         daysteps = numpy.asarray(daysteps, dtype=float)
@@ -96,6 +106,8 @@ class Manager:
                     f"{len(self.timesteps)}), not {numPreliminary}"
                 )
             self._nprelim = numPreliminary
+
+        self._substeps = self._validateSubsteps(substepDivision)
 
         # TODO Make CRAM solver configurable property
         # NOTE: Must be an importable function that we can dispatch
@@ -131,6 +143,37 @@ class Manager:
                 "Power must be positive real, or vector of positive real, "
                 f"not {type(power)}"
             )
+
+    def _validateSubsteps(self, divisions):
+        maxallowed = len(self.timesteps) - self._nprelim
+        if isinstance(divisions, numbers.Integral):
+            if divisions <= 0:
+                raise ValueError(
+                    f"Divisions must be positive integer, not {divisions}"
+                )
+            return FakeSequence(
+                divisions, maxallowed
+            )
+        if isinstance(divisions, Sequence):
+            if len(divisions) != maxallowed:
+                raise ValueError(
+                    "Number of divisions {} not equal to number of time "
+                    "steps {} - number of preliminary steps {}".format(
+                        len(divisions), len(self.timesteps), self._nprelim))
+            substeps = []
+            for value in divisions:
+                if not isinstance(value, numbers.Integral):
+                    raise TypeError(
+                        f"Divisions must be positive integer, not {type(value)}"
+                    )
+                elif value <= 0:
+                    raise ValueError(f"Divisions must be positive integer, not {value}")
+                substeps.append(value)
+            return tuple(substeps)
+
+        raise TypeError(
+            "Substeps must be postive integer, or sequence of positive "
+            f"integer, not {divisions}")
 
     @property
     def burnable(self):
