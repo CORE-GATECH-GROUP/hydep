@@ -1,10 +1,15 @@
 import io
+import shutil
+import pathlib
 
+import numpy
 import pytest
 import hydep
+from hydep.internal import CompBundle, TimeStep
 import hydep.serpent
 
-from tests import strcompare
+from tests import strcompare, filecompare
+from tests.regressions import config
 
 
 REF_FUEL = """% fuel32
@@ -100,3 +105,42 @@ cell inf{uid} inf{uid} {mid} -inf{uid}
     writer.writeUniverse(stream, universe, {})
 
     assert strcompare(reference, stream.getvalue())
+
+
+@pytest.mark.serpent
+def test_writeSteadyStateFile(tmp_path, beavrsMaterials):
+    water = beavrsMaterials["water"]
+    fuel = beavrsMaterials["fuel32"]
+
+    sharedIsotopes = tuple(sorted(set(water).union(fuel)))
+
+    densityArray = numpy.empty((1, len(sharedIsotopes)))
+
+    for ix, iso in enumerate(sharedIsotopes):
+        densityArray[0, ix] = fuel.get(iso, 0.0)
+
+    comp = CompBundle(sharedIsotopes, densityArray)
+    basefile = tmp_path / "base"
+
+    writer = hydep.serpent.SerpentWriter()
+    writer.burnable = (fuel, )
+    writer.base = basefile
+
+    actual = writer.writeSteadyStateFile(
+        tmp_path / "steady_state",
+        comp,
+        TimeStep(),
+        1E4,
+    )
+
+    reference = pathlib.Path(__file__).parent / "steady_state_refefence"
+    testfile = reference.parent / "steady_state_test"
+    testfile.write_text(actual.read_text().replace(str(basefile), "BASEFILE"))
+
+    if config["update"]:
+        testfile.rename(reference)
+        return
+
+    assert filecompare(reference, testfile, testfile.parent / "steady_state_fail")
+
+    testfile.unlink()

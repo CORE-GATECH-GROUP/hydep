@@ -1,0 +1,14 @@
+/*
+ * Steady state input file
+ * Time step : 0
+ * Time [d] : 0.00
+ * Base file : BASEFILE
+ */
+include "BASEFILE"
+set power 1.0000000E+04
+mat 1 -10.3400000 burn 1
+8016.09c 4.602600000E-02
+8017.09c 1.753300000E-05
+92234.09c 5.995900000E-06
+92235.09c 7.462900000E-04
+92238.09c 2.231700000E-02
