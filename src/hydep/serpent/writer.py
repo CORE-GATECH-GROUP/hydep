@@ -224,6 +224,37 @@ set nfg {self._eneGridName}
                 continue
             self.writemat(stream, mat)
 
+    def _getMaterialOptions(self, material):
+        if material.adens is None:
+            density = f"-{material.mdens:<9.7f}"
+        else:
+            density = f"{material.adens:<9.7f}"
+
+        args = [f"mat {material.id} {density}"]
+
+        if material.volume is not None:
+            args.append(f"vol {material.volume:9.7f}")
+        if material.temperature is not None:
+            if material.temperature not in self._temps:
+                args.append(f"tmp {material.temperature:9.7f}")
+            tempkey = f"{material.temperature:.2f}"
+            for table in material.sab:
+                if table.startswith("Graphite"):
+                    iso = "12000"
+                elif table.startswith("H"):
+                    iso = "1001"
+                elif table.startswith("D"):
+                    iso = "1002"
+                else:
+                    raise ValueError(f"Unknown S(a,b) table {table}")
+                libname = "_".join((table, tempkey))
+                args.append(f"moder {libname} {iso}")
+
+        if isinstance(material, hydep.BurnableMaterial):
+            args.append("burn 1")
+
+        return args
+
     def writemat(self, stream, material):
         """Write a valid Serpent material input
 
@@ -236,37 +267,12 @@ set nfg {self._eneGridName}
             Some material to write
 
         """
-        if material.name:
-            stream.write(f"% {material.name}\n")
-        stream.write(
-            "mat {} {}{:<9.7f}".format(
-                material.id,
-                "-" if material.mdens is not None else "",
-                material.adens or material.mdens,
-            )
-        )
-        if material.volume is not None:
-            stream.write(f" vol {material.volume:9.7f}")
-        if material.temperature is not None:
-            if material.temperature not in self._temps:
-                stream.write(f" tmp {material.temperature:9.7f}")
-            tempkey = f"{material.temperature:.2f}"
-            for table in material.sab:
-                if table.startswith("Graphite"):
-                    iso = "12000"
-                elif table.startswith("H"):
-                    iso = "1001"
-                elif table.startswith("D"):
-                    iso = "1002"
-                else:
-                    raise ValueError(f"Unknown S(a,b) table {table}")
-                libname = "_".join((table, tempkey))
-                stream.write(f" moder {libname} {iso}")
+        start = [f"% {material.name}"] if material.name else []
+        args = self._getMaterialOptions(material)
+        start.append(" ".join(args))
 
-        if isinstance(material, hydep.BurnableMaterial):
-            stream.write(" burn 1")
+        stream.write("\n".join(start) + "\n")
 
-        stream.write("\n")
         tlib = self._getmatlib(material)
 
         for isotope, adens in sorted(material.items()):
