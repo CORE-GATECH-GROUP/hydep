@@ -49,3 +49,5 @@ Wish list
 * Share some code between CartesianLattice and LatticeStack
 * Use procedurally generated reference files, e.g. with Jinja, for
   testing Serpent writer
+* Add other simple ReducedOrderSolvers that interpolate / extrapolate
+  flux?
