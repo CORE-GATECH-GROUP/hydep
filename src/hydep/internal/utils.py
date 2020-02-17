@@ -5,8 +5,12 @@ from configparser import ConfigParser
 from functools import wraps
 import itertools
 from pathlib import Path
+import numbers
+import typing
 
-__all__ = ("Boundaries", "configmethod", "CompBundle")
+import numpy
+
+__all__ = ("Boundaries", "configmethod", "CompBundle", "compBundleFromMaterials")
 
 Boundaries = namedtuple("Boundaries", "x y z")
 Boundaries.__doc__ = """Representation of spatial domains
@@ -75,6 +79,7 @@ def configmethod(m):
         the aforementioned types
 
     """
+
     @wraps(m)
     def wrapper(s, cfg, *args, **kwargs):
         if isinstance(cfg, ConfigParser):
@@ -90,6 +95,7 @@ def configmethod(m):
         else:
             raise TypeError(type(cfg))
         return m(s, parser, *args, **kwargs)
+
     return wrapper
 
 
@@ -170,18 +176,18 @@ class FakeSequence(Sequence):
 
     __slots__ = ("_data", "_n")
 
-    def __init__(self, data, counts):
+    def __init__(self, data: typing.Any, counts: int):
         self._data = data
         self._n = counts
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: int) -> typing.Any:
         if index < 0:
             index = self._n - 1 + index
         if index < self._n:
             return self._data
         raise IndexError("Index out of range")
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self._n
 
     def __iter__(self):
@@ -190,13 +196,62 @@ class FakeSequence(Sequence):
     def __reversed__(self):
         return iter(self)
 
-    def __contains__(self, value):
+    def __contains__(self, value) -> bool:
         return value is self._data or value == self._data
 
-    def index(self, value):
+    def index(self, value) -> int:
         if value in self:
             return 0
         raise IndexError(value)
 
-    def count(self, value):
+    def count(self, value) -> int:
         return len(self) if value in self else 0
+
+
+def compBundleFromMaterials(
+        materials: typing.Sequence[typing.Mapping[typing.Any, float]],
+        threshold: typing.Optional[float]=0) -> CompBundle:
+    """Create a :class:`CompBundle` from material definitions
+
+    Parameters
+    ----------
+    materials : sequence of :class:`hydep.Material`
+        Materials containing atom densities [#/b/cm] that will
+        fill up :attr:`CompBundle.densities`. A sorted, common set of
+        isotopes will be placed in :attr:`CompBundle.isotopes`
+    threshold : float, optional
+        Minimum density [#/b/cm] for isotopes to be included.
+        If no material contains a given isotope with a density
+        greater than ``threshold``, that isotope and corresponding
+        densities will be removed from the bundle.
+
+    Returns
+    -------
+    CompBundle
+
+    """
+
+    if not isinstance(threshold, numbers.Real):
+        raise TypeError(type(threshold))
+
+    isotopes = set()
+    for m in materials:
+        isotopes.update(m)
+
+    isotopes = sorted(isotopes)
+
+    densities = numpy.empty((len(materials), len(isotopes)))
+
+    for matix, mat in enumerate(materials):
+        for isox, isotope in enumerate(isotopes):
+            densities[matix, isox] = mat.get(isotope, 0.0)
+
+    if not threshold:
+        return CompBundle(tuple(isotopes), densities)
+
+    isoFlags = (densities > threshold).any(axis=0)
+
+    return CompBundle(
+        tuple(isotopes[ix] for ix, f in enumerate(isoFlags) if f),
+        densities[:, isoFlags].copy(),
+    )

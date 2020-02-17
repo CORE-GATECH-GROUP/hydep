@@ -6,11 +6,17 @@ from .isotope import (
     ReactionTuple,
     DecayTuple,
     parseZai,
-    allIsotopes
+    allIsotopes,
 )
 from .timestep import TimeStep
 from .results import TransportResult
 from .microxs import TemporalMicroXs, MicroXsVector, XsTimeMachine
-from .utils import Boundaries, configmethod, CompBundle, FakeSequence
+from .utils import (
+    Boundaries,
+    configmethod,
+    CompBundle,
+    FakeSequence,
+    compBundleFromMaterials,
+)
 from .fissionyields import FissionYieldDistribution, FissionYield
 from .cram import Cram16Solver, Cram48Solver
