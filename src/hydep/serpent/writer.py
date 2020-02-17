@@ -11,6 +11,7 @@ import re
 import numpy
 
 import hydep
+from hydep.constants import SECONDS_PER_DAY
 from hydep.internal import getIsotope
 from hydep.typed import TypedAttr, IterableOf
 import hydep.internal.features as hdfeat
@@ -66,6 +67,7 @@ class SerpentWriter:
         self.hooks = hdfeat.FeatureCollection()
         self.options = {}
         self.datafiles = None
+        self._buleads = {}
 
     @staticmethod
     def _setupfile(path):
@@ -678,7 +680,7 @@ of depletion. Add a single one day step here. Maybe hack something later""",
                     isotopes.add(prod)
         return reactions
 
-    def writeSteadyStateFile(self, path, timestep, power):
+    def writeSteadyStateFile(self, path, compositions, timestep, power):
         """Write updated burnable materials for steady state solution
 
         Requires the base file with geometry, settings, and non-burnable
@@ -688,16 +690,19 @@ of depletion. Add a single one day step here. Maybe hack something later""",
         ----------
         path : str or pathlib.Path
             Destination to write the updated file
+        compositions : hydep.internal.CompBundle
+            Current burnable material compositions for this time step
         timestep : hydep.internal.TimeStep
-            Temporal information. Wil write a minor comment to the top
+            Temporal information. Will write a minor comment to the top
             of the file describing the current time step
         power : float
-            Current reactor power
+            Current reactor power [W]
 
         Returns
         -------
         pathlib.Path
-            Path of the steady-state input file
+            Path of the steady-state input file, resolved to be
+            absolute path.
 
         """
         if self.burnable is None:
@@ -709,15 +714,31 @@ of depletion. Add a single one day step here. Maybe hack something later""",
         with steadystate.open("w") as stream:
             self.commentblock(
                 stream,
-                """Steady state input file
+                f"""Steady state input file
 Time step : {timestep.coarse}
-Time [d] : {timestep.currentTime:.2f}
+Time [d] : {timestep.currentTime*SECONDS_PER_DAY:.2f}
 Base file : {self.base}"""
             )
             stream.write(f'include "{self.base.resolve()}"\n')
             stream.write(f"set power {power:.7E}\n")
 
-            for m in self.burnable:
-                self.writemat(stream, m)
+            for ix, densities in enumerate(compositions.densities):
+                matprops = self._buleads.get(ix)
+                if matprops is None:
+                    try:
+                        mat = self.burnable[ix]
+                    except IndexError as ie:
+                        raise ie from KeyError(f"Cannot find burnable material {ix}")
+                    matdef = " ".join(self._getMaterialOptions(mat))
+                    tlib = self._getmatlib(mat)
+                    self._buleads[ix] = matdef, tlib
+                else:
+                    matdef, tlib = matprops
+
+                stream.write(f"{matdef}\n")
+                for isotope, adens in zip(compositions.isotopes, densities):
+                    if adens < 1E-20:  # TODO Configurable
+                        continue
+                    stream.write(f"{isotope.z:}{isotope.a:03}.{tlib} {adens:13.9E}\n")
 
         return steadystate
