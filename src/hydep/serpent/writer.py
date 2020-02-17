@@ -695,24 +695,20 @@ of depletion. Add a single one day step here. Maybe hack something later""",
 
         """
         if self.burnable is None:
-            raise AttributeError("No burnable material ordering set on {}".format(self))
+            raise AttributeError(f"No burnable material ordering set on {self}")
         if self.base is None:
-            raise AttributeError(
-                "Base file to be included not found on {}".format(self)
-            )
+            raise AttributeError(f"Base file to be included not found on {self}")
 
         steadystate = self._setupfile(path)
         with steadystate.open("w") as stream:
             self.commentblock(
                 stream,
                 """Steady state input file
-Time step : {}
-Time [d] : {:.2f}
-Base file : {}""".format(
-                    timestep.coarse, timestep.currentTime, self.base
-                ),
+Time step : {timestep.coarse}
+Time [d] : {timestep.currentTime:.2f}
+Base file : {self.base}"""
             )
-            stream.write('include "{}"\n'.format(self.base.absolute()))
+            stream.write(f'include "{self.base.resolve()}"\n')
             stream.write(f"set power {power:.7E}\n")
 
             for m in self.burnable:
