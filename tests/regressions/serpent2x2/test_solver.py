@@ -68,17 +68,13 @@ def test_serpentSolver(serpentSolver, serpentModel):
 
     timeStep = hydep.internal.TimeStep(0, 0, 0, 0)
 
-    # Concentrations for the current step
-    # Not sure how these will look in the future
-    # Set to None to catch errors down the road
-
-    DUMMY_CONCS = None
+    concentrations = hydep.internal.compBundleFromMaterials(serpentModel.burnable)
 
     # Set a realistic power for this time step
 
     POWER = 6e6
 
-    serpentSolver.bosUpdate(DUMMY_CONCS, timeStep, POWER)
+    serpentSolver.bosUpdate(concentrations, timeStep, POWER)
 
     serpentSolver.execute()
 
