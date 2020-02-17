@@ -5,7 +5,7 @@ Serpent writer
 import pathlib
 import os
 import warnings
-from collections import deque, namedtuple
+from collections import namedtuple
 import re
 
 import numpy
@@ -249,8 +249,7 @@ set nfg {self._eneGridName}
                     iso = "1002"
                 else:
                     raise ValueError(f"Unknown S(a,b) table {table}")
-                libname = "_".join((table, tempkey))
-                args.append(f"moder {libname} {iso}")
+                args.append(f"moder {table}_{tempkey} {iso}")
 
         if isinstance(material, hydep.BurnableMaterial):
             args.append("burn 1")
