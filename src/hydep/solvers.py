@@ -206,6 +206,64 @@ class HighFidelitySolver(TransportSolver):
         self.bosUpdate(compositions, timestep, power)
         return super()._solve()
 
+    def eolSolve(self, compositions, timestep, power) -> TransportResult:
+        """Perform the final transport solution
+
+        No further transport solutions will follow. Similar solution
+        routine as :meth:`bosSolve`, but update using :meth:`eolUpdate`
+        instead. Provided for subclasses that wish to change how the
+        final step is handled.
+
+        Parameters
+        ----------
+        compositions : hydep.internal.CompBundle
+            New compositions for this point in time such that
+            ``compositions.densities[i][j]`` is the updated
+            atom density for ``compositions.zai[j]`` for material
+            ``i``
+        timestep : hydep.internal.TimeStep
+            Current point in calendar time for the beginning
+            of this coarse step
+        power : float
+            Current power [W]
+
+        Returns
+        -------
+        TransportResult
+            Flux, multiplication factor, and run time. Run time
+            is computed from :meth:`bosExecute`. Additional data
+            should be included corresponding to hooks
+
+        """
+        self.eolUpdate(compositions, timestep, power)
+        return super()._solve()
+
+    def eolUpdate(self, compositions, timestep, power) -> None:
+        """Prepare for the final transport simulation
+
+        Provided for subclasses that may wish to handle the final
+        step differently that all other steps. It should be expected
+        that no further transport solutions will be requested after
+        this method.
+
+        Defaults to :meth:`bosUpdate` unless overwritten by subclasses.
+
+        Parameters
+        ----------
+        compositions : hydep.internal.CompBundle
+            New compositions for this point in time such that
+            ``compositions.densities[i][j]`` is the updated
+            atom density for ``compositions.zai[j]`` for material
+            ``i``
+        timestep : hydep.internal.TimeStep
+            Current point in calendar time for the beginning
+            of this coarse step
+        power : float
+            Current power [W]
+
+        """
+        return self.bosUpdate(compositions, timestep, power)
+
     @abstractmethod
     def setHooks(self, needs):
         """Set any pre and post-run hooks
