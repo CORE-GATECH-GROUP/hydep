@@ -243,18 +243,24 @@ class HighFidelitySolver(TransportSolver):
         hydep.IncompatibityError
             If the reduced order solver needs features this
             solver does not have
+
         """
-        difference = solver.needs.difference(self.features)
-        if difference:
-            raise IncompatibityError(
-                "Cannot couple {hf} to {slv}.\n{slv} needs: {needs}\n"
-                "{hf} has: {has}\nMissing: {diff}".format(
-                    hf=self.__class__.__name__,
-                    slv=solver.__class__.__name__,
-                    needs=", ".join(sorted(solver.needs)),
-                    has=", ".join(sorted(self.features)),
-                    diff=", ".join(difference),
+
+        if not solver.needs.issubset(self.features):
+            difference = solver.needs.difference(self.features)
+            tails = []
+            if difference.features:
+                names = sorted(f.name for f in difference.features)
+                tails.append(f'Features: {", ".join(names)}')
+            if difference.macroXS:
+                tails.append(
+                    'Macroscopic cross sections: '
+                    f'{", ".join(sorted(difference.macroXS))}'
                 )
+            msg = "\n".join(tails)
+            raise IncompatibityError(
+                f"Cannot couple {self.__class__} to {solver.__class__}."
+                f"\nDifference in features: {msg}"
             )
 
 
