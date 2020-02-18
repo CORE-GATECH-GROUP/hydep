@@ -7,6 +7,7 @@ couple the reduced order code to the high fidelity code
 from collections import namedtuple
 from collections.abc import Collection
 from itertools import chain
+import textwrap
 
 
 Feature = namedtuple("Feature", ["name", "description"])
@@ -82,6 +83,15 @@ class FeatureCollection(Collection):
             self._xs = frozenset()
         else:
             self._xs = frozenset(macroXS)
+
+    def __str__(self):
+        wrapper = textwrap.TextWrapper(subsequent_indent="   ")
+        feats = ", ".join(sorted(f.name for f in self.features))
+        xs = ", ".join(sorted(self.macroXS))
+        return (
+            f"{self.__class__.__name__} with Features: {wrapper.fill(feats)}"
+            f"\nMacroscopic cross sections: {wrapper.fill(xs)}"
+        )
 
     @property
     def features(self) -> frozenset:
