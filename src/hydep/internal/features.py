@@ -183,3 +183,36 @@ class FeatureCollection(Collection):
                 self.__class__, type(other)))
         return (self.features.issubset(other.features)
                 and self.macroXS.issubset(other.macroXS))
+
+    # TODO Maybe provide __getattr__ to cover all frozen-set features
+    def difference(self, other):
+        """Return a new collection with elements that are not in other
+
+        Parameters
+        ----------
+        other : FeatureCollection
+            Alternative features
+
+        Returns
+        -------
+        FeatureCollection
+            Collection of features that are present here, but not
+            in ``other``
+
+        Examples
+        --------
+        >>> s = FeatureCollection({FISSION_MATRIX, })
+        >>> o = FeatureCollection({MICRO_REACTION_XS, HOMOG_GLOBAL}, {"INF_ABS"})
+        >>> d = s.difference(o)
+        >>> d.features == frozenset({FISSION_MATRIX,})
+        True
+        >>> d.macroXS == frozenset()
+        True
+
+        """
+        if not isinstance(other, self.__class__):
+            raise TypeError(type(other))
+        return self.__class__(
+            self.features.difference(other.features),
+            self.macroXS.difference(other.macroXS),
+        )
