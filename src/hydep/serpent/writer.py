@@ -679,7 +679,7 @@ of depletion. Add a single one day step here. Maybe hack something later""",
                     isotopes.add(prod)
         return reactions
 
-    def writeSteadyStateFile(self, path, compositions, timestep, power):
+    def writeSteadyStateFile(self, path, compositions, timestep, power, final=False):
         """Write updated burnable materials for steady state solution
 
         Requires the base file with geometry, settings, and non-burnable
@@ -696,6 +696,8 @@ of depletion. Add a single one day step here. Maybe hack something later""",
             of the file describing the current time step
         power : float
             Current reactor power [W]
+        final : bool, optional
+            If ``True``, no depletion information will be written.
 
         Returns
         -------
@@ -733,6 +735,12 @@ Base file : {self.base}"""
                     self._buleads[ix] = matdef, tlib
                 else:
                     matdef, tlib = matprops
+
+                if final:
+                    # TODO Turn off all hooks except flux for final step
+                    # TODO Only load decay, nfy for non-final steps
+                    # META do we need decay, nfy libraries at all?
+                    matdef = matdef.replace(" burn 1", "")
 
                 stream.write(f"{matdef}\n")
                 for isotope, adens in zip(compositions.isotopes, densities):

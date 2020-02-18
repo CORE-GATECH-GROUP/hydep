@@ -1,5 +1,4 @@
 import io
-import shutil
 import pathlib
 
 import numpy
@@ -142,5 +141,21 @@ def test_writeSteadyStateFile(tmp_path, beavrsMaterials):
         return
 
     assert filecompare(reference, testfile, testfile.parent / "steady_state_fail")
+
+    testfile.unlink()
+
+    # Test EOL writer - no burnup
+    eol = writer.writeSteadyStateFile(
+        tmp_path / "final_steady_state",
+        comp,
+        TimeStep(),
+        1E4,
+        final=True,
+    )
+    refcontent = reference.read_text().replace(" burn 1", "")
+    testfile = reference.parent / "final_steady_state_test"
+    testfile.write_text(eol.read_text().replace(str(basefile), "BASEFILE"))
+
+    assert strcompare(refcontent, testfile.read_text())
 
     testfile.unlink()
