@@ -17,6 +17,7 @@ import hydep.internal.features as hdfeat
 from .writer import SerpentWriter
 from .runner import SerpentRunner
 from .processor import SerpentProcessor
+from .xsavail import XS_2_1_30
 
 
 class SerpentSolver(hydep.lib.HighFidelitySolver):
@@ -28,14 +29,20 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
     ----------
     features : hydep.internal.features.FeatureCollection
         Capabilities employed by this code that are relevant for
-        this sequence. Can get basically all the macro XS possible,
-        but also not sure how this part of the interface will
-        go.
+        this sequence.
     hooks : hydep.internal.features.FeatureCollection or None
         Hooks describing the physics needed by attached physics
         solvers. Setting this more than once will produced
         warnings, as it should not be modified after use.
     """
+    _FEATURES = hdfeat.FeatureCollection((
+        hdfeat.FISSION_MATRIX,
+        hdfeat.FISSION_YIELDS,
+        hdfeat.HOMOG_GLOBAL,
+        hdfeat.HOMOG_LOCAL,
+        hdfeat.MICRO_REACTION_XS,
+        ), XS_2_1_30,
+    )
 
     def __init__(self):
         self._hooks = None
@@ -65,12 +72,7 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
 
     @property
     def features(self):
-        return hdfeat.FeatureCollection((
-            hydep.features.FISSION_MATRIX,
-            hydep.features.HOMOG_GLOBAL,
-            hydep.features.HOMOG_LOCAL,
-            hydep.features.MICRO_REACTION_XS,
-        ), (True))
+        return self._FEATURES
 
     @configmethod
     def configure(self, config):
