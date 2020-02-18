@@ -277,6 +277,9 @@ set nfg {self._eneGridName}
         tlib = self._getmatlib(material)
 
         for isotope, adens in sorted(material.items()):
+            # TODO Configurable
+            if adens < 1E-20:
+                continue
             # TODO Metastable
             stream.write(f"{isotope.z:}{isotope.a:03}.{tlib} {adens:13.9E}\n")
 
