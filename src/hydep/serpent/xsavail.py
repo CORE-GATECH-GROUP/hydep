@@ -100,9 +100,7 @@ while _SERPENT_GCUXS_NAMES:
         XS_2_1_30.add(val.lower())
         continue
     tokens = val.split("_")
-    XS_2_1_30.add("".join(
-        [tokens[0].lower()] + [s.capitalize() for s in tokens[2:]]
-    ))
+    XS_2_1_30.add("".join([tokens[0].lower()] + [s.capitalize() for s in tokens[1:]]))
 
 del _SERPENT_GCUXS_NAMES
 
