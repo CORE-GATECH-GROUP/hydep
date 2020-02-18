@@ -16,6 +16,8 @@ from hydep.internal import getIsotope
 from hydep.typed import TypedAttr, IterableOf
 import hydep.internal.features as hdfeat
 
+from .xsavail import MISSING_XS_ZAI
+
 DataLibraries = namedtuple("DataLibraries", "xs decay nfy sab")
 
 
@@ -281,7 +283,10 @@ set nfg {self._eneGridName}
             if adens < 1E-20:
                 continue
             # TODO Metastable
-            stream.write(f"{isotope.z:}{isotope.a:03}.{tlib} {adens:13.9E}\n")
+            lead=f"{isotope.z:}{isotope.a:03}.{tlib}"
+            if lead in MISSING_XS_ZAI:
+                lead = f"% {lead}"
+            stream.write(f"{lead} {adens:13.9E}\n")
 
     def _getmatlib(self, mat):
         """Return the continuous energy library, "03c", given material"""
@@ -749,6 +754,9 @@ Base file : {self.base}"""
                 for isotope, adens in zip(compositions.isotopes, densities):
                     if adens < 1E-20:  # TODO Configurable
                         continue
-                    stream.write(f"{isotope.z:}{isotope.a:03}.{tlib} {adens:13.9E}\n")
+                    lead = f"{isotope.z:}{isotope.a:03}"
+                    if lead in MISSING_XS_ZAI:
+                        lead = f"% {lead}"
+                    stream.write(f"{lead}.{tlib} {adens:13.9E}\n")
 
         return steadystate
