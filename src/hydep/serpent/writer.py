@@ -581,7 +581,7 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
             nfykey: self._DEFAULT_NFYLIB,
         }.items():
             if key in missing:
-                warnings.warn("Replacing Serpent {} with {}", RuntimeWarning)
+                warnings.warn(f"Replacing Serpent {key} with {replace}", RuntimeWarning)
                 missing.remove(key)
                 files[key] = replace
 
