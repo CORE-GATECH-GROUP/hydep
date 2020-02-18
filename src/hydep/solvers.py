@@ -177,11 +177,11 @@ class HighFidelitySolver(TransportSolver):
             Current power [W]
         """
 
-    def bosSolve(self, newComps, timestep, power) -> TransportResult:
+    def bosSolve(self, compositions, timestep, power) -> TransportResult:
         """Solve BOS transport and return results
 
-        Relies upon :meth:`bosUpdate`, :meth:`bosExecute`,
-        :meth:`bosProcessResults` and :meth:`bosFinalize`
+        Relies upon :meth:`bosUpdate`, :meth:`execute`,
+        :meth:`processResults` and :meth:`bosFinalize`
 
         Parameters
         ----------
@@ -203,7 +203,7 @@ class HighFidelitySolver(TransportSolver):
             is computed from :meth:`bosExecute`. Additional data
             should be included corresponding to hooks
         """
-        self.bosUpdate(newComps, timestep, power)
+        self.bosUpdate(compositions, timestep, power)
         return super()._solve()
 
     @abstractmethod
