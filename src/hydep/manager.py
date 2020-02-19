@@ -54,7 +54,7 @@ class Manager:
         Depletion chain
     timesteps : numpy.ndarray
         Length of time [s] for each coarse depletion step
-    power : numpy.ndarray
+    powers : numpy.ndarray
         Power [W] to use for each coarse depletion steps
     numPreliminary : int
         Number of coarse depletion steps to take before engaging in

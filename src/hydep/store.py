@@ -78,6 +78,40 @@ class BaseStore(ABC):
         self._nIsotopes = int(nIsotopes)
         self._nGroups = int(nGroups)
 
+    @classmethod
+    def fromManager(cls, manager, nGroups: typing.Optional[int] = 1, **kwargs):
+        """Construct a store given a depletion manager
+
+        Parameters
+        ----------
+        manager : hydep.Manager
+            Class containing depletion information, including time schedule,
+            isotopes, and burnable materials
+        ngroup : int, optional
+            Number of energy groups used for fluxes and cross sections in the
+            simulation. Default to 1
+        kwargs : dict
+            Additional keyword arguments to be passed to the primary
+            construction method
+
+        Returns
+        -------
+        BaseStore
+            Instance of some concrete class of :class:`BaseStore`
+
+        """
+        if manager.burnable is None:
+            raise AttributeError(f"No burnable materials stored on the {manager}")
+
+        return cls(
+            len(manager.timesteps),
+            sum(manager.substeps) + 1,
+            len(manager.chain),
+            len(manager.burnable),
+            nGroups,
+            **kwargs,
+        )
+
     @property
     def nCoarseSteps(self) -> int:
         return self._nCoarseSteps
