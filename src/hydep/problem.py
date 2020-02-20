@@ -2,6 +2,9 @@
 Primary class for handling geometry and material information
 """
 import numbers
+import logging
+
+import numpy
 
 from .constants import SECONDS_PER_DAY
 from hydep.lib import HighFidelitySolver, ReducedOrderSolver, BaseStore
@@ -13,6 +16,8 @@ from hydep.internal import (
     compBundleFromMaterials,
     XsTimeMachine,
 )
+
+__logger__ = logging.getLogger("hydep")
 
 
 class Problem(object):
@@ -54,12 +59,16 @@ class Problem(object):
         Called during :meth:`solve`.
 
         """
+
+        __logger__.debug("Executing pre-solution routines")
         self.dep.beforeMain(self.model)
         self.hf.beforeMain(self.model, self.dep.burnable, self.dep.chain)
         self.rom.beforeMain(self.model, self.dep.burnable, self.dep.chain)
 
         if self.store is None:
             from .h5store import HdfStore
+
+            __logger__.debug(f"Setting default store to {HdfStore}")
 
             self.store = HdfStore.fromManager(self.dep, nGroups=1)
 
@@ -102,7 +111,12 @@ class Problem(object):
         # TODO Some try / except around solutions? Or this whole method?
         # We want to make sure that all solvers are adequately warned about
         # failures
+        __logger__.info(
+            f"Executing {self.hf.__class__.__name__} step 0 "
+            f"Time {timestep.currentTime / SECONDS_PER_DAY:.4E} [d]"
+        )
         result = self.hf.bosSolve(compositions, timestep, self.dep.powers[0])
+        __logger__.info(f"   k =  {result.keff[0]:.6f} +/- {result.keff[1]:.6E}")
         self.rom.processBOS(result, timestep, self.dep.powers[0])
         self.store.postTransport(timestep, result)
 
@@ -126,6 +140,7 @@ class Problem(object):
                 f"Time {timestep.currentTime / SECONDS_PER_DAY:.4E} [d]"
             )
             result = self.hf.bosSolve(compositions, timestep, power)
+            __logger__.info(f"   k =  {result.keff[0]:.6f} +/- {result.keff[1]:.6E}")
             self.rom.processBOS(result, timestep, power)
             self.store.postTransport(timestep, result)
 
@@ -144,10 +159,17 @@ class Problem(object):
             )
 
         # Final transport solution
+        __logger__.info(
+            f"Executing {self.hf.__class__.__name__} step {timestep.coarse} "
+            f"Time {timestep.currentTime / SECONDS_PER_DAY:.4E} [d]"
+        )
         result = self.hf.eolSolve(compositions, timestep, self.dep.powers[-1])
+        __logger__.info(f"   k =  {result.keff[0]:.6f} +/- {result.keff[1]:.6E}")
         self.store.postTransport(timestep, result)
 
-    def _marchSubstep(self, timestep, xsmachine, result, fissionYields, substepDT):
+    def _marchSubstep(
+        self, timestep, xsmachine, result, fissionYields, substepDT, compositions
+    ):
         """March across the entire coarse step, using substeps if applicable
 
         ``timestep`` will be modified in place to mark the beginning
@@ -193,7 +215,14 @@ class Problem(object):
             self.store.writeCompositions(timestep, compositions)
             microXS = xsmachine.getMicroXsAt(timestep.currentTime)
 
+            __logger__.info(
+                f"Executing {self.rom.__class__.__name__} for substep {substepIndex}"
+            )
             result = self.rom.substepSolve(timestep, compositions, microXS)
+            if not numpy.isnan(result.keff).all():
+                __logger__.info(
+                    f"   k =  {result.keff[0]:.6f} +/- {result.keff[1]:.6E}"
+                )
             self.store.postTransport(timestep, result)
 
         rxnRates = xsmachine.getReactionRatesAt(timestep.currentTime, result.flux)
