@@ -234,7 +234,24 @@ class DepletionChain(tuple):
             key, self.__class__.__name__))
 
     def formMatrix(self, reactionRates, fissionYields, ordering=None):
-        assert isinstance(reactionRates, MicroXsVector)
+        """Construct a sparse depletion matrix
+
+        Parameters
+        ----------
+        reactionRates : hydep.internal.MicroXsVector
+            Reaction rates [#/s] for isotopes of interest.
+        fissionYields : hydep.internal.FissionYield
+            Fission yields mapping of the form
+            ``{parentZAI: {productZAI: yield}}``
+        ordering : dict of int to int, optional
+            Map describing row and column indices for isotopes. If not
+            provided, will sort by increasing ZAI
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+
+        """
 
         mtx = defaultdict(float)
         indices = self._indices
