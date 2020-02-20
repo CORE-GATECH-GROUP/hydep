@@ -1,11 +1,18 @@
 """
 Primary class for handling geometry and material information
 """
+import numbers
 
+from .constants import SECONDS_PER_DAY
 from hydep.lib import HighFidelitySolver, ReducedOrderSolver, BaseStore
 from hydep import Model, Manager
 from hydep.typed import TypedAttr
-from hydep.internal import TimeStep, configmethod
+from hydep.internal import (
+    TimeStep,
+    configmethod,
+    compBundleFromMaterials,
+    XsTimeMachine,
+)
 
 
 class Problem(object):
@@ -41,6 +48,12 @@ class Problem(object):
         self._store = value
 
     def beforeMain(self):
+        """Perform the necessary setup steps before the main sequence
+
+        Not required to be called by the user, and may go private.
+        Called during :meth:`solve`.
+
+        """
         self.dep.beforeMain(self.model)
         self.hf.beforeMain(self.model, self.dep.burnable, self.dep.chain)
         self.rom.beforeMain(self.model, self.dep.burnable, self.dep.chain)
@@ -54,12 +67,143 @@ class Problem(object):
             tuple(self.dep.chain), [(i, m) for i, m in enumerate(self.dep.burnable)],
         )
 
-    def solve(self):
-        """Here we gooooooooooo"""
-        time = TimeStep()
+    def solve(self, initialDays=0):
+        """Launch the coupled sequence and hold your breath
+
+        Parameters
+        ----------
+        initialDays : float, optional
+            Non-negative number indicating the starting day. Defaults to zero.
+            Useful for jumping into the middle of a schedule.
+
+        """
+        if not isinstance(initialDays, numbers.Real):
+            raise TypeError(f"{type(initialDays)}")
+        if initialDays < 0:
+            raise ValueError(f"{initialDays}")
+
         self.hf.setHooks(self.dep.needs.union(self.rom.needs))
+
         self.beforeMain()
-        result = None
+
+        # Context manager?
+        self._locked = True
+        self._mainsequence(initialDays * SECONDS_PER_DAY)
+        self._locked = False
+
+    def _mainsequence(self, startSeconds):
+        compositions = compBundleFromMaterials(
+            self.dep.burnable, tuple(self.dep.chain)
+        )
+        timestep = TimeStep(currentTime=startSeconds)
+
+        # Run first solution to get information on micro xs
+
+        # TODO Some try / except around solutions? Or this whole method?
+        # We want to make sure that all solvers are adequately warned about
+        # failures
+        result = self.hf.bosSolve(compositions, timestep, self.dep.powers[0])
+        self.rom.processBOS(result, timestep, self.dep.powers[0])
+        self.store.postTransport(timestep, result)
+
+        # TODO Make xs poly order and number of previous steps configurable
+        xsmanager = XsTimeMachine(1, [startSeconds], [result.microXS], 3)
+
+        fissionYields = result.fissionYields
+
+        dtSeconds = self.dep.timesteps[0] / self.dep.substeps[0]
+        result, compositions = self._marchSubstep(
+            timestep, xsmanager, result, fissionYields, dtSeconds, compositions
+        )
+
+        # Go from second step to final step
+
+        for coarseIndex, (coarseDT, power) in enumerate(
+            zip(self.dep.timesteps[1:], self.dep.powers[1:]), start=1
+        ):
+            __logger__.info(
+                f"Executing {self.hf.__class__.__name__} step {coarseIndex} "
+                f"Time {timestep.currentTime / SECONDS_PER_DAY:.4E} [d]"
+            )
+            result = self.hf.bosSolve(compositions, timestep, power)
+            self.rom.processBOS(result, timestep, power)
+            self.store.postTransport(timestep, result)
+
+            xsmanager.append(timestep.currentTime, result.microXS)
+
+            # Substeps
+            # TODO Zip all three?
+            dtSeconds = coarseDT / self.dep.substeps[coarseIndex]
+            result, compositions = self._marchSubstep(
+                timestep,
+                xsmanager,
+                result,
+                result.fissionYields,
+                dtSeconds,
+                compositions,
+            )
+
+        # Final transport solution
+        result = self.hf.eolSolve(compositions, timestep, self.dep.powers[-1])
+        self.store.postTransport(timestep, result)
+
+    def _marchSubstep(self, timestep, xsmachine, result, fissionYields, substepDT):
+        """March across the entire coarse step, using substeps if applicable
+
+        ``timestep`` will be modified in place to mark the beginning
+        of the next depletion interval. Results and compositions will
+        be written to the current :attr:`store` when required.
+
+        Parameters
+        ----------
+        timestep : hydep.internal.TimeStep
+            Time step for the beginning of this coarse step
+        xsmachine : hydep.internal.XsTimeMachine
+            Micrscopic cross section and reaction rate manager
+        result : hydep.internal.TransportResult
+            Most recent transport result
+        fissionYields : sequence of mapping int -> FissionYield
+            Beginning of step fission yields. Will be updated at
+            each substep if the reduced order solver updates the
+            fission yields
+        substepDT : float
+            Length of time [s] for each substep
+        compositions : hydep.internal.CompBundle
+            Compositions from the beginning of the time step
+
+        Returns
+        -------
+        hydep.internal.TransportResult
+            Result from the last reduced order simulation, if one was
+            performed. Otherwise will be identical to the input
+        hydep.internal.CompBundle
+            Compositions for the beginning of the next step
+
+        """
+        for substepIndex in range(self.dep.substeps[timestep.coarse] - 1):
+            if substepIndex and result.fissionYields is not None:
+                fissionYields = result.fissionYields
+
+            rxnRates = xsmachine.getReactionRatesAt(timestep.currentTime, result.flux)
+            compositions = self.dep.deplete(
+                substepDT, compositions, rxnRates, fissionYields
+            )
+
+            timestep += substepDT
+            self.store.writeCompositions(timestep, compositions)
+            microXS = xsmachine.getMicroXsAt(timestep.currentTime)
+
+            result = self.rom.substepSolve(timestep, compositions, microXS)
+            self.store.postTransport(timestep, result)
+
+        rxnRates = xsmachine.getReactionRatesAt(timestep.currentTime, result.flux)
+        compositions = self.dep.deplete(
+            substepDT, compositions, rxnRates, fissionYields
+        )
+        timestep.increment(substepDT, coarse=True)
+        self.store.writeCompositions(timestep, compositions)
+
+        return result, compositions
 
     @configmethod
     def configure(self, config):
