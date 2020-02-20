@@ -2,7 +2,7 @@
 Primary class for handling geometry and material information
 """
 
-from hydep.lib import HighFidelitySolver, ReducedOrderSolver
+from hydep.lib import HighFidelitySolver, ReducedOrderSolver, BaseStore
 from hydep import Model, Manager
 from hydep.typed import TypedAttr
 from hydep.internal import TimeStep, configmethod
@@ -15,18 +15,44 @@ class Problem(object):
     rom = TypedAttr("rom", ReducedOrderSolver)
     dep = TypedAttr("dep", Manager)
 
-    def __init__(self, model, hf, rom, dep):
+    def __init__(self, model, hf, rom, dep, store=None):
+        self._locked = False
         hf.checkCompatibility(dep)
         hf.checkCompatibility(rom)
         self.model = model
         self.hf = hf
         self.rom = rom
         self.dep = dep
+        self.store = store
+
+    @property
+    def store(self):
+        return self._store
+
+    @store.setter
+    def store(self, value):
+        if self._locked:
+            raise AttributeError(f"{self} is locked and should not be modified")
+        if value is None:
+            self._store = None
+            return
+        if not isinstance(value, BaseStore):
+            raise TypeError(f"Store should be subclass of {BaseStore}, not {value}")
+        self._store = value
 
     def beforeMain(self):
         self.dep.beforeMain(self.model)
         self.hf.beforeMain(self.model, self.dep.burnable, self.dep.chain)
         self.rom.beforeMain(self.model, self.dep.burnable, self.dep.chain)
+
+        if self.store is None:
+            from .h5store import HdfStore
+
+            self.store = HdfStore.fromManager(self.dep, nGroups=1)
+
+        self.store.beforeMain(
+            tuple(self.dep.chain), [(i, m) for i, m in enumerate(self.dep.burnable)],
+        )
 
     def solve(self):
         """Here we gooooooooooo"""
