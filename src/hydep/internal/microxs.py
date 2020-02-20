@@ -517,13 +517,15 @@ class TemporalMicroXs(CachedTimeTraveller):
         return MicroXsVector(self.zai, self.zptr, self.rxns, mxs)
 
     def _genCoeffs(self):
+        order = min(self.order, len(self) - 1)
+        assert order >= 0
         # convert (time, reaction, group) -> (reaction, time, group)
         data = numpy.array(self._mxs).transpose(1, 0, 2)
-        coeffs = numpy.empty((data.shape[0], self.order + 1, data.shape[2]))
+        coeffs = numpy.empty((data.shape[0], order + 1, data.shape[2]))
         # TODO Vectorize?
         for index, rxn in enumerate(data):
             # group, time
-            coeffs[index] = polyfit(self._times, rxn, self.order, full=False)
+            coeffs[index] = polyfit(self._times, rxn, order, full=False)
 
         return coeffs
 
