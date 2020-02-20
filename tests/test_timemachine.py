@@ -33,9 +33,18 @@ def test_oneGroupReactionRates(microxs, order):
 
     """
     times = [0, 100]
-    targetTime = 50
+    targetTime = 25
     incomingMicroXs = [[microxs], [microxs * 2]]
-    expectedXsVector = microxs * 1.5
+
+    if order == 0:
+        weight = 1.5
+    else:
+        weight = (
+            (times[1] - targetTime + 2*(targetTime - times[0]))
+            / (times[1] - times[0])
+        )
+
+    expectedXsVector = microxs * weight
 
     timemachine = hydep.internal.XsTimeMachine(order, times, incomingMicroXs)
 
@@ -55,4 +64,3 @@ def test_oneGroupReactionRates(microxs, order):
     assert rxns[0].zai == expectedXsVector.zai
     assert rxns[0].rxns == expectedXsVector.rxns
     assert rxns[0].mxs == pytest.approx(expectedRates)
-
