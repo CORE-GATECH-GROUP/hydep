@@ -128,8 +128,14 @@ def depletionHarness(endfChain, depletionModel):
 @pytest.mark.flaky
 def test_2x2deplete(depletionHarness):
     manager = depletionHarness.manager
+
+    concentrations = hydep.internal.compBundleFromMaterials(
+        manager.burnable, tuple(manager.chain)
+    )
+
     out = manager.deplete(
         manager.timesteps[0],
+        concentrations,
         depletionHarness.reactionRates,
         depletionHarness.fissionYields,
     )
