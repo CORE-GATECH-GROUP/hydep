@@ -209,8 +209,10 @@ class FakeSequence(Sequence):
 
 
 def compBundleFromMaterials(
-        materials: typing.Sequence[typing.Mapping[typing.Any, float]],
-        threshold: typing.Optional[float]=0) -> CompBundle:
+    materials: typing.Sequence[typing.Mapping[typing.Any, float]],
+    isotopes: typing.Optional[typing.Sequence] = None,
+    threshold: typing.Optional[float] = 0,
+) -> CompBundle:
     """Create a :class:`CompBundle` from material definitions
 
     Parameters
@@ -219,6 +221,11 @@ def compBundleFromMaterials(
         Materials containing atom densities [#/b/cm] that will
         fill up :attr:`CompBundle.densities`. A sorted, common set of
         isotopes will be placed in :attr:`CompBundle.isotopes`
+    isotopes : sequence of str, int, or hydep.internal.Isotope, optional
+        If provided, order densities according to these isotopes.
+        Will be placed as the :attr:`CompBundle.isotopes`. If
+        not given, take a sorted union of isotopes in all materials
+        provided
     threshold : float, optional
         Minimum density [#/b/cm] for isotopes to be included.
         If no material contains a given isotope with a density
@@ -234,11 +241,12 @@ def compBundleFromMaterials(
     if not isinstance(threshold, numbers.Real):
         raise TypeError(type(threshold))
 
-    isotopes = set()
-    for m in materials:
-        isotopes.update(m)
+    if isotopes is None:
+        isotopes = set()
+        for m in materials:
+            isotopes.update(m)
 
-    isotopes = sorted(isotopes)
+        isotopes = sorted(isotopes)
 
     densities = numpy.empty((len(materials), len(isotopes)))
 
