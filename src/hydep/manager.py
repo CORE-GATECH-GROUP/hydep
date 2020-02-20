@@ -148,18 +148,16 @@ class Manager:
         maxallowed = len(self.timesteps) - self._nprelim
         if isinstance(divisions, numbers.Integral):
             if divisions <= 0:
-                raise ValueError(
-                    f"Divisions must be positive integer, not {divisions}"
-                )
-            return FakeSequence(
-                divisions, maxallowed
-            )
+                raise ValueError(f"Divisions must be positive integer, not {divisions}")
+            return FakeSequence(divisions, maxallowed)
         if isinstance(divisions, Sequence):
             if len(divisions) != maxallowed:
                 raise ValueError(
                     "Number of divisions {} not equal to number of time "
                     "steps {} - number of preliminary steps {}".format(
-                        len(divisions), len(self.timesteps), self._nprelim))
+                        len(divisions), len(self.timesteps), self._nprelim
+                    )
+                )
             substeps = []
             for value in divisions:
                 if not isinstance(value, numbers.Integral):
@@ -173,7 +171,8 @@ class Manager:
 
         raise TypeError(
             "Substeps must be postive integer, or sequence of positive "
-            f"integer, not {divisions}")
+            f"integer, not {divisions}"
+        )
 
     @property
     def burnable(self):

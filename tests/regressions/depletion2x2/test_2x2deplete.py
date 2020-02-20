@@ -108,7 +108,7 @@ def depletionHarness(endfChain, depletionModel):
         mxsdata = numpy.loadtxt(mxsfile)
         zai = mxsdata[:, 0].astype(int)
         rxns = mxsdata[:, 1].astype(int)
-        mxs = mxsdata[:, 2:2 + 1 + N_GROUPS]
+        mxs = mxsdata[:, 2 : 2 + 1 + N_GROUPS]
 
         microxs.append(
             hydep.internal.MicroXsVector.fromLongFormVectors(
