@@ -14,8 +14,9 @@ def microxs():
     )
 
 
+@pytest.mark.parametrize("grow", ("init", "append"))
 @pytest.mark.parametrize("order", (0, 1, 2))
-def test_oneGroupReactionRates(microxs, order):
+def test_oneGroupReactionRates(microxs, order, grow):
     """Test the validity of the microxs extrapolation
 
     It is not impossible that a time machine will be created
@@ -34,19 +35,24 @@ def test_oneGroupReactionRates(microxs, order):
     """
     times = [0, 100]
     targetTime = 25
-    incomingMicroXs = [[microxs], [microxs * 2]]
-
+    scale = 2
     if order == 0:
         weight = 1.5
     else:
         weight = (
-            (times[1] - targetTime + 2*(targetTime - times[0]))
+            (times[1] - targetTime + scale*(targetTime - times[0]))
             / (times[1] - times[0])
         )
 
     expectedXsVector = microxs * weight
 
-    timemachine = hydep.internal.XsTimeMachine(order, times, incomingMicroXs)
+    incomingMicroXs = [[microxs]]
+    if grow == "init":
+        incomingMicroXs.append([microxs * scale])
+        timemachine = hydep.internal.XsTimeMachine(order, times, incomingMicroXs)
+    else:
+        timemachine = hydep.internal.XsTimeMachine(order, [times[0]], incomingMicroXs)
+        timemachine.append(times[1], [microxs * scale])
 
     flux = numpy.array([[4e6]])
 
