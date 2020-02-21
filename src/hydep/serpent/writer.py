@@ -3,9 +3,7 @@ Serpent writer
 """
 
 import pathlib
-import os
 import warnings
-from collections import namedtuple
 import re
 
 import numpy
@@ -17,8 +15,7 @@ from hydep.typed import TypedAttr, IterableOf
 import hydep.internal.features as hdfeat
 
 from .xsavail import MISSING_XS_ZAI
-
-DataLibraries = namedtuple("DataLibraries", "xs decay nfy sab")
+from .utils import findLibraries
 
 
 class SerpentWriter:
@@ -219,7 +216,8 @@ class SerpentWriter:
             f"""% Hard set one group [0, 20] MeV for all data
 ene {self._eneGridName} 2 1 0 20
 set nfg {self._eneGridName}
-""")
+"""
+        )
 
     def _writematerials(self, stream, materials):
         self.commentblock(stream, "BEGIN MATERIAL BLOCK")
@@ -280,10 +278,10 @@ set nfg {self._eneGridName}
 
         for isotope, adens in sorted(material.items()):
             # TODO Configurable
-            if adens < 1E-20:
+            if adens < 1e-20:
                 continue
             # TODO Metastable
-            lead=f"{isotope.z:}{isotope.a:03}.{tlib}"
+            lead = f"{isotope.z:}{isotope.a:03}.{tlib}"
             if lead in MISSING_XS_ZAI:
                 lead = f"% {lead}"
             stream.write(f"{lead} {adens:13.9E}\n")
@@ -529,68 +527,24 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
 
         # Serpent settings
 
-        datafiles = self._fetchDataLibraries(section)
-        self.datafiles = DataLibraries(
-            xs=datafiles["acelib"],
-            decay=datafiles["declib"],
-            nfy=datafiles["nfylib"],
-            sab=datafiles["thermal scattering"],
-        )
+        files = [
+            pathlib.Path(p)
+            for p in [
+                section.get("acelib", self._DEFAULT_ACELIB),
+                section.get("declib", self._DEFAULT_DECLIB),
+                section.get("nfylib", self._DEFAULT_NFYLIB),
+            ]
+        ]
 
-    def _fetchDataLibraries(self, section):
+        sab = section.get("thermal scattering")
+        if sab is not None:
+            sab = pathlib.Path(sab)
+
         datadir = section.get("data directory")
-        files = {}
-        missing = set()
-        acekey = "acelib"
-        deckey = "declib"
-        nfykey = "nfylib"
-        sabkey = "thermal scattering"
-
-        for key in {acekey, deckey, nfykey}:
-            v = section.get(key)
-            if v is None:
-                missing.add(key)
-            else:
-                files[key] = v
-
-        sab = section.get(sabkey)
-        if sab is None:
-            missing.add(sabkey)
-        else:
-            files[sabkey] = pathlib.Path(sab)
-
-        if not missing:
-            return files
-
         if datadir is not None:
             datadir = pathlib.Path(datadir)
-        else:  # try to fetch from SERPENT_DATA
-            datadir = os.environ.get("SERPENT_DATA")
-            if datadir is None:
-                raise ValueError(
-                    'Need to pass "data directory" or set SERPENT_DATA '
-                    f"environment variable. Missing {missing} files"
-                )
-            datadir = pathlib.Path(datadir)
-        if not datadir.is_dir():
-            raise NotADirectoryError(datadir)
 
-        for key, replace in {
-            acekey: self._DEFAULT_ACELIB,
-            deckey: self._DEFAULT_DECLIB,
-            nfykey: self._DEFAULT_NFYLIB,
-        }.items():
-            if key in missing:
-                warnings.warn(f"Replacing Serpent {key} with {replace}", RuntimeWarning)
-                missing.remove(key)
-                files[key] = replace
-
-        if sabkey in missing:
-            # Don't check for existence, because it may not be needed
-            files[sabkey] = datadir / "acedata" / "sssth1"
-            missing.remove(sabkey)
-
-        return files
+        self.datafiles = findLibraries(*files, sab, datadir)
 
     def _parseboundaryconditions(self, conds):
         bc = []
@@ -726,7 +680,7 @@ of depletion. Add a single one day step here. Maybe hack something later""",
                 f"""Steady state input file
 Time step : {timestep.coarse}
 Time [d] : {timestep.currentTime*SECONDS_PER_DAY:.2f}
-Base file : {self.base}"""
+Base file : {self.base}""",
             )
             stream.write(f'include "{self.base.resolve()}"\n')
             stream.write(f"set power {power:.7E}\n")
@@ -752,7 +706,7 @@ Base file : {self.base}"""
 
                 stream.write(f"{matdef}\n")
                 for isotope, adens in zip(compositions.isotopes, densities):
-                    if adens < 1E-20:  # TODO Configurable
+                    if adens < 1e-20:  # TODO Configurable
                         continue
                     lead = f"{isotope.z:}{isotope.a:03}"
                     if lead in MISSING_XS_ZAI:
