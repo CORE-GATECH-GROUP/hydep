@@ -1,8 +1,9 @@
+import io
 import pathlib
 from unittest.mock import patch
 
 import pytest
-from hydep.serpent.utils import Library, findLibraries
+from hydep.serpent.utils import Library, findLibraries, findProblemIsotopes
 
 
 def _testDataLib(fileMap, referenceFiles):
@@ -57,3 +58,29 @@ def test_dataLibraries(mockSerpentData):
         bases, {Library.DATA_DIR: dataDir.parent}
     ):
         _testDataLib(bases, mockSerpentData)
+
+
+@pytest.fixture
+def fakeXsDataStream():
+    return io.StringIO(
+        """
+    95242.03c  95242.03c  1  95242  0  242.0  300  0  acedata/95242.ace
+   Am-242.03c  95242.03c  1  95242  0  242.0  300  0  acedata/95242.ace
+    95342.03c  95342.03c  1  95242  1  242.0  300  0  acedata/95342.ace
+  Am-242m.03c  95342.03c  1  95242  1  242.0  300  0  acedata/95342.ace
+"""
+    )
+
+
+def test_problemIsotopes(fakeXsDataStream):
+
+    p = findProblemIsotopes(fakeXsDataStream, ((95, 242, 0), (95, 242, 1)))
+    assert not p.missing
+    assert p.replacements == {(95, 242, 1): (95, 342)}
+
+    # Don't request metastable, add a bad isotope
+    fakeXsDataStream.seek(0, io.SEEK_SET)
+    bad = (1, 200, 0)
+    p = findProblemIsotopes(fakeXsDataStream, ((95, 242, 0), bad))
+    assert not p.replacements
+    assert p.missing == set((bad,))

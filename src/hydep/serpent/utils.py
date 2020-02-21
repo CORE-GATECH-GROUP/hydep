@@ -2,9 +2,27 @@ import os
 import pathlib
 from collections import namedtuple
 from enum import Enum, auto
+import typing
+import re
 
 
 DataLibraries = namedtuple("DataLibraries", "xs decay nfy sab")
+ProblematicIsotopes = namedtuple("ProblematicIsotopes", "missing replacements")
+ProblematicIsotopes.__doc__ = """Simple container for problematic isotopes
+
+Parameters
+----------
+missing : set of (int, int, int)
+    Isotope ZAI triplet with number of protons, number of neutrons and
+    neutrons, and metastable flag. Isotopes here were requested by
+    the user but do not exist in the data library
+replacements : dict
+    Dictionary mapping ZAI triplets of requested isotopes to
+    (Z, A) tuples of the new name. This is intended to help
+    handle metastable isotopes that exist under different
+    integer identifiers
+
+"""
 
 
 class Library(Enum):
@@ -104,3 +122,65 @@ def findLibraries(acelib, declib, nfylib, sab=None, datadir=None) -> DataLibrari
         nfy=files[Library.NFY].resolve(),
         sab=files[Library.SAB].resolve(),
     )
+
+
+def findProblemIsotopes(
+    stream, candidateZAIs: typing.Iterable[typing.Tuple[int, int, int]],
+) -> ProblematicIsotopes:
+    """Find isotopes that don't exist, or exist under new names
+
+    Metastable isotopes have altered ZAI numbers in the Serpent xs
+    file. For example, Am242_m1 is stored as 95342.
+
+    Parameters
+    ----------
+    stream : readable
+        Stream containing file data, like from opening the file
+    candidateZAIs : iterable of (int, int, int)
+        Isotopes ZAI identifiers that are likely to be used in the
+        simulation
+
+    Returns
+    -------
+    ProblematicIsotopes
+        Containing information on isotopes that are in ``candidateZAIs``
+        but not in the data file at all, or exist under a different
+        name
+
+    """
+    reg = re.compile(r"\s+(\d{,6})\.\d{2}c\s+.*\.\d{2}c\s+\d\s+(\d{4,})\s+(\d+)")
+    replacements = {}
+    previous = set()
+    candidates = set(candidateZAIs)
+
+    line = stream.readline()
+    # VER good candidate for python 3.8 use := operator
+    while line:
+        match = reg.match(line)
+        if match is None:
+            line = stream.readline()
+            continue
+        try:
+            serpentZA, ZA, meta = match.groups()
+            if (ZA, meta) in previous:
+                line = stream.readline()
+                continue
+
+            previous.add((ZA, meta))
+            z, a = divmod(int(ZA), 1000)
+            zai = (z, a, int(meta))
+
+            if zai not in candidates:
+                line = stream.readline()
+                continue
+            if ZA != serpentZA:
+                replacements[zai] = divmod(int(serpentZA), 1000)
+        except Exception as ee:
+            raise ee from RuntimeError(f"Failed to process line\n{line}")
+
+        candidates.remove(zai)
+        if not candidates:
+            break
+        line = stream.readline()
+
+    return ProblematicIsotopes(missing=candidates, replacements=replacements)
