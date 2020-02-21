@@ -30,7 +30,7 @@ def test_sfvnubar(how, order):
         assert (nubarExtrap[ix] == d).all()
         assert (nubarExtrap(TIMES[ix]) == d).all()
 
-    target = TIMES[0] + 0.5*TIMES[1]
+    target = TIMES[0] + 0.5 * TIMES[1]
     extrap = nubarExtrap(target)
     if order == 1:
         assert extrap == pytest.approx(data[0] + 0.5 * data[1])

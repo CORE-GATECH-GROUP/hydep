@@ -62,7 +62,9 @@ pin p{}
 3 0.6019800
 4
 
-""".format(beavrsInstrumentTube.name, beavrsInstrumentTube.id)
+""".format(
+        beavrsInstrumentTube.name, beavrsInstrumentTube.id
+    )
     written = stream.getvalue()
     assert strcompare(reference, written)
 
@@ -124,14 +126,11 @@ def test_writeSteadyStateFile(tmp_path, beavrsMaterials):
     basefile = tmp_path / "base"
 
     writer = hydep.serpent.SerpentWriter()
-    writer.burnable = (fuel, )
+    writer.burnable = (fuel,)
     writer.base = basefile
 
     actual = writer.writeSteadyStateFile(
-        tmp_path / "steady_state",
-        comp,
-        TimeStep(),
-        1E4,
+        tmp_path / "steady_state", comp, TimeStep(), 1e4,
     )
 
     reference = pathlib.Path(__file__).parent / "steady_state_refefence"
@@ -148,11 +147,7 @@ def test_writeSteadyStateFile(tmp_path, beavrsMaterials):
 
     # Test EOL writer - no burnup
     eol = writer.writeSteadyStateFile(
-        tmp_path / "final_steady_state",
-        comp,
-        TimeStep(),
-        1E4,
-        final=True,
+        tmp_path / "final_steady_state", comp, TimeStep(), 1e4, final=True,
     )
     refcontent = reference.read_text().replace(" burn 1", "")
     testfile = reference.parent / "final_steady_state_test"

@@ -5,8 +5,7 @@ import hydep.typed as htypes
 
 class Typed:
     integer = htypes.TypedAttr("integer", numbers.Integral)
-    integerOrNone = htypes.TypedAttr(
-        "integerOrNone", numbers.Integral, allowNone=True)
+    integerOrNone = htypes.TypedAttr("integerOrNone", numbers.Integral, allowNone=True)
     mixed = htypes.TypedAttr("mixed", (numbers.Integral, str))
     iterable = htypes.IterableOf("iterable", numbers.Integral)
     iterableOrNone = htypes.IterableOf(

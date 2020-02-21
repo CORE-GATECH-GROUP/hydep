@@ -3,6 +3,7 @@ from hydep.internal.registry import register, unregister, get
 
 def test_register():
     """Test the registry interface"""
+
     class Reg:
         def __init__(self):
             self._id = register(self.__class__)

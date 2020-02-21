@@ -8,8 +8,8 @@ from hydep.internal import FissionYield, FissionYieldDistribution
 def referenceDistribution():
     return {
         0.0253: {541350: 0.021, 621490: 0.04},
-        500E3: {541350: 0.05, 621490: 0.03},
-        14E6: {621490: 0.03, 541350: 0.06, 400960: 0.05},
+        500e3: {541350: 0.05, 621490: 0.03},
+        14e6: {621490: 0.03, 541350: 0.06, 400960: 0.05},
     }
 
 
@@ -39,7 +39,7 @@ def test_fissionYieldDistribution(referenceDistribution):
     FAKE_ENERGY = -1.0
     assert actual.get(FAKE_ENERGY) is None
 
-    ABS_TOL = 1E-3
+    ABS_TOL = 1e-3
     MIN_ENE = min(actual.energies)
     OFF_LOWER = MIN_ENE - ABS_TOL / 2
     lower = actual.get(OFF_LOWER, atol=ABS_TOL)
@@ -51,8 +51,7 @@ def test_fissionYieldDistribution(referenceDistribution):
             if value == v:
                 break
         else:
-            raise ValueError(
-                "Could not find a match using values generator")
+            raise ValueError("Could not find a match using values generator")
 
     with pytest.raises(TypeError):
         actual.at(0.0253)
@@ -88,7 +87,7 @@ def test_singleEnergy(refFissionYields):
     for key, value in new.items():
         assert value == pytest.approx(SCALAR * refFissionYields[key])
 
-    new *= (1 / SCALAR)
+    new *= 1 / SCALAR
     assert new.yields == pytest.approx(origYields)
     for key, value in new.items():
         assert value == pytest.approx(refFissionYields[key])

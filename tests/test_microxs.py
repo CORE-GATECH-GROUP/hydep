@@ -124,7 +124,8 @@ def test_temporal(expectedXsVectors, grow):
             expectedXsVectors.zai,
             expectedXsVectors.zptr,
             expectedXsVectors.rxn,
-            expectedXsVectors.mxs),
+            expectedXsVectors.mxs,
+        ),
     ]
     mxs.append(mxs[0] * 2)
 

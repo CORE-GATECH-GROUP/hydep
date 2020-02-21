@@ -100,12 +100,7 @@ def test_managerSubsteps(simpleChain):
     assert all(s == safeargs.divisions for s in m1.substeps)
 
     scaled = list(safeargs.divisions * x for x in range(1, ntimesteps + 1))
-    m2 = hydep.Manager(
-        safeargs.chain,
-        safeargs.timesteps,
-        safeargs.power,
-        scaled,
-    )
+    m2 = hydep.Manager(safeargs.chain, safeargs.timesteps, safeargs.power, scaled,)
 
     assert len(m2.substeps) == ntimesteps
     assert all(a == r for a, r in zip(m2.substeps, scaled)), (scaled, m2.substeps)
