@@ -141,6 +141,15 @@ def beavrsControlPin(beavrsMaterials):
 
 
 @pytest.fixture
+def write2x2Model(beavrsFuelPin, beavrsControlPin, beavrsGuideTube):
+    template = [[0, 0], [1, 2]]
+    fill = {0: beavrsFuelPin, 1: beavrsGuideTube, 2: beavrsControlPin}
+    asymmetric2x2 = hydep.CartesianLattice.fromMask(1.3, template, fill)
+
+    return hydep.Model(asymmetric2x2)
+
+
+@pytest.fixture
 def serpentcfg():
     """Fixture with just the "hydep.serpent" configuration options"""
     assert "SERPENT_DATA" in os.environ

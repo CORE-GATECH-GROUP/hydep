@@ -9,18 +9,13 @@ from tests import filecompare
 
 
 @pytest.mark.serpent
-def test_write2x2(serpentcfg, beavrsFuelPin, beavrsControlPin, beavrsGuideTube):
-    template = [[0, 0], [1, 2]]
-    fill = {0: beavrsFuelPin, 1: beavrsGuideTube, 2: beavrsControlPin}
-    asymmetric2x2 = hydep.CartesianLattice.fromMask(1.3, template, fill)
-
-    model = hydep.Model(asymmetric2x2)
-    burnable = tuple(model.root.findBurnableMaterials())
+def test_write2x2(serpentcfg, write2x2Model):
+    burnable = tuple(write2x2Model.root.findBurnableMaterials())
     assert len(burnable) == 2
 
     writer = hydep.serpent.SerpentWriter()
     writer.burnable = burnable
-    writer.model = model
+    writer.model = write2x2Model
     writer.configure(serpentcfg, 3)
 
     assert writer.options["bc"] == [2, 2, 2]
