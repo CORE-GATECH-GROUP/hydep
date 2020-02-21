@@ -14,6 +14,7 @@ import configparser
 
 import pytest
 import hydep
+from hydep.serpent.utils import Library
 
 
 @pytest.fixture(scope="module")
@@ -147,6 +148,35 @@ def write2x2Model(beavrsFuelPin, beavrsControlPin, beavrsGuideTube):
     asymmetric2x2 = hydep.CartesianLattice.fromMask(1.3, template, fill)
 
     return hydep.Model(asymmetric2x2)
+
+
+@pytest.fixture(scope="module")
+def mockSerpentData(tmp_path_factory):
+    files = {}
+    xsdir = tmp_path_factory.mktemp("xsdata")
+    for k, p in [
+        [Library.ACE, "fake.xsdata"],
+        [Library.DEC, "fake.dec"],
+        [Library.NFY, "fake.nfy"],
+    ]:
+        dest = xsdir / p
+        dest.touch()
+        files[k] = dest
+
+    sabf = xsdir / "acedata" / "sssth1"
+    sabf.parent.mkdir()
+    # Make a minimal thermal scattering file
+    sabf.write_text("""lwe6.12t    0.999170  2.5507E-08   02/11/09
+ENDF/B-VI.8 Data for Serpent 1.1.0 (HinH20 at 600.00K)         mat 125""")
+
+    files[Library.SAB] = sabf
+    files[Library.DATA_DIR] = xsdir
+
+    yield files
+
+    for p in files.values():
+        if p.is_file():
+            p.unlink()
 
 
 @pytest.fixture
