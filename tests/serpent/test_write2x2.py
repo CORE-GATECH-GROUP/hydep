@@ -5,6 +5,7 @@ import pathlib
 import pytest
 import hydep
 import hydep.serpent
+
 from tests import filecompare
 
 
@@ -27,6 +28,12 @@ def test_write2x2(serpentcfg, write2x2Model):
 
     writer.writeBaseFile(output)
 
-    assert filecompare(reference, output, failfile)
+    written = output.read_text()
+    for key in {"acelib", "nfylib", "declib"}:
+        written = written.replace(serpentcfg[key], key.upper())
+    failfile.write_text(written)
+
+    assert filecompare(reference, failfile, failfile)
 
     output.unlink()
+    failfile.unlink()

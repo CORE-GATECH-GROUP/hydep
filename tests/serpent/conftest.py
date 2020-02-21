@@ -9,7 +9,6 @@ Proc. Int. Conf. Mathematics and Computational Methods Applied to Nuclear
 Science and Engineering, Sun Valley, Idaho, May 5--9 (2013).
 
 """
-import os
 import configparser
 
 import pytest
@@ -180,9 +179,8 @@ ENDF/B-VI.8 Data for Serpent 1.1.0 (HinH20 at 600.00K)         mat 125""")
 
 
 @pytest.fixture
-def serpentcfg():
+def serpentcfg(mockSerpentData):
     """Fixture with just the "hydep.serpent" configuration options"""
-    assert "SERPENT_DATA" in os.environ
     options = {
         "hydep.serpent": {
             "boundary conditions": "reflective",
@@ -190,9 +188,10 @@ def serpentcfg():
             "generations per batch": 5,
             "active": 5, "skipped": 2,
             "executable": "sss2",
-            "acelib": "sss_endfb7u.xsdata",
-            "declib": "sss_endfb7.dec",
-            "nfylib": "sss_endfb7.nfy",
+            "acelib": mockSerpentData[Library.ACE],
+            "declib": mockSerpentData[Library.DEC],
+            "nfylib": mockSerpentData[Library.NFY],
+            "thermal scattering": mockSerpentData[Library.SAB],
         },
     }
     cfg = configparser.ConfigParser()
