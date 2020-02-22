@@ -734,7 +734,8 @@ of depletion. Add a single one day step here. Maybe hack something later""",
             Current burnable material compositions for this time step
         timestep : hydep.internal.TimeStep
             Temporal information. Will write a minor comment to the top
-            of the file describing the current time step
+            of the file describing the current time step and time [d],
+            assuming ``timestep.currentTime`` is in seconds.
         power : float
             Current reactor power [W]
         final : bool, optional
@@ -758,7 +759,7 @@ of depletion. Add a single one day step here. Maybe hack something later""",
                 stream,
                 f"""Steady state input file
 Time step : {timestep.coarse}
-Time [d] : {timestep.currentTime*SECONDS_PER_DAY:.2f}
+Time [d] : {timestep.currentTime/SECONDS_PER_DAY:.2f}
 Base file : {self.base}""",
             )
             stream.write(f'include "{self.base.resolve()}"\n')
