@@ -314,17 +314,56 @@ set nfg {self._eneGridName}
 
         stream.write("\n".join(start) + "\n")
 
-        tlib = self._getmatlib(material)
+        pairs = ((iso.triplet, adens) for iso, adens in sorted(material.items()))
+        # TODO Configurable threshold
+        self.writeMatIsoDef(stream, pairs, self._getmatlib(material))
+        stream.write("\n")
 
-        for isotope, adens in sorted(material.items()):
-            # TODO Configurable
-            if adens < 1e-20:
+    def writeMatIsoDef(self, stream, pairs, tlib, threshold=1E-20) -> float:
+        """Write ZAI, atom density pairs, considering problem isotopes
+
+        Parameters
+        ----------
+        stream : writeable
+            Destination of the isotope block
+        pairs : iterable of ((int, int, int), float)
+            Isotope ZAI and corresponding atom density [#/b/cm]
+        tlib : str
+            Temperature-specific cross section library, e.g. ``"09c"``
+            for 900K continuous energy cross sections
+        threshold : float, optional
+            Threshold for writing atom densities. Any isotope with
+            density under this value will not be written
+
+        Returns
+        -------
+        float
+            Sum of atom density for missing isotopes not written
+
+        See Also
+        --------
+        * :meth:`updateProblemIsotopes` - which isotopes don't exist
+          in the current library, or exist under different names
+        * :meth:`configure` - Configuration method that sets the
+          cross section library used
+
+        """
+        missing = 0
+        lines = []
+        for (z, a, i), adens in pairs:
+            if adens < threshold:
+                missing += adens
                 continue
-            # TODO Metastable
-            lead = f"{isotope.z:}{isotope.a:03}.{tlib}"
-            if lead in MISSING_XS_ZAI:
-                lead = f"% {lead}"
-            stream.write(f"{lead} {adens:13.9E}\n")
+            # Check missing
+            if (z, a, i) in self._problemIsotopes.missing:
+                missing += adens
+                continue
+            # Get Z, A for isotope that may be listed under a different
+            # name, e.g. metastable isotopes
+            z, a = self._problemIsotopes.replacements.get((z, a, i), (z, a))
+            lines.append(f"{z}{a:03}.{tlib} {adens:13.9E}")
+        stream.write("\n".join(lines))
+        return missing
 
     def _getmatlib(self, mat):
         """Return the continuous energy library, "03c", given material"""
@@ -725,6 +764,8 @@ Base file : {self.base}""",
             stream.write(f'include "{self.base.resolve()}"\n')
             stream.write(f"set power {power:.7E}\n")
 
+            zais = tuple((iso.triplet for iso in compositions.isotopes))
+
             for ix, densities in enumerate(compositions.densities):
                 matprops = self._buleads.get(ix)
                 if matprops is None:
@@ -745,12 +786,7 @@ Base file : {self.base}""",
                     matdef = matdef.replace(" burn 1", "")
 
                 stream.write(f"{matdef}\n")
-                for isotope, adens in zip(compositions.isotopes, densities):
-                    if adens < 1e-20:  # TODO Configurable
-                        continue
-                    lead = f"{isotope.z:}{isotope.a:03}"
-                    if lead in MISSING_XS_ZAI:
-                        lead = f"% {lead}"
-                    stream.write(f"{lead}.{tlib} {adens:13.9E}\n")
+                self.writeMatIsoDef(stream, zip(zais, densities), tlib)
+                stream.write("\n")
 
         return steadystate
