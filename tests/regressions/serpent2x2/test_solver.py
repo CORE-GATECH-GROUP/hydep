@@ -10,7 +10,7 @@ from tests.regressions import ResultComparator, ProblemProxy
 
 
 @pytest.fixture
-def serpentModel(simpleChain, toy2x2lattice):
+def serpentModel(toy2x2lattice):
     # Include the chain so reactions are present
     model = hydep.Model(toy2x2lattice)
     model.differentiateBurnableMaterials(updateVolumes=False)
@@ -50,7 +50,7 @@ def serpentSolver(tmpdir):
 
 
 @pytest.mark.serpent
-def test_serpentSolver(serpentSolver, serpentModel):
+def test_serpentSolver(simpleChain, serpentSolver, serpentModel):
     model = serpentModel.model
     burnable = serpentModel.burnable
 
@@ -64,7 +64,7 @@ def test_serpentSolver(serpentSolver, serpentModel):
 
     assert serpentSolver.hooks == hooks
 
-    serpentSolver.beforeMain(model, burnable)
+    serpentSolver.beforeMain(model, burnable, simpleChain)
 
     timeStep = hydep.internal.TimeStep(0, 0, 0, 0)
 
