@@ -14,8 +14,7 @@ from hydep.internal import getIsotope
 from hydep.typed import TypedAttr, IterableOf
 import hydep.internal.features as hdfeat
 
-from .xsavail import MISSING_XS_ZAI
-from .utils import findLibraries
+from .utils import findLibraries, findProblemIsotopes, ProblematicIsotopes
 
 
 class SerpentWriter:
@@ -67,6 +66,7 @@ class SerpentWriter:
         self.options = {}
         self.datafiles = None
         self._buleads = {}
+        self._problemIsotopes = ProblematicIsotopes(missing=set(), replacements={})
 
     @staticmethod
     def _setupfile(path):
@@ -177,6 +177,46 @@ class SerpentWriter:
                     break
 
         return tables
+
+    def updateProblemIsotopes(self, zais, xsfile=None):
+        """Search through an ACE file and update special isotopes
+
+        Some isotopes may be included in the depletion chain, but
+        not in the Serpent library. Metastable isotopes may be
+        found under a different ZA number. Am242_m1 can sometimes
+        be found at 95342 rather than 95242.
+
+        Parameters
+        ----------
+        zais : iterable of [int, int, int]
+            Z, A, I triplets of isotopes that could be included in
+            future transport simulations.
+        xsfile : str or pathlib.Path, optional
+            Path to cross section look up table, usually ending in
+            ``.xsdata``. If not provided, then :attr:`datafiles`
+            must be configured via :meth:`configure`
+
+        Returns
+        -------
+        ProblematicIsotopes
+            Isotopes that are requested but are either missing from
+            the library, or found under a different ZA number
+
+        """
+        if xsfile is None:
+            if self.datafiles is None:
+                raise ValueError(
+                    "Either provide xsfile directly, or include when " "configuring"
+                )
+            xsfile = self.datafiles.xs
+
+        with xsfile.open("r") as s:
+            p = findProblemIsotopes(s, zais)
+
+        self._problemIsotopes.missing.update(p.missing)
+        self._problemIsotopes.replacements.update(p.replacements)
+
+        return p
 
     def _writesettings(self, stream, sabLibraries):
         self.commentblock(stream, "BEGIN SETTINGS BLOCK")
