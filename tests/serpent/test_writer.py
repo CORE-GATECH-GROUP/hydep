@@ -151,3 +151,59 @@ def test_writeSteadyStateFile(tmp_path, beavrsMaterials):
     assert strcompare(refcontent, testfile.read_text())
 
     testfile.unlink()
+
+
+@pytest.mark.serpent
+def test_filteredMaterials(tmp_path, fakeXsDataStream):
+    xsdataf = tmp_path / "fake.xsdata"
+    xsdataf.write_text(fakeXsDataStream.getvalue())
+
+    LIB = "09c"
+
+    allIsotopes = [
+        (95, 242, 0),
+        (95, 242, 1),
+    ]
+
+    densities = [1E-4, 1E-5]
+
+    explines = [
+        f"95242.{LIB} {densities[0]:13.9E}",
+        f"95342.{LIB} {densities[1]:13.9E}",
+    ]
+
+    writer = hydep.serpent.SerpentWriter()
+    writer.updateProblemIsotopes(allIsotopes, xsdataf)
+
+    stream = io.StringIO()
+
+    missing = writer.writeMatIsoDef(stream, zip(allIsotopes, densities), LIB, threshold=0)
+    assert missing == 0
+    strcompare("\n".join(explines), stream.getvalue())
+
+    # Check threshold
+    stream.truncate(0)
+
+    missing = writer.writeMatIsoDef(
+        stream, zip(allIsotopes, densities), LIB, threshold=densities[0])
+    assert missing == densities[1]
+    strcompare(explines[0], stream.getvalue())
+
+    # Add an isotope that doesn't exist
+    stream.truncate(0)
+
+    BAD_ISO = (1, 200, 0)
+    BAD_DENS = 1E-10
+    allIsotopes.append(BAD_ISO)
+    densities.append(BAD_DENS)
+
+    p = writer.updateProblemIsotopes(allIsotopes, xsdataf)
+    assert len(p.missing) == 1
+    assert BAD_ISO in p.missing
+
+    missing = writer.writeMatIsoDef(
+        stream, zip(allIsotopes, densities), LIB)
+    assert missing == BAD_DENS
+    strcompare("\n".join(explines), stream.getvalue())
+
+    xsdataf.unlink()

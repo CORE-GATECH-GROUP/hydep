@@ -10,6 +10,7 @@ Science and Engineering, Sun Valley, Idaho, May 5--9 (2013).
 
 """
 import configparser
+import io
 
 import pytest
 import hydep
@@ -197,3 +198,15 @@ def serpentcfg(mockSerpentData):
     cfg = configparser.ConfigParser()
     cfg.read_dict(options)
     return cfg["hydep.serpent"]
+
+
+@pytest.fixture
+def fakeXsDataStream():
+    return io.StringIO(
+        """
+    95242.03c  95242.03c  1  95242  0  242.0  300  0  acedata/95242.ace
+   Am-242.03c  95242.03c  1  95242  0  242.0  300  0  acedata/95242.ace
+    95342.03c  95342.03c  1  95242  1  242.0  300  0  acedata/95342.ace
+  Am-242m.03c  95342.03c  1  95242  1  242.0  300  0  acedata/95342.ace
+"""
+    )
