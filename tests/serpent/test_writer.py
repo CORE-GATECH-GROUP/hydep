@@ -128,7 +128,7 @@ def test_writeSteadyStateFile(tmp_path, beavrsMaterials):
         tmp_path / "steady_state", comp, TimeStep(), 1e4,
     )
 
-    reference = pathlib.Path(__file__).parent / "steady_state_refefence"
+    reference = pathlib.Path(__file__).parent / "steady_state_reference"
     testfile = reference.parent / "steady_state_test"
     testfile.write_text(actual.read_text().replace(str(basefile), "BASEFILE"))
 
