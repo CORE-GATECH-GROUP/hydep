@@ -263,9 +263,11 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
                 else:
                     myzip.write(ff, ff.name)
 
-    def beforeMain(self, model, orderedBumat):
+    def beforeMain(self, model, orderedBumat, chain):
         self._writer.model = model
         self._writer.burnable = orderedBumat
+        self._writer.updateProblemIsotopes((iso.triplet for iso in chain))
+
         self._volumes = numpy.fromiter(
             (m.volume for m in orderedBumat), count=len(orderedBumat), dtype=float,
         ).reshape(len(orderedBumat), 1)

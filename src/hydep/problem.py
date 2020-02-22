@@ -25,8 +25,8 @@ class Problem(object):
 
     def beforeMain(self):
         self.dep.beforeMain(self.model)
-        self.hf.beforeMain(self.model, self.dep.burnable)
-        self.rom.beforeMain(self.model, self.dep.burnable)
+        self.hf.beforeMain(self.model, self.dep.burnable, self.dep.chain)
+        self.rom.beforeMain(self.model, self.dep.burnable, self.dep.chain)
 
     def solve(self):
         """Here we gooooooooooo"""
