@@ -4,7 +4,7 @@ import pathlib
 import numpy
 import pytest
 import hydep
-from hydep.internal import CompBundle, TimeStep
+from hydep.internal import CompBundle, TimeStep, compBundleFromMaterials
 import hydep.serpent
 
 from tests import strcompare, filecompare
@@ -113,14 +113,11 @@ def test_writeSteadyStateFile(tmp_path, beavrsMaterials):
     water = beavrsMaterials["water"]
     fuel = beavrsMaterials["fuel32"]
 
-    sharedIsotopes = tuple(sorted(set(water).union(fuel)))
+    comp = compBundleFromMaterials((water, fuel))
+    # Only pass burnable material densities to steady state writer
+    # Promote to look like multiple materials coming in
+    comp = CompBundle(comp.isotopes, comp.densities[1, numpy.newaxis])
 
-    densityArray = numpy.empty((1, len(sharedIsotopes)))
-
-    for ix, iso in enumerate(sharedIsotopes):
-        densityArray[0, ix] = fuel.get(iso, 0.0)
-
-    comp = CompBundle(sharedIsotopes, densityArray)
     basefile = tmp_path / "base"
 
     writer = hydep.serpent.SerpentWriter()
