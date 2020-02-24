@@ -1,4 +1,3 @@
-import math
 import numbers
 from collections import deque
 
@@ -55,7 +54,7 @@ class NubarPolyFit(TimeTraveller):
     def _validate(self, item):
         data = numpy.asarray(item)
         if len(data.shape) > 1:
-            assert data.size == math.prod(data.shape), data.shape
+            assert data.size == numpy.prod(data.shape), data.shape
             data.resize(data.size)
         return data
 
