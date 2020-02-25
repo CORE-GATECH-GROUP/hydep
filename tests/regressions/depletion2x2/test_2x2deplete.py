@@ -108,7 +108,7 @@ def depletionHarness(endfChain, depletionModel):
         mxsdata = numpy.loadtxt(mxsfile)
         zai = mxsdata[:, 0].astype(int)
         rxns = mxsdata[:, 1].astype(int)
-        mxs = mxsdata[:, 2:2 + 1 + N_GROUPS]
+        mxs = mxsdata[:, 2 : 2 + 1 + N_GROUPS]
 
         microxs.append(
             hydep.internal.MicroXsVector.fromLongFormVectors(
@@ -128,8 +128,14 @@ def depletionHarness(endfChain, depletionModel):
 @pytest.mark.flaky
 def test_2x2deplete(depletionHarness):
     manager = depletionHarness.manager
+
+    concentrations = hydep.internal.compBundleFromMaterials(
+        manager.burnable, tuple(manager.chain)
+    )
+
     out = manager.deplete(
         manager.timesteps[0],
+        concentrations,
         depletionHarness.reactionRates,
         depletionHarness.fissionYields,
     )

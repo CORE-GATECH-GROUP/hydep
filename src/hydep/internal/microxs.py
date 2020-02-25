@@ -517,13 +517,15 @@ class TemporalMicroXs(CachedTimeTraveller):
         return MicroXsVector(self.zai, self.zptr, self.rxns, mxs)
 
     def _genCoeffs(self):
+        order = min(self.order, len(self) - 1)
+        assert order >= 0
         # convert (time, reaction, group) -> (reaction, time, group)
         data = numpy.array(self._mxs).transpose(1, 0, 2)
-        coeffs = numpy.empty((data.shape[0], self.order + 1, data.shape[2]))
+        coeffs = numpy.empty((data.shape[0], order + 1, data.shape[2]))
         # TODO Vectorize?
         for index, rxn in enumerate(data):
             # group, time
-            coeffs[index] = polyfit(self._times, rxn, self.order, full=False)
+            coeffs[index] = polyfit(self._times, rxn, order, full=False)
 
         return coeffs
 
@@ -608,6 +610,30 @@ class XsTimeMachine:
             matvector.extend(times[1:], materialXs[matix])
 
         return tuple(out)
+
+    # TODO Multiprocessing?
+    # Don't really need the output ordered, (i)map or imap_unordered
+    def append(self, currentTime, microXs):
+        """Add microscopic cross sections from a given time
+
+        Parameters
+        ----------
+        currentTime : float
+            Time (in consistent units like s) from which the cross
+            sections were generated
+        microXs : Sequence of numpy.ndarray of MicroXsVector
+            Cross sections for all materials, stored in a consistent
+            ordering
+
+        See Also
+        --------
+        TemporalMicroXs.append
+
+        """
+        if len(microXs) != len(self._microXs):
+            raise ValueError(f"{len(microXs)} != {len(self._microXs)}")
+        for tmxs, mxs in zip(self._microXs, microXs):
+            tmxs.append(currentTime, mxs)
 
     def getMicroXsAt(self, time: float):
         # TODO Rename to __call__?

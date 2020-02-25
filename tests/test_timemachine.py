@@ -14,12 +14,45 @@ def microxs():
     )
 
 
-def test_oneGroupReactionRates(microxs):
-    times = [0, 100]
-    incomingMicroXs = [[microxs], [microxs * 2]]
-    expectedXsVector = microxs * 1.5
+@pytest.mark.parametrize("grow", ("init", "append"))
+@pytest.mark.parametrize("order", (0, 1, 2))
+def test_oneGroupReactionRates(microxs, order, grow):
+    """Test the validity of the microxs extrapolation
 
-    timemachine = hydep.internal.XsTimeMachine(1, times, incomingMicroXs)
+    It is not impossible that a time machine will be created
+    using a single point in time, yet a linear or higher-order
+    fitting scheme is requested. This is not mathematically optimal
+    and may be unstable, but could be common for initial phases in
+    the sequence.
+
+    Rather than make an error, the process is to use the
+    highest available order is used. If a single point is given, yet
+    linear fitting is requested, constant fitting will be used until
+    two or more points are added to the collection.
+
+    This test is parametrized to study that behavior.
+
+    """
+    times = [0, 100]
+    targetTime = 25
+    scale = 2
+    if order == 0:
+        weight = 1.5
+    else:
+        weight = (
+            (times[1] - targetTime + scale*(targetTime - times[0]))
+            / (times[1] - times[0])
+        )
+
+    expectedXsVector = microxs * weight
+
+    incomingMicroXs = [[microxs]]
+    if grow == "init":
+        incomingMicroXs.append([microxs * scale])
+        timemachine = hydep.internal.XsTimeMachine(order, times, incomingMicroXs)
+    else:
+        timemachine = hydep.internal.XsTimeMachine(order, [times[0]], incomingMicroXs)
+        timemachine.append(times[1], [microxs * scale])
 
     flux = numpy.array([[4e6]])
 
@@ -29,8 +62,10 @@ def test_oneGroupReactionRates(microxs):
     # Quantities should be a single vector
     expectedRates = expectedXsVector.mxs[:, 0] * flux[0, 0]
 
-    rxns = timemachine.getReactionRatesAt(0.5 * (times[0] + times[1]), flux)
+    with pytest.warns(None) as record:
+        rxns = timemachine.getReactionRatesAt(targetTime, flux)
 
+    assert len(record) == 0
     assert len(rxns) == 1
     assert rxns[0].zai == expectedXsVector.zai
     assert rxns[0].rxns == expectedXsVector.rxns

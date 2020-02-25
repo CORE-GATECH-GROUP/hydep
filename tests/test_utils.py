@@ -32,8 +32,9 @@ def test_fakeSequence(dtype):
     fakeSeqInner(original, sequence, counts)
 
 
+@pytest.mark.parametrize("passIsotopes", (True, False))
 @pytest.mark.parametrize("applyThreshold", (True, False))
-def test_compBundle(applyThreshold):
+def test_compBundle(passIsotopes, applyThreshold):
     fuel0 = hydep.BurnableMaterial("comp bundle 0", mdens=10.4)
 
     fuel0[922350] = 7e-4
@@ -57,10 +58,15 @@ def test_compBundle(applyThreshold):
         else:
             raise ValueError(TRACE_KEY)
         expIsotopes.remove(iso)
+        kwargs = dict(threshold=TRACE_VALUE)
+    else:
+        kwargs = {}
 
-    bundle = utils.compBundleFromMaterials(
-        [fuel0, fuel1], threshold=TRACE_VALUE if applyThreshold else 0.0
-    )
+    args = [[fuel0, fuel1]]
+    if passIsotopes:
+        args.append(list(expIsotopes))
+
+    bundle = utils.compBundleFromMaterials(*args, **kwargs)
 
     assert len(bundle.isotopes) == len(expIsotopes)
     if applyThreshold:

@@ -148,18 +148,16 @@ class Manager:
         maxallowed = len(self.timesteps) - self._nprelim
         if isinstance(divisions, numbers.Integral):
             if divisions <= 0:
-                raise ValueError(
-                    f"Divisions must be positive integer, not {divisions}"
-                )
-            return FakeSequence(
-                divisions, maxallowed
-            )
+                raise ValueError(f"Divisions must be positive integer, not {divisions}")
+            return FakeSequence(divisions, maxallowed)
         if isinstance(divisions, Sequence):
             if len(divisions) != maxallowed:
                 raise ValueError(
                     "Number of divisions {} not equal to number of time "
                     "steps {} - number of preliminary steps {}".format(
-                        len(divisions), len(self.timesteps), self._nprelim))
+                        len(divisions), len(self.timesteps), self._nprelim
+                    )
+                )
             substeps = []
             for value in divisions:
                 if not isinstance(value, numbers.Integral):
@@ -173,7 +171,8 @@ class Manager:
 
         raise TypeError(
             "Substeps must be postive integer, or sequence of positive "
-            f"integer, not {divisions}")
+            f"integer, not {divisions}"
+        )
 
     @property
     def burnable(self):
@@ -244,13 +243,17 @@ class Manager:
 
         self._burnable = burnable
 
-    def deplete(self, dtSeconds, reactionRates, fissionYields):
+    def deplete(self, dtSeconds, concentrations, reactionRates, fissionYields):
         """Deplete all burnable materials
 
         Parameters
         ----------
         dtSeconds : float
             Length of depletion interval in seconds
+        concentrations : hydep.internal.CompBundle
+            Incoming material compositions. The
+            :attr:`hydep.internal.CompBundle.isotopes` will be
+            consistent between the incoming and outgoing bundle
         reactionRates : iterable of hydep.internal.MicroXsVector
             Stand in for microscopic reaction rates in each burnable
             material
@@ -264,20 +267,26 @@ class Manager:
             ordering
 
         """
-        if not len(reactionRates) == len(self.burnable) == len(fissionYields):
+        nr = len(reactionRates)
+        nm = len(concentrations.densities)
+        nf = len(fissionYields)
+
+        if not nr == nm == nf:
             raise ValueError(
                 "Inconsistent number of reaction rates {} to burnable "
-                "materials {} and fission yields {}".format(
-                    *(len(x) for x in (reactionRates, self.burnable, fissionYields))
-                )
+                "materials {} and fission yields {}".format(nr, nm, nf)
             )
-        concentrations = (m.asVector(order=self.chain.zaiOrder) for m in self.burnable)
 
-        matrices = starmap(self.chain.formMatrix, zip(reactionRates, fissionYields))
+        zaiOrder = {iso.zai: ix for ix, iso in enumerate(concentrations.isotopes)}
 
-        inputs = zip(matrices, concentrations, repeat(dtSeconds, len(self.burnable)))
+        matrices = starmap(
+            self.chain.formMatrix,
+            zip(reactionRates, fissionYields, repeat(zaiOrder, nm)),
+        )
+
+        inputs = zip(matrices, concentrations.densities, repeat(dtSeconds, nm))
 
         with multiprocessing.Pool() as p:
             out = p.starmap(self._depsolver, inputs)
 
-        return CompBundle(tuple(self.chain), out)
+        return CompBundle(concentrations.isotopes, out)
