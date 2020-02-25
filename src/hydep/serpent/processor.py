@@ -4,16 +4,18 @@ Class responsible for processing Serpent outputs
 import warnings
 import copy
 from functools import wraps
+import textwrap
+import math
 
+import numpy
 import serpentTools
 
-from hydep.internal import TransportResult, MicroXsVector, FakeSequence
+from hydep.internal import TransportResult, MicroXsVector
 from hydep.constants import CM2_PER_BARN
 from .fmtx import parseFmtx
-from hydep.internal import allIsotopes
 
 
-__all__ = ["SerpentProcessor"]
+__all__ = ["SerpentProcessor", "FissionYieldFetcher"]
 
 
 def requireBurnable(m):
@@ -76,16 +78,22 @@ class SerpentProcessor:
             "xs.getB1XS": False,
         },
         "microxs": {"microxs.getFlx": False},
-        "fission yield energy": 0.0253,
-    }
-    fissionYieldEnergies = {
-        "thermal": 0.0253,
-        "epithermal": 5.0e5,
-        "fast": 14e6,
     }
 
     def __init__(self, burnable=None):
-        self.burnable = burnable
+        self._burnable = burnable
+        self.fyHelper = None
+
+    @property
+    def burnable(self):
+        return self._burnable
+
+    @burnable.setter
+    def burnable(self, b):
+        if b is None:
+            self._burnable = None
+        else:
+            self._burnable = tuple(b)
 
     @staticmethod
     def _warnOptions(settings, reason):
@@ -333,20 +341,6 @@ class SerpentProcessor:
             self.options["results"]["xs.getInfXS"] = False
             self.options["results"]["xs.getB1XS"] = True
 
-        # TODO Document fission yield methodology
-        # TODO Improve this to be more problem-generic
-        fyEnergy = section.get("fission yield energy")
-        if fyEnergy is not None:
-            ene = self.fissionYieldEnergies.get(fyEnergy)
-            if ene is not None:
-                self.options["fission yield energy"] = ene
-            else:
-                raise ValueError(
-                    "Fission yield energy must be {}, not {}".format(
-                        ", ".join(sorted(self.fissionYieldEnergies)), fyEnergy
-                    )
-                )
-
     @requireBurnable
     def processDetectorFluxes(self, detectorfile, name):
         """Pull the universe fluxes from the detector file
@@ -439,19 +433,163 @@ class SerpentProcessor:
         return out
 
     @requireBurnable
-    def processFissionYields(self):
+    def processFissionYields(self, detectorfile):
         """Take fission yields for all isotopes"""
-        # TODO Properly consider space, energy in fission yields
-        # e.g. like how openmc.deplete provides a few options
+        assert self.fyHelper is not None
+        fydet = self.read(detectorfile, "det")
+        return self.fyHelper.collapseYieldsFromDetectors(fydet.detectors.values())
 
-        allYields = {}
-        fyEne = self.options["fission yield energy"]
 
-        for isotope in allIsotopes():
-            if isotope.fissionYields is None:
+class FissionYieldFetcher:
+    """Helper for getting energy-averaged fission yields from Serpent
+
+    Inspired by :class:`openmc.deplete.helpers.AveragedFissionYieldHelper`
+
+    Parameters
+    ----------
+    matids : iterable of str
+        Ordering of universes to be consistent with the remainder
+        of the framework. Fission rates will be tallied in these
+        universes.
+    isotopes : iterable of hydep.internal.Isotope
+        Isotopes that may or may not have fission yields. Will
+        skip isotopes without yields.
+
+    """
+    COMPONENT_FISSIONS = {
+        942400: {19, 20, 21},
+        922340: {19, 20, 21},
+        922360: {19, 20, 21},
+        962430: {19, 20},
+    }
+    # These isotopes don't have a total fission (MT=18)
+    # reaction in my ENDF/B-VII.0 library that shipped
+    # with Serpent. All others will use a single total
+    # fission reaction
+    FISSION_MT = 18
+
+    def __init__(self, matids, isotopes):
+        self._constant = {}
+        self._variable = {}
+        self._ucards = textwrap.fill(" ".join(["du {}".format(u) for u in matids]))
+        for iso in isotopes:
+            if iso.fissionYields is None:
                 continue
-            isoYields = isotope.fissionYields.get(fyEne)
-            if isoYields is None:
-                isoYields = isotope.fissionYields.at(0)
-            allYields[isotope.zai] = isoYields
-        return FakeSequence(allYields, len(self.burnable))
+            if len(iso.fissionYields.energies) == 1:
+                self._constant[iso.zai] = iso.fissionYields.at(0)
+            else:
+                self._variable[iso.zai] = iso.fissionYields
+
+    def makeDetectors(self, upperEnergy=20) -> list:
+        """Produce lines that can be used to write detector inputs
+
+        Parameters
+        ----------
+        upperEnergy : float, optional
+            Upper energy to be used in the tallies. Fission
+            rates will be capped at this energy
+
+        Returns
+        -------
+        list of str
+            Lines that can be written to a Serpent input file
+            to construct detectors
+
+        """
+        materials = []
+        detectors = []
+        for zai, fy in self._variable.items():
+            materials.append(f"mat fy{zai} 1.0 {int(zai/10)}.09c 1")
+            # Not assuming metastables are fissionable and thus
+            # don't need to be remapped to different names
+            # Also assuming 900K for all fuels
+            gridname = f"fyenergies{zai}"
+
+            energies = []
+            for ix, lower in enumerate(fy.energies[:-1]):
+                lethargyMid = math.sqrt(lower * fy.energies[ix + 1]) / 1E6
+                energies.append(f"{lethargyMid:.3E}")
+
+            detectors.append(f"ene {gridname} 1 0.0 {' '.join(energies)} {upperEnergy}")
+            rxns = " ".join(
+                [f"dr {r} fy{zai}" for r in self.COMPONENT_FISSIONS.get(zai, {18, })]
+            )
+            detectors.append(f"det fy{zai} de {gridname} {rxns}")
+            detectors.append(self._ucards)
+        return materials + detectors
+
+    def collapseYieldsFromDetectors(self, detectors):
+        """Obtain region specific, fission-rate-averaged fission yields
+
+        Parameters
+        ----------
+        detectors : iterable of :class:`serpentTools.Detector`
+            Detectors read from the detector file that were created
+            with :meth:`makeDetectors`
+
+        Returns
+        -------
+        list of dict
+            List of fission yield dictionaries where ``l[ix]`` maps
+            parent ZAI to :class:`hydep.internal.FissionYield`
+            for region ``ix``
+
+        """
+        materialYields = []
+        for d in detectors:
+            if not d.name.startswith("fy"):
+                continue
+            zai = int(d.name[2:])
+            weights = self._getweights(d)
+            assert len(weights.shape) == 2
+            colYields = self._collapseIsoYields(weights, self._variable[zai])
+
+            if not materialYields:
+                for slab in colYields:
+                    matweights = self._constant.copy()
+                    matweights[zai] = slab
+                    materialYields.append(matweights)
+            else:
+                for ix, slab in enumerate(colYields):
+                    materialYields[ix][zai] = slab
+
+        return materialYields
+
+    @staticmethod
+    def _getweights(d):
+        # Detectors will come in with binned
+        # (energy, universe, reaction)
+        # If only one universe, the universe axis will be removed
+        # and the string "universe" will not be in the indexes attribute
+        # If one reaction, the string "reaction" will not be in the
+        # indexes, and the reaction index will be removed
+        # Arrays need to leave here of shape (universes, energy)
+        # where universes >= 1, energy >= 1
+        assert "energy" in d.indexes
+        if len(d.indexes) == 1:
+            return (d.tallies / d.tallies.sum())[numpy.newaxis]
+
+        # Collapse the isotopes w/o a single fission 18 reaction
+        if "reaction" in d.indexes:
+            tallies = d.tallies.sum(d.indexes.index("reaction"))
+            # Full case
+            if "universe" in d.indexes:
+                tallies = tallies.transpose()
+            else:
+                tallies = tallies[numpy.newaxis]
+        elif "universe" in d.indexes:
+            tallies = d.tallies.transpose()
+        return tallies / tallies.sum(axis=1, keepdims=True)
+
+    @staticmethod
+    def _collapseIsoYields(weights, eneyields):
+        matyields = []
+        # Order must be fy * weight or else we get subject to
+        # numpy dispatching and return weight of just product
+        # zais
+        for matweights in weights:
+            fy = eneyields.at(0) * matweights[0]
+            for ix, w in enumerate(matweights[1:], start=1):
+                fy += eneyields.at(ix) * w
+            matyields.append(fy)
+        return matyields

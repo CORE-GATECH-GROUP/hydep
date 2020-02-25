@@ -264,12 +264,16 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
                     myzip.write(ff, ff.name)
 
     def beforeMain(self, model, orderedBumat, chain):
+        matids = []
+        self._volumes = numpy.empty((len(orderedBumat), 1))
+        for ix, m in enumerate(orderedBumat):
+            matids.append(str(m.id))
+            self._volumes[ix] = m.volume
+
         self._writer.model = model
         self._writer.burnable = orderedBumat
         self._writer.updateProblemIsotopes((iso.triplet for iso in chain))
 
-        self._volumes = numpy.fromiter(
-            (m.volume for m in orderedBumat), count=len(orderedBumat), dtype=float,
-        ).reshape(len(orderedBumat), 1)
         self._writer.writeBaseFile("./serpent/base.sss")
-        self._processor.burnable = tuple(str(m.id) for m in orderedBumat)
+
+        self._processor.burnable = matids
