@@ -9,6 +9,7 @@ TODOs
 =====
 
 * Status reporting 
+* Provide some enum or constants for reaction MTs
 * Standardize microXS vs microXs
 * Guard against hooks that aren't supported by solvers
 * Validate configuration options to avoid typos

@@ -19,7 +19,6 @@ import math
 
 from scipy.sparse import dok_matrix
 
-import hydep
 from hydep.internal import (
     getZaiFromName,
     ReactionTuple,
@@ -28,7 +27,6 @@ from hydep.internal import (
     getIsotope,
     Isotope,
     FissionYieldDistribution,
-    MicroXsVector
 )
 from hydep.constants import FISSION_REACTIONS, REACTION_MT_MAP
 
@@ -258,16 +256,13 @@ class DepletionChain(tuple):
         if ordering is None:
             ordering = indices
 
-        for ix, zai in enumerate(reactionRates.zai):
-            start, stop = reactionRates.zptr[ix:ix + 2]
-            rxns = dict(
-                zip(reactionRates.rxns[start:stop], reactionRates.mxs[start:stop])
-            )
+        for zai, columnIndex in ordering.items():
 
             myIndex = indices.get(zai)
-            columnIndex = ordering.get(zai)
-            if myIndex is None or columnIndex is None:
+            if myIndex is None:
                 continue
+
+            rxns = reactionRates.getReactions(zai, {})
             isotope = self[myIndex]
 
             # process transmutations
