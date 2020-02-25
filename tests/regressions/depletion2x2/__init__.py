@@ -28,9 +28,10 @@ class DepletionComparator(CompareBase):
         fmt = " ".join(
             [self.intFormat] + [self.floatFormat] * len(compBundle.densities)
         )
+        rows = mtx[:, 1:].any(axis=1)
 
         with self.getPathFor("concentrations", status).open("w") as stream:
-            numpy.savetxt(stream, mtx, fmt=fmt)
+            numpy.savetxt(stream, mtx[rows], fmt=fmt)
 
     def main(self, compBundle):
         super().main(compBundle)
