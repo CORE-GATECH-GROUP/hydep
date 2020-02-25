@@ -78,6 +78,7 @@ class NubarPolyFit(TimeTraveller):
     def _extend(self, values):
         valid = [self._validate(v) for v in values]
         self._nubar.extend(valid)
+        self._coeffs = None
 
     def __call__(self, time: float) -> numpy.ndarray:
         """Return nubar across burnable regions at a specific time
@@ -99,10 +100,8 @@ class NubarPolyFit(TimeTraveller):
 
     def _evaluate(self, time: float) -> numpy.ndarray:
         if self._coeffs is None:
-            if len(self) <= self._order:
-                raise AttributeError(
-                    "Need more than {order} items for {order} nubar fitting. "
-                    "Have {n}".format(order=self._order, n=len(self))
-                )
-            self._coeffs = polyfit(self._times, numpy.array(self._nubar), self._order)
+            if len(self) == 0:
+                raise AttributeError("Cannot fit using zero points")
+            order = min(len(self) - 1, self._order)
+            self._coeffs = polyfit(self._times, numpy.array(self._nubar), order)
         return polyval(time, self._coeffs)
