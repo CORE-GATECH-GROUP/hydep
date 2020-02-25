@@ -16,7 +16,7 @@ import hydep.internal.features as hdfeat
 
 from .writer import SerpentWriter
 from .runner import SerpentRunner
-from .processor import SerpentProcessor
+from .processor import SerpentProcessor, FissionYieldFetcher
 from .xsavail import XS_2_1_30
 
 
@@ -244,7 +244,7 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
             elif feature is hdfeat.MICRO_REACTION_XS:
                 res.microXS = self._processor.processMicroXS(base + "_mdx0.m")
             elif feature is hdfeat.FISSION_YIELDS:
-                res.fissionYields = self._processor.processFissionYields()
+                res.fissionYields = self._processor.processFissionYields(base + "_det0.m")
 
         return res
 
@@ -274,6 +274,17 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
         self._writer.burnable = orderedBumat
         self._writer.updateProblemIsotopes((iso.triplet for iso in chain))
 
-        self._writer.writeBaseFile("./serpent/base.sss")
+        basefile = pathlib.Path.cwd() / "serpent" / "base.sss"
+        self._writer.writeBaseFile(basefile)
 
         self._processor.burnable = matids
+
+        # Not super pretty, as this interacts both with the writer's roles
+        # and the processors roles
+        if hdfeat.FISSION_YIELDS in self.hooks.features:
+            fyproc = FissionYieldFetcher(matids, chain)
+            detlines = fyproc.makeDetectors(upperEnergy=20)
+            if detlines:
+                with basefile.open("a") as s:
+                    s.write("\n".join(detlines))
+            self._processor.fyHelper = fyproc
