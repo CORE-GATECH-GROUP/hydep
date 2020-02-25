@@ -249,7 +249,7 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
         return res
 
     def finalize(self, status):
-        if self._archiveOnSuccess or not status:
+        if self._curfile is not None and (self._archiveOnSuccess or not status):
             self._archive()
         self._tmpdir.cleanup()
 

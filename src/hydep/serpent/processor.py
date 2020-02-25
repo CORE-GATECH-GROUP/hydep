@@ -141,8 +141,8 @@ class SerpentProcessor:
             regardless, but a warning will be raised
 
         """
-        opts = self.options.get(filetype, {})
-        if not opts:
+        opts = self.options.get(filetype)
+        if opts is None:
             return serpentTools.read(readable, filetype)
 
         valuefails = {}
