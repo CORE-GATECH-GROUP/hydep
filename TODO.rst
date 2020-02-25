@@ -10,6 +10,7 @@ TODOs
 
 * Status reporting 
 * Provide some enum or constants for reaction MTs
+* Ensure non-negativity of depletion results
 * Standardize microXS vs microXs
 * Guard against hooks that aren't supported by solvers
 * Validate configuration options to avoid typos
