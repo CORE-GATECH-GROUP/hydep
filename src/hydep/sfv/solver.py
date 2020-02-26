@@ -1,3 +1,4 @@
+import logging
 import numbers
 import warnings
 from collections import defaultdict
@@ -14,6 +15,9 @@ from .lib import applySFV, getAdjFwdEig
 from .utils import NubarPolyFit
 
 __all__ = ["SfvSolver"]
+
+
+__logger__ = logging.getLogger("hydep.sfv")
 
 
 class SfvSolver(ReducedOrderSolver):
@@ -146,6 +150,9 @@ class SfvSolver(ReducedOrderSolver):
                 f"More modes requested than allowable: {value} vs. "
                 "{len(self._volumes)}"
             )
+
+        __logger__.debug(f"Using {value} flux modes")
+
         self._numModes = value
 
     @property
@@ -279,6 +286,8 @@ class SfvSolver(ReducedOrderSolver):
         self._nubar.insort(timestep.currentTime, nubar)
 
     def _bosProcessFmtx(self, txresult, timestep):
+        __logger__.debug("Processing forward and adjoint flux modes")
+
         try:
             adj, fwd, eig = getAdjFwdEig(txresult.fmtx)
         except LinAlgError as le:
@@ -322,6 +331,8 @@ class SfvSolver(ReducedOrderSolver):
         self._macroData[:, self._INDEX_NUBAR] = self._nubar(timestep.currentTime)
 
     def _processIsotopeFissionQ(self, isotopes):
+        __logger__.debug("Processing fission Q values from isotopes")
+
         qvalues = defaultdict(float)
         for isotope in isotopes:
             for reaction in isotope.reactions:
@@ -334,6 +345,10 @@ class SfvSolver(ReducedOrderSolver):
         assert len(microxs) == self._macroData.shape[1]
         zais = tuple(iso.zai for iso in compositions.isotopes)
         cutoff = self.densityCutoff
+
+        __logger__.debug(
+            f"Building macroscopic cross sections with density cutoff {cutoff:.4E}"
+        )
 
         # TODO Subprocess??
         for matix, (comps, matxs) in enumerate(zip(compositions.densities, microxs)):
