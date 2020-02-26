@@ -46,6 +46,8 @@ class SerpentRunner:
         self.executable = executable
         self.numOMP = numOMP
         self.numMPI = numMPI
+        self._cmd = None
+
     @property
     def numOMP(self):
         return self._numOMP
@@ -61,6 +63,7 @@ class SerpentRunner:
                 f"Cannot set number of OMP threads to {value}: not positive"
             )
         self._numOMP = value
+        self._cmd = None
 
     @property
     def numMPI(self):
@@ -76,6 +79,7 @@ class SerpentRunner:
             raise ValueError(f"Cannot set number of MPI tasks to {value}: not positive")
         else:
             self._numMPI = value
+        self._cmd = None
 
     @property
     def executable(self):
@@ -88,6 +92,7 @@ class SerpentRunner:
         # and a non-existent command will cause __call__ to fail, don't
         # perform checks
         self._executable = value
+        self._cmd = None
 
     def makeCmd(self):
         """Create a list of arguments given settings
@@ -117,6 +122,9 @@ class SerpentRunner:
             If :attr:`executable` is not configured
 
         """
+        if self._cmd is not None:
+            return self._cmd
+
         if self.executable is None:
             raise AttributeError(
                 "Serpent executable not configured for {}".format(self)
@@ -133,6 +141,8 @@ class SerpentRunner:
             cmd.extend("-omp {}".format(self.numOMP).split())
 
         logging.getLogger("hydep.serpent").debug(f"Executable commands: {cmd}")
+
+        self._cmd = cmd
 
         return cmd
 
