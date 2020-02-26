@@ -30,7 +30,7 @@ from hydep.internal import (
     FissionYieldDistribution,
     MicroXsVector
 )
-from hydep.internal.symbols import REACTION_MTS
+from hydep.constants import FISSION_REACTIONS, REACTION_MT_MAP
 
 __all__ = ["DepletionChain"]
 
@@ -127,7 +127,7 @@ class DepletionChain(tuple):
             if reactions:
                 for reaction in child.iter("reaction"):
                     rxnType = reaction.get("type")
-                    rxnMt = REACTION_MTS[rxnType]
+                    rxnMt = REACTION_MT_MAP[rxnType]
                     qvalue = reaction.get("Q")
 
                     target = reaction.get("target")
@@ -278,7 +278,7 @@ class DepletionChain(tuple):
                     continue
                 mtx[columnIndex, columnIndex] -= rate * reaction.branch
 
-                if reaction.mt == 18:  # fission
+                if reaction.mt in FISSION_REACTIONS:
                     yields = fissionYields.get(isotope.zai, {})
                     for product, fyield in yields.items():
                         rowIndex = ordering.get(product)

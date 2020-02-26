@@ -7,7 +7,7 @@ import time
 import numpy
 from numpy.linalg import LinAlgError
 
-from hydep.constants import BARN_PER_CM2, EV_PER_JOULE
+from hydep.constants import BARN_PER_CM2, EV_PER_JOULE, REACTION_MTS
 from hydep.lib import ReducedOrderSolver
 from hydep.internal import TransportResult
 import hydep.internal.features as hdfeat
@@ -105,8 +105,10 @@ class SfvSolver(ReducedOrderSolver):
     _INDEX_PHI_0 = 6
     _INDEX_PHI_1 = 7
     _NUM_INDEXES = 8
-    _FIS_MT = 18
-    _NON_FISS_ABS_MT = {102, 16, 17}
+    _FIS_MT = REACTION_MTS.TOTAL_FISSION
+    _NON_FISS_ABS_MT = frozenset(
+        {REACTION_MTS.N_GAMMA, REACTION_MTS.N_2N, REACTION_MTS.N_3N}
+    )
 
     def __init__(
         self, numModes=None, densityCutoff=0, numPreviousPoints=3, fittingOrder=1,

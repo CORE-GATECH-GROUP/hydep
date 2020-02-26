@@ -1,8 +1,8 @@
 import math
 
 import pytest
+from hydep.constants import REACTION_MT_MAP
 from hydep.internal import ReactionTuple, DecayTuple, getIsotope
-from hydep.internal.symbols import REACTION_MTS
 
 
 def test_chain(simpleChain):
@@ -18,7 +18,7 @@ def test_chain(simpleChain):
 
 def test_u5(simpleChain):
     reactionData = {
-        ReactionTuple(REACTION_MTS[t[0]], *t[1:])
+        ReactionTuple(REACTION_MT_MAP[t[0]], *t[1:])
         for t in (
             ["(n,2n)", getIsotope(name="U234"), 1.0, -5297781.0],
             ["(n,3n)", getIsotope(name="U233"), 1.0, -12142300.0],

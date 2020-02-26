@@ -11,7 +11,7 @@ import numpy
 import serpentTools
 
 from hydep.internal import TransportResult, MicroXsVector
-from hydep.constants import CM2_PER_BARN
+from hydep.constants import CM2_PER_BARN, REACTION_MTS
 from .fmtx import parseFmtx
 
 
@@ -456,17 +456,30 @@ class FissionYieldFetcher:
         skip isotopes without yields.
 
     """
+
     COMPONENT_FISSIONS = {
-        942400: {19, 20, 21},
-        922340: {19, 20, 21},
-        922360: {19, 20, 21},
-        962430: {19, 20},
+        942400: {
+            REACTION_MTS.FIRST_CHANCE_FISSION,
+            REACTION_MTS.SECOND_CHANCE_FISSION,
+            REACTION_MTS.THIRD_CHANCE_FISSION,
+        },
+        922340: {
+            REACTION_MTS.FIRST_CHANCE_FISSION,
+            REACTION_MTS.SECOND_CHANCE_FISSION,
+            REACTION_MTS.THIRD_CHANCE_FISSION,
+        },
+        922360: {
+            REACTION_MTS.FIRST_CHANCE_FISSION,
+            REACTION_MTS.SECOND_CHANCE_FISSION,
+            REACTION_MTS.THIRD_CHANCE_FISSION,
+        },
+        962430: {REACTION_MTS.FIRST_CHANCE_FISSION, REACTION_MTS.SECOND_CHANCE_FISSION},
     }
     # These isotopes don't have a total fission (MT=18)
     # reaction in my ENDF/B-VII.0 library that shipped
     # with Serpent. All others will use a single total
     # fission reaction
-    FISSION_MT = 18
+    FISSION_MT = REACTION_MTS.TOTAL_FISSION
 
     def __init__(self, matids, isotopes):
         self._constant = {}
@@ -512,7 +525,12 @@ class FissionYieldFetcher:
 
             detectors.append(f"ene {gridname} 1 0.0 {' '.join(energies)} {upperEnergy}")
             rxns = " ".join(
-                [f"dr {r} fy{zai}" for r in self.COMPONENT_FISSIONS.get(zai, {18, })]
+                [
+                    f"dr {r} fy{zai}"
+                    for r in self.COMPONENT_FISSIONS.get(
+                        zai, {REACTION_MTS.TOTAL_FISSION,}
+                    )
+                ]
             )
             detectors.append(f"det fy{zai} de {gridname} {rxns}")
             detectors.append(self._ucards)

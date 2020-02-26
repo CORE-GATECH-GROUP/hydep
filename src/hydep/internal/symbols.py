@@ -121,13 +121,3 @@ NUMBERS = {
     "Og": 118,
 }
 SYMBOLS = {v: k for k, v in NUMBERS.items()}
-
-REACTION_MTS = {
-    "(n,2n)": 16,
-    "(n,3n)": 17,
-    "(n,4n)": 37,
-    "(n,gamma)": 102,
-    "(n,p)": 103,
-    "(n,a)": 107,
-    "fission": 18,
-}
