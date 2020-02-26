@@ -1,5 +1,6 @@
 """Serpent runner"""
 
+import logging
 import subprocess
 import numbers
 
@@ -91,6 +92,8 @@ class SerpentRunner:
 
         if self.numOMP:
             cmd.extend("-omp {}".format(self.numOMP).split())
+
+        logging.getLogger("hydep.serpent").debug(f"Executable commands: {cmd}")
 
         return cmd
 

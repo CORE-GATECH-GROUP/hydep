@@ -8,6 +8,7 @@ import shutil
 import pathlib
 import warnings
 import zipfile
+import logging
 
 import numpy
 import hydep
@@ -18,6 +19,9 @@ from .writer import SerpentWriter
 from .runner import SerpentRunner
 from .processor import SerpentProcessor, FissionYieldFetcher
 from .xsavail import XS_2_1_30
+
+
+__logger__ = logging.getLogger("hydep.serpent")
 
 
 class SerpentSolver(hydep.lib.HighFidelitySolver):
@@ -72,7 +76,10 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
                 )
             )
         if self._hooks is not None:
-            warnings.warn("Overwritting hooks for {}".format(self))
+            warnings.warn(f"Overwritting hooks for {self}")
+
+        __logger__.debug(f"Updating hooks: {value}")
+
         self._hooks = value
         self._writer.hooks = value
 
@@ -255,7 +262,11 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
 
     def _archive(self):
         skipExts = {".seed", ".out", ".dep"}
-        with zipfile.ZipFile(self._curfile.with_suffix(".zip"), "w") as myzip:
+        zipf = self._curfile.with_suffix(".zip")
+
+        __logger__.debug(f"Archiving Serpent results to {zipf.resolve()}")
+
+        with zipfile.ZipFile(zipf, "w") as myzip:
             for ff in self._tmpFile.parent.glob("*"):
                 for ext in skipExts:
                     if ff.name.endswith(ext):
@@ -264,6 +275,20 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
                     myzip.write(ff, ff.name)
 
     def beforeMain(self, model, orderedBumat, chain):
+        """Prepare the base input file
+
+        Parameters
+        ----------
+        model : hydep.Model
+            Geometry information to be written once
+        orderedBumat : iterable of hydep.BurnableMaterial
+            Burnable materials, ordered to be consistent with
+            the framework. Necessary to properly order fluxes and
+            other data requested via :attr:`hooks
+        chain : hydep.DepletionChain
+            Information on isotopes and reactions that may be considered
+
+        """
         matids = []
         self._volumes = numpy.empty((len(orderedBumat), 1))
         for ix, m in enumerate(orderedBumat):
@@ -273,6 +298,8 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
         self._writer.model = model
         self._writer.burnable = orderedBumat
         self._writer.updateProblemIsotopes((iso.triplet for iso in chain))
+
+        __logger__.debug("Writing base Serpent input file")
 
         basefile = pathlib.Path.cwd() / "serpent" / "base.sss"
         self._writer.writeBaseFile(basefile)
