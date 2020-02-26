@@ -90,7 +90,7 @@ class SerpentRunner:
 
         cmd.append(self.executable)
 
-        if self.numOMP:
+        if self.numOMP > 1:
             cmd.extend("-omp {}".format(self.numOMP).split())
 
         logging.getLogger("hydep.serpent").debug(f"Executable commands: {cmd}")
