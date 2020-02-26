@@ -5,7 +5,6 @@ import subprocess
 import numbers
 
 from hydep import FailedSolverError
-from hydep.typed import BoundedTyped
 
 
 class SerpentRunner:
@@ -42,13 +41,52 @@ class SerpentRunner:
 
     """
 
-    numOmp = BoundedTyped("numOmp", numbers.Integral, gt=0, allowNone=True)
-    numMPI = BoundedTyped("numMPI", numbers.Integral, gt=0)
-
     def __init__(self, executable=None, numOMP=None, numMPI=None):
         self.executable = executable
         self.numOMP = numOMP
-        self.numMPI = 1 if numMPI is None else numMPI
+        self.numMPI = numMPI
+    @property
+    def numOMP(self):
+        return self._numOMP
+
+    @numOMP.setter
+    def numOMP(self, value):
+        if value is None:
+            value = 1
+        if not isinstance(value, numbers.Integral):
+            raise TypeError(f"Cannot set number of OMP threads to {value}: not integer")
+        elif value < 1:
+            raise ValueError(
+                f"Cannot set number of OMP threads to {value}: not positive"
+            )
+        self._numOMP = value
+
+    @property
+    def numMPI(self):
+        return self._numMPI
+
+    @numMPI.setter
+    def numMPI(self, value):
+        if value is None:
+            self._numMPI = 1
+        elif not isinstance(value, numbers.Integral):
+            raise TypeError(f"Cannot set number of MPI tasks to {value}: not integer")
+        elif value < 1:
+            raise ValueError(f"Cannot set number of MPI tasks to {value}: not positive")
+        else:
+            self._numMPI = value
+
+    @property
+    def executable(self):
+        return self._executable
+
+    @executable.setter
+    def executable(self, value):
+        # This could be a path to an executable or a name of the executable
+        # as it can be found in PATH. Since it must be set before makeCmd
+        # and a non-existent command will cause __call__ to fail, don't
+        # perform checks
+        self._executable = value
 
     def makeCmd(self):
         """Create a list of arguments given settings
