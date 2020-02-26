@@ -7,7 +7,7 @@ import time
 import numpy
 from numpy.linalg import LinAlgError
 
-from hydep.constants import BARN_PER_CM2, EV_PER_JOULE, REACTION_MTS
+from hydep.constants import BARN_PER_CM2, EV_PER_JOULE, REACTION_MTS, FISSION_REACTIONS
 from hydep.lib import ReducedOrderSolver
 from hydep.internal import TransportResult
 import hydep.internal.features as hdfeat
@@ -105,7 +105,6 @@ class SfvSolver(ReducedOrderSolver):
     _INDEX_PHI_0 = 6
     _INDEX_PHI_1 = 7
     _NUM_INDEXES = 8
-    _FIS_MT = REACTION_MTS.TOTAL_FISSION
     _NON_FISS_ABS_MT = frozenset(
         {REACTION_MTS.N_GAMMA, REACTION_MTS.N_2N, REACTION_MTS.N_3N}
     )
@@ -337,9 +336,8 @@ class SfvSolver(ReducedOrderSolver):
         qvalues = defaultdict(float)
         for isotope in isotopes:
             for reaction in isotope.reactions:
-                if reaction.mt == self._FIS_MT:
-                    qvalues[isotope.zai] = reaction.Q
-                    break
+                if reaction.mt in FISSION_REACTIONS:
+                    qvalues[isotope.zai] += reaction.Q
         self._isotopeFissionQs = qvalues
 
     def _updateMacroFromMicroXs(self, compositions, microxs):
@@ -368,9 +366,9 @@ class SfvSolver(ReducedOrderSolver):
                     siga += isorxns.get(mt, 0.0)
                 macroSigA += siga * comps[isox]
 
-                sigf = isorxns.get(self._FIS_MT)
+                sigf = sum(isorxns.get(mt, 0) for mt in FISSION_REACTIONS)
 
-                if sigf is not None:
+                if sigf:
                     prod = sigf * comps[isox]
                     macroSigA += prod
                     macroSigF += prod
