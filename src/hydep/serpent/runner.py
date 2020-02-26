@@ -3,6 +3,7 @@
 import logging
 import subprocess
 import numbers
+import os
 
 from hydep import FailedSolverError
 
@@ -52,7 +53,7 @@ class SerpentRunner:
     @numOMP.setter
     def numOMP(self, value):
         if value is None:
-            value = 1
+            value = int(os.environ.get("OMP_NUM_THREADS", 1))
         if not isinstance(value, numbers.Integral):
             raise TypeError(f"Cannot set number of OMP threads to {value}: not integer")
         elif value < 1:

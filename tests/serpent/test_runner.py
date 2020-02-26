@@ -1,12 +1,16 @@
+from unittest.mock import patch
 import pytest
 from hydep.serpent import SerpentRunner
 
+MAGIC_OMP_THREADS = 1234
+
 @pytest.mark.serpent
+@patch.dict("os.environ", {"OMP_NUM_THREADS": str(MAGIC_OMP_THREADS)})
 def test_runner():
 
     r = SerpentRunner()
     assert r.executable is None
-    assert r.numOMP == 1
+    assert r.numOMP == MAGIC_OMP_THREADS
     assert r.numMPI == 1
 
     r.executable = "sss2"
