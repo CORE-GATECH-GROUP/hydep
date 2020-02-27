@@ -105,6 +105,7 @@ class Problem(object):
             self.dep.burnable, tuple(self.dep.chain)
         )
         timestep = TimeStep(currentTime=startSeconds)
+        self.store.writeCompositions(timestep, compositions)
 
         # Run first solution to get information on micro xs
 
