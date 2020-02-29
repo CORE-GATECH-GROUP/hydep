@@ -344,7 +344,7 @@ class SfvSolver(ReducedOrderSolver):
         self._isotopeFissionQs = qvalues
 
     def _updateMacroFromMicroXs(self, compositions, microxs):
-        assert len(microxs) == self._macroData.shape[1]
+        assert len(microxs) == self._macroData.shape[0]
         zais = tuple(iso.zai for iso in compositions.isotopes)
         cutoff = self.densityCutoff
 
