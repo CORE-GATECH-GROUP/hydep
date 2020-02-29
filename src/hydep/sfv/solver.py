@@ -249,6 +249,7 @@ class SfvSolver(ReducedOrderSolver):
         self._volumes = vols
         self._totalvolume = sum(vols)
         self._macroData = numpy.empty((len(vols), self._NUM_INDEXES))
+        self._processIsotopeFissionQ(manager.chain)
 
     def processBOS(self, txresult, timestep, power):
         """Process data from the beginning of step high fidelity solution
@@ -327,8 +328,6 @@ class SfvSolver(ReducedOrderSolver):
             Updated microscopic cross sections for this timestep
 
         """
-        if self._isotopeFissionQs is None:
-            self._processIsotopeFissionQ(compositions.isotopes)
         self._updateMacroFromMicroXs(compositions, microxs)
         self._macroData[:, self._INDEX_NUBAR] = self._nubar(timestep.currentTime)
 
