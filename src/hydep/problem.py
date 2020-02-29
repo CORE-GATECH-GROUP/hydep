@@ -62,8 +62,8 @@ class Problem(object):
 
         __logger__.debug("Executing pre-solution routines")
         self.dep.beforeMain(self.model)
-        self.hf.beforeMain(self.model, self.dep.burnable, self.dep.chain)
-        self.rom.beforeMain(self.model, self.dep.burnable, self.dep.chain)
+        self.hf.beforeMain(self.model, self.dep)
+        self.rom.beforeMain(self.model, self.dep)
 
         if self.store is None:
             from .h5store import HdfStore

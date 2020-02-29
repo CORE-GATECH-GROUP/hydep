@@ -274,21 +274,20 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
                 else:
                     myzip.write(ff, ff.name)
 
-    def beforeMain(self, model, orderedBumat, chain):
+    def beforeMain(self, model, manager):
         """Prepare the base input file
 
         Parameters
         ----------
         model : hydep.Model
             Geometry information to be written once
-        orderedBumat : iterable of hydep.BurnableMaterial
-            Burnable materials, ordered to be consistent with
-            the framework. Necessary to properly order fluxes and
-            other data requested via :attr:`hooks
-        chain : hydep.DepletionChain
-            Information on isotopes and reactions that may be considered
+        manager : hydep.Manager
+            Depletion information
 
         """
+        assert manager.burnable is not None
+        orderedBumat = manager.burnable
+
         matids = []
         self._volumes = numpy.empty((len(orderedBumat), 1))
         for ix, m in enumerate(orderedBumat):
@@ -297,7 +296,7 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
 
         self._writer.model = model
         self._writer.burnable = orderedBumat
-        self._writer.updateProblemIsotopes((iso.triplet for iso in chain))
+        self._writer.updateProblemIsotopes((iso.triplet for iso in manager.chain))
 
         __logger__.debug("Writing base Serpent input file")
 
@@ -309,7 +308,7 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
         # Not super pretty, as this interacts both with the writer's roles
         # and the processors roles
         if hdfeat.FISSION_YIELDS in self.hooks.features:
-            fyproc = FissionYieldFetcher(matids, chain)
+            fyproc = FissionYieldFetcher(matids, manager.chain)
             detlines = fyproc.makeDetectors(upperEnergy=20)
             if detlines:
                 with basefile.open("a") as s:

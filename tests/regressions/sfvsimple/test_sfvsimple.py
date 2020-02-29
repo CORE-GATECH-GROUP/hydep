@@ -11,8 +11,9 @@ from . import SfvComparator
 @pytest.mark.sfv
 def test_sfvsimple(simpleSfvProblem, sfvMacroData, sfvMicroXS, sfvNewComps):
 
-    solver = SfvSolver(numModes=len(simpleSfvProblem.burnable), fittingOrder=0)
-    solver.beforeMain(simpleSfvProblem.model, simpleSfvProblem.burnable)
+    manager = simpleSfvProblem.dep
+    solver = SfvSolver(numModes=len(manager.burnable), fittingOrder=0)
+    solver.beforeMain(simpleSfvProblem.model, manager)
 
     # Emulate BOS result
     bos = sfvMacroData.toTransportResult()

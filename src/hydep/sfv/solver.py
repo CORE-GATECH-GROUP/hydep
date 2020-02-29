@@ -211,7 +211,7 @@ class SfvSolver(ReducedOrderSolver):
             return None
         return tuple(self._macroData[:, self._INDEX_VOL_K_FIS] / self._volumes)
 
-    def beforeMain(self, _model, burnedmats):
+    def beforeMain(self, _model, manager):
         """Prepare solver before main solution routines
 
         If :attr:`numModes` is not set, then it will be set to the
@@ -225,12 +225,12 @@ class SfvSolver(ReducedOrderSolver):
             Geometry and materials for the problem to be solved.
             Currently not used, but provided to be consistent with
             the interface.
-        burnedmats : iterable of hydep.BurnableMaterials
-            Burnable materials, ordered to be consistent with the
-            other solvers
+        manager : hydep.Manager
+            Depletion interface
 
         """
-        vols = tuple(m.volume for m in burnedmats)
+        assert manager.burnable is not None
+        vols = tuple(m.volume for m in manager.burnable)
         nvols = len(vols)
 
         if self.numModes is None:

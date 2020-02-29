@@ -1,5 +1,6 @@
 import pathlib
 import math
+from unittest.mock import Mock
 
 import numpy
 import pytest
@@ -9,6 +10,7 @@ from hydep.internal import MicroXsVector, CompBundle, getIsotope
 
 from tests.regressions import ProblemProxy
 from . import SfvDataHarness
+
 
 
 @pytest.fixture
@@ -66,9 +68,13 @@ def simpleSfvProblem(endfChain):
     model = hydep.Model(assembly)
     model.bounds = assembly.bounds
     model.root.differentiateBurnableMaterials()
-    burnable = tuple(model.root.findBurnableMaterials())
 
-    yield ProblemProxy(model, burnable)
+    problem = Mock()
+    problem.model = model
+    problem.dep.burnable = tuple(model.root.findBurnableMaterials())
+    problem.dep.chain = endfChain
+
+    yield problem
 
 
 @pytest.fixture
@@ -83,7 +89,7 @@ def sfvMacroData():
 def sfvMicroXS(simpleSfvProblem):
     mxs = []
     datadir = pathlib.Path(__file__).parent
-    for m in simpleSfvProblem.burnable:
+    for m in simpleSfvProblem.dep.burnable:
         mxsf = datadir / f"mxs{m.id}.dat"
         data = numpy.loadtxt(mxsf)
         mxs.append(
