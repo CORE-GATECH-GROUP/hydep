@@ -117,3 +117,12 @@ def test_hdfStore(result, simpleChain, h5Destination):
 
         for rx, rowDens in enumerate(newDensities):
             assert comps[rx] == pytest.approx(rowDens)
+
+    # Test errors and warnings when creating a Store that may overwrite
+    # existing files
+
+    with pytest.raises(OSError):
+        HdfStore(1, 1, 1, 1, filename=h5Destination, existOkay=False)
+
+    with pytest.warns(UserWarning):
+        HdfStore(1, 1, 1, 1, filename=h5Destination, existOkay=True)

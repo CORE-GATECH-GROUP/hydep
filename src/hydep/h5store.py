@@ -140,6 +140,8 @@ attributes:
 
 """
 import typing
+import pathlib
+import warnings
 
 import numpy
 import h5py
@@ -172,6 +174,11 @@ class HdfStore(BaseStore):
         performance improvements. Default: ``"latest"``
     filename : str, optional
         Name of the file to be written. Default: ``"hydep-results.h5"``
+    existOkay : bool, optional
+        If ``filename`` exists and is a file, this controls if
+        a warning is raised (True) or error (False). The file
+        will be overwritten if it exists and ``eixstOkay`` evaluates
+        to True.
 
     Attributes
     ----------
@@ -196,6 +203,14 @@ class HdfStore(BaseStore):
         be expected to also work for ``x.z``, but compatability between
         ``a.b`` and ``c.d`` is not guaranteed.
 
+    Raises
+    ------
+    OSError
+        If ``filename`` exists and is not a file
+    FileExistsError
+        If ``filename`` exists, is a file, and ``existOkay``
+        evaluates to ``False``.
+
     """
 
     _VERSION = (0, 0)
@@ -217,6 +232,7 @@ class HdfStore(BaseStore):
         nGroups: typing.Optional[int] = 1,
         libver: typing.Optional[str] = None,
         filename: typing.Optional[str] = None,
+        existOkay: typing.Optional[bool] = True,
     ):
 
         if libver is None:
@@ -229,13 +245,34 @@ class HdfStore(BaseStore):
         if filename is None:
             filename = "hydep-results.h5"
 
-        self._h5 = h5py.File(filename, mode="w", libver=libver)
+        fp = pathlib.Path(filename)
+        if fp.exists():
+            if not fp.is_file():
+                raise OSError(f"Result file {fp} exists but is not a file")
+            if not existOkay:
+                raise FileExistsError(
+                    f"Refusing to overwrite result file {fp} since existOkay is True"
+                )
+            warnings.warn("Result file {fp} exists and will be overwritten")
+
+        with h5py.File(fp, mode="w", libver=libver) as h5f:
+            h5f.attrs["file version"] = self.VERSION
+            for src, dest in (
+                ("nCoarseSteps", "coarse steps"),
+                ("nTotalSteps", "total steps"),
+                ("nIsotopes", "isotopes"),
+                ("nBurnableMaterials", "burnable materials"),
+                ("nGroups", "energy groups"),
+            ):
+                h5f.attrs[dest] = getattr(self, src)
+
+        self._fp = fp
 
     @property
     def VERSION(self):
         return self._VERSION
 
-    def beforeMain(self, isotopes, burnableIndexes, **kwargs):
+    def beforeMain(self, isotopes, burnableIndexes):
         """Called before main simulation sequence
 
         Parameters
@@ -245,68 +282,44 @@ class HdfStore(BaseStore):
         burnableIndexes : iterable of [int, str]
             Burnable material ids and names ordered how they
             are used across the sequence
-        kwargs : dict
-            Additional key word arguments that should be regarded
-            as descriptive. Values must be castable to strings
 
         """
-        self._writeAttrs(**kwargs)
+        with h5py.File(self._fp, "a") as h5f:
 
-        tgroup = self._h5.create_group(self._timeKey)
-        tgroup.create_dataset("time", (self.nTotalSteps,))
-        tgroup.create_dataset("high fidelity", (self.nTotalSteps,), dtype="i8")
+            tgroup = h5f.create_group(self._timeKey)
+            tgroup.create_dataset("time", (self.nTotalSteps,))
+            tgroup.create_dataset("high fidelity", (self.nTotalSteps,), dtype="i8")
 
-        self._h5.create_dataset(self._kKey, (self.nTotalSteps, 2))
+            h5f.create_dataset(self._kKey, (self.nTotalSteps, 2))
 
-        self._h5.create_dataset(self._cputimeKey, (self.nTotalSteps,))
+            h5f.create_dataset(self._cputimeKey, (self.nTotalSteps,))
 
-        self._h5.create_dataset(
-            self._fluxKey, (self.nTotalSteps, self.nBurnableMaterials, self.nGroups)
-        )
+            h5f.create_dataset(
+                self._fluxKey, (self.nTotalSteps, self.nBurnableMaterials, self.nGroups)
+            )
 
-        self._h5.create_dataset(
-            self._compKey, (self.nTotalSteps, self.nBurnableMaterials, self.nIsotopes)
-        )
+            h5f.create_dataset(
+                self._compKey,
+                (self.nTotalSteps, self.nBurnableMaterials, self.nIsotopes),
+            )
 
-        self._prepIsotopes(isotopes)
-        self._prepMaterials(burnableIndexes)
+            isogroup = h5f.create_group(self._isotopeKey)
+            zai = numpy.empty(len(isotopes), dtype=int)
 
-    def _writeAttrs(self, **kwargs):
-        attrs = self._h5.attrs
+            for ix, iso in enumerate(isotopes):
+                zai[ix] = iso.zai
+                group = isogroup.create_group(str(ix))
+                group.attrs["ZAI"] = iso.zai
+                group.attrs["name"] = iso.name
 
-        for src, dest in (
-            ("nCoarseSteps", "coarse steps"),
-            ("nTotalSteps", "total steps"),
-            ("nIsotopes", "isotopes"),
-            ("nBurnableMaterials", "burnable materials"),
-            ("nGroups", "energy groups"),
-        ):
-            attrs[dest] = getattr(self, src)
+            isogroup["zais"] = zai
 
-        for key, value in kwargs.items():
-            attrs[key] = str(value)
+            materialgroup = h5f.create_group(self._matKey)
 
-        attrs["file version"] = self.VERSION
-
-    def _prepIsotopes(self, isotopes):
-        isogroup = self._h5.create_group(self._isotopeKey)
-        zai = numpy.empty(len(isotopes), dtype=int)
-
-        for ix, iso in enumerate(isotopes):
-            zai[ix] = iso.zai
-            group = isogroup.create_group(str(ix))
-            group.attrs["ZAI"] = iso.zai
-            group.attrs["name"] = iso.name
-
-        isogroup["zais"] = zai
-
-    def _prepMaterials(self, burnableIndexes):
-        materialgroup = self._h5.create_group(self._matKey)
-
-        for ix, (matid, name) in enumerate(burnableIndexes):
-            group = materialgroup.create_group(str(ix))
-            group.attrs["id"] = matid
-            group.attrs["name"] = name
+            for ix, (matid, name) in enumerate(burnableIndexes):
+                group = materialgroup.create_group(str(ix))
+                group.attrs["id"] = matid
+                group.attrs["name"] = name
 
     def postTransport(self, timeStep, transportResult) -> None:
         """Store transport results
@@ -325,34 +338,32 @@ class HdfStore(BaseStore):
             ``None``
 
         """
-        timeindex = timeStep.total
-        tgroup = self._h5[self._timeKey]
-        tgroup["time"][timeindex] = timeStep.currentTime
-        tgroup["high fidelity"][timeindex] = 0 if timeStep.substep else 1
+        with h5py.File(self._fp, mode="a") as h5f:
+            timeindex = timeStep.total
+            tgroup = h5f[self._timeKey]
+            tgroup["time"][timeindex] = timeStep.currentTime
+            tgroup["high fidelity"][timeindex] = 0 if timeStep.substep else 1
 
-        self._h5[self._kKey][timeindex] = transportResult.keff
+            h5f[self._kKey][timeindex] = transportResult.keff
 
-        self._h5[self._fluxKey][timeindex] = transportResult.flux
+            h5f[self._fluxKey][timeindex] = transportResult.flux
 
-        cputime = transportResult.runTime
-        if cputime is None:
-            cputime = numpy.nan
-        self._h5[self._cputimeKey][timeindex] = cputime
+            cputime = transportResult.runTime
+            if cputime is None:
+                cputime = numpy.nan
+            h5f[self._cputimeKey][timeindex] = cputime
 
-        fmtx = transportResult.fmtx
-        if fmtx is not None:
-            fGroup = self._h5.get(self._fmtxKey)
-            if fGroup is None:
-                fGroup = self._h5.create_group(self._fmtxKey)
-                fGroup.attrs["structure"] = "csr"
-                fGroup.attrs["shape"] = (self.nBurnableMaterials, ) * 2
-            thisG = fGroup.create_group(str(timeindex))
-            self._writeFmtx(thisG, timeStep, fmtx)
-
-    def _writeFmtx(self, group, timeStep, fmtx):
-        group.attrs["nnz"] = fmtx.nnz
-        for attr in {"data", "indices", "indptr"}:
-            group[attr] = getattr(fmtx, attr)
+            fmtx = transportResult.fmtx
+            if fmtx is not None:
+                fGroup = h5f.get(self._fmtxKey)
+                if fGroup is None:
+                    fGroup = h5f.create_group(self._fmtxKey)
+                    fGroup.attrs["structure"] = "csr"
+                    fGroup.attrs["shape"] = (self.nBurnableMaterials,) * 2
+                thisG = fGroup.create_group(str(timeindex))
+                thisG.attrs["nnz"] = fmtx.nnz
+                for attr in {"data", "indices", "indptr"}:
+                    thisG[attr] = getattr(fmtx, attr)
 
     def writeCompositions(self, timeStep, compBundle) -> None:
         """Write (potentially) new compositions
@@ -371,4 +382,5 @@ class HdfStore(BaseStore):
 
         """
         index = timeStep.total
-        self._h5[self._compKey][index] = compBundle.densities
+        with h5py.File(self._fp, mode="a") as h5f:
+            h5f[self._compKey][index] = compBundle.densities
