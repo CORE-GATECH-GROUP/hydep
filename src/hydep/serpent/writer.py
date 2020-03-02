@@ -2,10 +2,14 @@
 Serpent writer
 """
 
+import os
 import pathlib
 import warnings
 import re
 from textwrap import TextWrapper
+import struct
+from collections import OrderedDict
+from collections.abc import Sequence
 
 import numpy
 
@@ -829,14 +833,16 @@ of depletion. Add a single one day step here. Maybe hack something later""",
 
         steadystate = self._setupfile(path)
         with steadystate.open("w") as stream:
-            stream.write(f"""/*
+            stream.write(
+                f"""/*
  * Steady state input file
  * Time step : {timestep.coarse}
  * Time [d] : {timestep.currentTime/SECONDS_PER_DAY:.2f}
  * Base file : {self.base}
  */
 include "{self.base.resolve()}"
-set power {power:.7E}\n""")
+set power {power:.7E}\n"""
+            )
 
             zais = tuple((iso.triplet for iso in compositions.isotopes))
 
@@ -864,3 +870,217 @@ set power {power:.7E}\n""")
                 stream.write("\n")
 
         return steadystate
+
+
+class ExtDepWriter(BaseWriter):
+    """Writer reponsible for setting up the external depletion
+
+    Relies on a patched version of Serpent that allows Serpent to
+    read in new compositions at new depletion intervals. Only supports
+    the signal-based communication now.
+    """
+
+    _FAKE_BURNUP = 12345.0
+
+    def __init__(self):
+        super().__init__()
+        self._burnable = None
+        self.compFile = None
+        self._names = None
+        self._allowedZAI = None
+
+    @property
+    def burnable(self):
+        return self._burnable
+
+    @burnable.setter
+    def burnable(self, mats):
+        if mats is None:
+            self._burnable = None
+            self._names = None
+            return
+        if not isinstance(mats, Sequence):
+            raise TypeError(
+                f"burnable must be Sequence of burnable material, not {type(mats)}"
+            )
+
+        names = OrderedDict()
+        for item in mats:
+            if not isinstance(item, hydep.BurnableMaterial):
+                raise TypeError(
+                    f"burnable must be Sequence of burnable material, found {type(item)}"
+                )
+            names[str(item.id).encode()] = {"adens": item.adens, "mdens": item.mdens}
+
+        self._burnable = mats
+        self._names = names
+
+    def writeCouplingFile(self, path, timesteps, powers):
+        base = super().writeMainFile(path)
+
+        if self.compFile is None:
+            self.compFile = base.with_suffix(".exdep")
+
+        # Write additions
+        with base.open("a") as stream:
+            stream.write(
+                f"""
+/*
+ * BEGIN EXTERNAL DEPLETION INTERFACE
+ *
+ * Relies on a patched version of Serpent that supports the
+ * extdep setting
+ */
+set pcc ce
+set extdep 1 "{self.compFile}"
+set ppid {os.getpid()}
+"""
+            )
+            for sec, powr in zip(timesteps, powers):
+                stream.write(
+                    f"dep daystep {sec / SECONDS_PER_DAY:.3E} set power {powr}\n"
+                )
+        return base
+
+    def _readZAI(self):
+        present = set()
+        # Read through restart file and find loaded isotopes from
+        # first material
+        with self.compFile.open("rb") as stream:
+            buf = stream.read(struct.calcsize("l"))
+
+            (namelen,) = struct.unpack("l", buf)
+            assert namelen > 0, (self.compFile, namelen)
+
+            (name,) = struct.unpack(
+                f"{namelen}s", stream.read(struct.calcsize(f"{namelen}s"))
+            )
+            assert name in self._names, (self.compFile, name.decode())
+
+            # Skip days, nominal burnup
+            stream.read(struct.calcsize("2d"))
+
+            (nnucs,) = struct.unpack("l", stream.read(struct.calcsize("l")))
+            assert nnucs > 0, nnucs
+
+            # Skip adens, mdens, material burnup
+            stream.read(struct.calcsize("3d"))
+
+            buf = stream.read(nnucs * struct.calcsize("ld"))
+
+            for z, _a in struct.iter_unpack("ld", buf):
+                if z > 0:
+                    present.add(z)
+
+        return present
+
+    def updateFromRestart(self):
+        """Fetch Serpent adens, mdens from file"""
+        assert self._names is not None
+
+        zais = set()
+
+        with self.compFile.open("rb") as stream:
+            buf = stream.read(struct.calcsize("l"))
+            assert buf
+
+            while buf:
+                (namelen,) = struct.unpack("l", buf)
+                assert namelen > 0, namelen
+
+                (bname,) = struct.unpack(
+                    f"{namelen}s", stream.read(struct.calcsize(f"{namelen}s")),
+                )
+                mdata = self._names.get(bname)
+                assert mdata is not None, bname.decode()
+
+                # Skip days, nominal burnup
+                stream.read(struct.calcsize("2d"))
+
+                (nnucs,) = struct.unpack("l", stream.read(struct.calcsize("l")))
+                assert nnucs > 0, nnucs
+
+                adens, mdens, _mbu = struct.unpack(
+                    "3d", stream.read(struct.calcsize("3d")),
+                )
+                assert adens > 0, adens
+                assert mdens > 0, mdens
+
+                mdata["adens"] = adens
+                mdata["mdens"] = mdens
+
+                # Process isotopes
+                buf = stream.read(struct.calcsize("ld") * nnucs)
+                for z, _a in struct.iter_unpack("ld", buf):
+                    if z > 0:
+                        zais.add(z)
+
+                buf = stream.read(struct.calcsize("l"))
+
+        if self._allowedZAI is None:
+            self._allowedZAI = zais
+        else:
+            self._allowedZAI.update(zais)
+
+    def updateComps(self, compositions, timestep, threshold=0):
+        assert self._names is not None
+        assert self.compFile is not None
+
+        if not timestep.coarse:
+            raise ValueError(
+                "This method should not be called for the first step. "
+                "BOL compositions are already written in the input file. "
+                "Call updateFromRestart if updates to ZAIs, atomic densities, "
+                "or mass densites are needed."
+            )
+
+        if self._allowedZAI is None:
+            self._allowedZAI = self._readZAI()
+
+        day = timestep.currentTime / SECONDS_PER_DAY
+
+        zais = [isotope.zai for isotope in compositions.isotopes]
+
+        longDub = struct.calcsize("ld")
+
+        with self.compFile.open("wb") as stream:
+            for (bname, matdata), densities in zip(
+                self._names.items(), compositions.densities,
+            ):
+                namelen = len(bname)
+                stream.write(struct.pack("l", namelen))
+                stream.write(struct.pack(f"{namelen}s", bname))
+                stream.write(struct.pack("2d", self._FAKE_BURNUP, day))
+
+                lost = 0.0
+                total = 0.0
+                isoZaiAdens = []
+                for zai, adens in zip(zais, densities):
+                    if adens < threshold or zai not in self._allowedZAI:
+                        lost += adens
+                        continue
+                    isoZaiAdens.append((zai, adens))
+                    total += adens
+
+                # This assumes that the mass density is constant over
+                # time, which is not true. Serpent uses the atom density
+                # over the mass density in the transport routine, but keep
+                # an eye on this
+
+                stream.write(
+                    struct.pack(
+                        "l3d",
+                        len(isoZaiAdens) + 1,
+                        total,
+                        matdata["mdens"],
+                        self._FAKE_BURNUP,
+                    )
+                )
+
+                buf = bytearray((1 + len(isoZaiAdens)) * longDub)
+                struct.pack_into("ld", buf, 0, -1, lost)
+
+                for count, (z, a) in enumerate(isoZaiAdens, start=1):
+                    struct.pack_into("ld", buf, count * longDub, z, a)
+
+                stream.write(buf)
