@@ -10,44 +10,44 @@ def test_runner():
 
     r = SerpentRunner()
     assert r.executable is None
-    assert r.numOMP == MAGIC_OMP_THREADS
-    assert r.numMPI == 1
+    assert r.omp == MAGIC_OMP_THREADS
+    assert r.mpi == 1
 
     r.executable = "sss2"
     assert r.executable == "sss2"
 
-    r.numOMP = 20
-    assert r.numOMP == 20
-    r.numMPI = 20
-    assert r.numMPI == 20
+    r.omp = 20
+    assert r.omp == 20
+    r.mpi = 20
+    assert r.mpi == 20
 
     with pytest.raises(TypeError):
-        r.numOMP = 1.5
+        r.omp = 1.5
 
     with pytest.raises(ValueError):
-        r.numOMP = 0
+        r.omp = 0
 
     with pytest.raises(ValueError):
-        r.numOMP = -1
+        r.omp = -1
 
     with pytest.raises(TypeError):
-        r.numMPI = 1.5
+        r.mpi = 1.5
 
     with pytest.raises(ValueError):
-        r.numMPI = 0
+        r.mpi = 0
 
     with pytest.raises(ValueError):
-        r.numMPI = -1
+        r.mpi = -1
 
-    r = SerpentRunner(executable="sss2", numOMP=20, numMPI=4)
+    r = SerpentRunner(executable="sss2", omp=20, mpi=4)
 
-    cmd = r.makeCmd()
-    assert int(cmd[cmd.index("-omp") + 1]) == r.numOMP == 20
+    cmd = r.makeCommand()
+    assert int(cmd[cmd.index("-omp") + 1]) == r.omp == 20
 
     assert cmd[0].startswith("mpi")
-    assert r.numMPI == 4
+    assert r.mpi == 4
     for sub in cmd[1:cmd.index(r.executable)]:
-        if str(r.numMPI) == sub:
+        if str(r.mpi) == sub:
             break
     else:
         raise ValueError(f"Number of MPI tasks not found in {cmd}")

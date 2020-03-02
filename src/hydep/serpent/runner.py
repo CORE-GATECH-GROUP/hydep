@@ -8,20 +8,20 @@ import os
 from hydep import FailedSolverError
 
 
-class SerpentRunner:
-    """Class responsible for running a Serpent job
+class BaseRunner:
+    """Class responsible for running Serpent
 
     Parameters
     ----------
     executable : str, optional
         Serpent executable. Can either be the command name
         or a path to the executable
-    numOmp : int, optional
+    omp : int, optional
         Number of OMP threads to use. Will pass to the
         ``-omp`` command line argument. Use a value of ``None``
         if this should be determined by Serpent using the
         ``OMP_NUM_THREADS`` environment variable
-    numMPI : int, optional
+    mpi : int, optional
         Number of MPI tasks to use when running Serpent. If provided,
         Serpent will be run using ``mpirun -np <N>``
 
@@ -31,29 +31,27 @@ class SerpentRunner:
         Serpent executable. Can either be the command name
         or a path to the executable. Must be provided prior
         to :meth:`__call__`
-    numOmp : int or None
+    omp : int or None
         Number of OMP threads to use. Will pass to the
         ``-omp`` command line argument. Use a value of ``None``
         if this should be determined by Serpent using the
         ``OMP_NUM_THREADS`` environment variable
-    numMPI : int or None
+    mpi : int or None
         Number of MPI tasks to use when running Serpent. If provided,
         Serpent will be run using ``mpirun -np <N>``
 
     """
-
-    def __init__(self, executable=None, numOMP=None, numMPI=None):
+    def __init__(self, executable=None, omp=None, mpi=None):
         self.executable = executable
-        self.numOMP = numOMP
-        self.numMPI = numMPI
-        self._cmd = None
+        self.omp = omp
+        self.mpi = mpi
 
     @property
-    def numOMP(self):
-        return self._numOMP
+    def omp(self):
+        return self._omp
 
-    @numOMP.setter
-    def numOMP(self, value):
+    @omp.setter
+    def omp(self, value):
         if value is None:
             value = int(os.environ.get("OMP_NUM_THREADS", 1))
         if not isinstance(value, numbers.Integral):
@@ -62,24 +60,22 @@ class SerpentRunner:
             raise ValueError(
                 f"Cannot set number of OMP threads to {value}: not positive"
             )
-        self._numOMP = value
-        self._cmd = None
+        self._omp = value
 
     @property
-    def numMPI(self):
-        return self._numMPI
+    def mpi(self):
+        return self._mpi
 
-    @numMPI.setter
-    def numMPI(self, value):
+    @mpi.setter
+    def mpi(self, value):
         if value is None:
-            self._numMPI = 1
+            self._mpi = 1
         elif not isinstance(value, numbers.Integral):
             raise TypeError(f"Cannot set number of MPI tasks to {value}: not integer")
         elif value < 1:
             raise ValueError(f"Cannot set number of MPI tasks to {value}: not positive")
         else:
-            self._numMPI = value
-        self._cmd = None
+            self._mpi = value
 
     @property
     def executable(self):
@@ -92,9 +88,8 @@ class SerpentRunner:
         # and a non-existent command will cause __call__ to fail, don't
         # perform checks
         self._executable = value
-        self._cmd = None
 
-    def makeCmd(self):
+    def makeCommand(self):
         """Create a list of arguments given settings
 
         Returns
@@ -106,14 +101,14 @@ class SerpentRunner:
 
         Examples
         --------
-        >>> r = SerpentRunner("sss2")
+        >>> r = BaseRunner("sss2")
         >>> r.makeCmd()
         ['sss2']
-        >>> r.numMPI = 2
-        >>> r.makeCmd()
+        >>> r.mpi = 2
+        >>> r.makeCommand()
         ['mpirun', '-np', '2', 'sss2']
-        >>> r.numOMP = 12
-        >>> r.makeCmd()
+        >>> r.omp = 12
+        >>> r.makeCommand()
         ['mpirun', '-np', '2', 'sss2', '-omp', '12']
 
         Raises
@@ -122,29 +117,80 @@ class SerpentRunner:
             If :attr:`executable` is not configured
 
         """
-        if self._cmd is not None:
-            return self._cmd
-
         if self.executable is None:
             raise AttributeError(
                 "Serpent executable not configured for {}".format(self)
             )
-        if self.numMPI > 1:
+        if self.mpi > 1:
             # TODO Machinefile?
-            cmd = "mpirun -np {}".format(self.numMPI).split()
+            cmd = "mpirun -np {}".format(self.mpi).split()
         else:
             cmd = []
 
         cmd.append(self.executable)
 
-        if self.numOMP > 1:
-            cmd.extend("-omp {}".format(self.numOMP).split())
+        if self.omp > 1:
+            cmd.extend("-omp {}".format(self.omp).split())
 
         logging.getLogger("hydep.serpent").debug(f"Executable commands: {cmd}")
 
-        self._cmd = cmd
-
         return cmd
+
+    def configure(self, section):
+        """Configure this runner using the ``hydep.serpent`` section
+
+        Parameters
+        ----------
+        section : configparser.SectionProxy
+            Serpent specific options
+
+        """
+        omp = section.getint("omp")
+        if omp is not None:
+            self.omp = omp
+
+        mpi = section.getint("mpi")
+        if mpi is not None:
+            self.mpi = mpi
+
+        executable = section.get("executable")
+        if executable is not None:
+            self.executable = executable
+
+
+class SerpentRunner(BaseRunner):
+    """Class responsible for running a Serpent job
+
+    Parameters
+    ----------
+    executable : str, optional
+        Serpent executable. Can either be the command name
+        or a path to the executable
+    omp : int, optional
+        Number of OMP threads to use. Will pass to the
+        ``-omp`` command line argument. Use a value of ``None``
+        if this should be determined by Serpent using the
+        ``OMP_NUM_THREADS`` environment variable
+    mpi : int, optional
+        Number of MPI tasks to use when running Serpent. If provided,
+        Serpent will be run using ``mpirun -np <N>``
+
+    Attributes
+    ----------
+    executable : str or None
+        Serpent executable. Can either be the command name
+        or a path to the executable. Must be provided prior
+        to :meth:`__call__`
+    omp : int or None
+        Number of OMP threads to use. Will pass to the
+        ``-omp`` command line argument. Use a value of ``None``
+        if this should be determined by Serpent using the
+        ``OMP_NUM_THREADS`` environment variable
+    mpi : int or None
+        Number of MPI tasks to use when running Serpent. If provided,
+        Serpent will be run using ``mpirun -np <N>``
+
+    """
 
     def __call__(self, inputpath):
         """Run Serpent given this input file
@@ -164,30 +210,12 @@ class SerpentRunner:
         if not inputpath.is_file():
             raise IOError("Input file {} does not exist".format(inputpath))
 
-        cmd = self.makeCmd() + [inputpath]
+        cmd = self.makeCommand() + [inputpath]
         proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         if proc.returncode:
             msg = proc.stdout[-500:].decode()
             # TODO Improve error parsing?
             raise FailedSolverError(msg)
 
-    def configure(self, section):
-        """Configure this runner using the ``hydep.serpent`` section
 
-        Parameters
-        ----------
-        section : configparser.SectionProxy
-            Serpent specific options
 
-        """
-        omp = section.getint("omp")
-        if omp is not None:
-            self.numOMP = omp
-
-        mpi = section.getint("mpi")
-        if mpi is not None:
-            self.numMPI = mpi
-
-        executable = section.get("executable")
-        if executable is not None:
-            self.executable = executable
