@@ -23,6 +23,17 @@ from .xsavail import XS_2_1_30
 
 __logger__ = logging.getLogger("hydep.serpent")
 
+_FEATURES_ATLEAST_2_1_30 = hdfeat.FeatureCollection(
+    (
+        hdfeat.FISSION_MATRIX,
+        hdfeat.FISSION_YIELDS,
+        hdfeat.HOMOG_GLOBAL,
+        hdfeat.HOMOG_LOCAL,
+        hdfeat.MICRO_REACTION_XS,
+    ),
+    XS_2_1_30,
+)
+
 
 class SerpentSolver(hydep.lib.HighFidelitySolver):
     """Primary entry point for using Serpent as high fidelity solver
@@ -39,17 +50,6 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
         solvers. Setting this more than once will produced
         warnings, as it should not be modified after use.
     """
-
-    _FEATURES = hdfeat.FeatureCollection(
-        (
-            hdfeat.FISSION_MATRIX,
-            hdfeat.FISSION_YIELDS,
-            hdfeat.HOMOG_GLOBAL,
-            hdfeat.HOMOG_LOCAL,
-            hdfeat.MICRO_REACTION_XS,
-        ),
-        XS_2_1_30,
-    )
 
     def __init__(self):
         self._hooks = None
@@ -85,7 +85,7 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
 
     @property
     def features(self):
-        return self._FEATURES
+        return _FEATURES_ATLEAST_2_1_30
 
     @configmethod
     def configure(self, config):
@@ -251,7 +251,9 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
             elif feature is hdfeat.MICRO_REACTION_XS:
                 res.microXS = self._processor.processMicroXS(base + "_mdx0.m")
             elif feature is hdfeat.FISSION_YIELDS:
-                res.fissionYields = self._processor.processFissionYields(base + "_det0.m")
+                res.fissionYields = self._processor.processFissionYields(
+                    base + "_det0.m"
+                )
 
         return res
 
