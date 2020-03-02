@@ -30,7 +30,9 @@ class BaseWriter:
     ----------
     model : hydep.Model or None
         Entry point to geometry and materials. Overwriting this is strongly
-        discouraged.
+        discouraged. Required before :meth:`writeMainFile`
+    burnable : sequence of hydep.BurnableMaterial or None
+        Ordering of burnable materials. Required before :meth:`writeMainFile`
 
     """
 
@@ -672,6 +674,50 @@ of depletion. Add a single one day step here. Maybe hack something later""",
                     isotopes.add(prod)
         return reactions
 
+    def writeMainFile(self, path):
+        """Write the main input file
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Path of file to be written. If it is an existing file
+            it will be overwritten
+
+        Raises
+        ------
+        IOError
+            If the path indicated exists and is not a file
+        AttributeError
+            If :attr:`model` nor :attr:`options` have been
+            properly set
+
+        Returns
+        -------
+        pathlib.Path
+            Absolute path to the file that has been written
+
+        """
+        if self.model is None:
+            raise AttributeError(f"Geometry not passed to {self}")
+        if self.burnable is None or not len(self.burnable):
+            raise AttributeError(f"No burnable materials found on {self}")
+        if not self.options or self.datafiles is None:
+            raise AttributeError("Not well configured")
+
+        path = self._setupfile(path)
+
+        materials = tuple(self.model.root.findMaterials())
+        sabLibraries = self._findSABTables(materials, self.datafiles.sab)
+
+        with path.open("w") as stream:
+            self._writematerials(stream, materials)
+            self._writegeometry(stream)
+            self._writesettings(stream, sabLibraries)
+            if self.hooks:
+                self._writehooks(stream)
+
+        return path
+
 
 class SerpentWriter(BaseWriter):
     """Class responsible for writing Serpent input files
@@ -705,15 +751,13 @@ class SerpentWriter(BaseWriter):
         super().__init__()
         self.base = None
 
-    def _writematerials(self, stream, materials):
-        self.commentblock(stream, "BEGIN MATERIAL BLOCK")
-        for mat in materials:
-            if isinstance(mat, hydep.BurnableMaterial):
-                continue
-            self.writemat(stream, mat)
-
     def writeBaseFile(self, path):
-        """Write the base input file to be included later
+        """Write the main input file
+
+        The path is stored to be included later in
+        :meth:`writeSteadyStateFile`. Burnable materials are
+        not written, as they are also written in
+        :meth:`writeSteadyStateFile`
 
         Parameters
         ----------
@@ -729,23 +773,23 @@ class SerpentWriter(BaseWriter):
             If :attr:`model` nor :attr:`options` have been
             properly set
 
+        Returns
+        -------
+        pathlib.Path
+            Absolute path to the file that has been written
+
         """
-        if self.model is None:
-            raise AttributeError("Geometry not passed to {}".format(self))
-        if not self.options or self.datafiles is None:
-            raise AttributeError("Not well configured")
+        base = super().writeMainFile(path)
+        self.base = base
+        return base
 
-        self.base = self._setupfile(path)
+    def _writematerials(self, stream, materials):
+        self.commentblock(stream, "BEGIN MATERIAL BLOCK")
+        for mat in materials:
+            if isinstance(mat, hydep.BurnableMaterial):
+                continue
+            self.writemat(stream, mat)
 
-        materials = tuple(self.model.root.findMaterials())
-        sabLibraries = self._findSABTables(materials, self.datafiles.sab)
-
-        with self.base.open("w") as stream:
-            self._writematerials(stream, materials)
-            self._writegeometry(stream)
-            self._writesettings(stream, sabLibraries)
-            if self.hooks:
-                self._writehooks(stream)
 
     def writeSteadyStateFile(self, path, compositions, timestep, power, final=False):
         """Write updated burnable materials for steady state solution
