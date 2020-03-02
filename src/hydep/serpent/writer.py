@@ -5,6 +5,7 @@ Serpent writer
 import pathlib
 import warnings
 import re
+from textwrap import TextWrapper
 
 import numpy
 
@@ -17,31 +18,19 @@ import hydep.internal.features as hdfeat
 from .utils import findLibraries, findProblemIsotopes, ProblematicIsotopes
 
 
-class SerpentWriter:
-    """Class responsible for writing Serpent input files
+class BaseWriter:
+    """Parent class for writing basic information
 
-    Must be properly configured with particle history
-    information using :meth:`configure`. Model information
-    and burnable materials must be provided to
-    :attr:`model` and :attr:`burnable` prior to calling
-    :meth:`writeBaseFile` and :meth:`writeSteadyStateFile`
+    Parameters
+    ----------
+    model : hydep.Model, optional
+        Initial model
 
     Attributes
     ----------
     model : hydep.Model or None
-        Geometry and material information. Must be provided
-    burnable : Iterable[hydep.BurnableMaterial] or None
-        Ordered iterable of burnable materials. Must be provided.
-    basefile : pathlib.Path or None
-        The primary input file that contians all geometry, settings,
-        and non-burnable material definitions
-    hooks : hydep.internal.features.FeatureCollection
-        Each entry indicates a specific type of physics that
-        must be run.
-    options : dict
-        Dictionary of various attributes to create the base file
-    datafiles : None or DataLibraries
-        Configured through :meth:`configure`
+        Entry point to geometry and materials. Overwriting this is strongly
+        discouraged.
 
     """
 
@@ -52,21 +41,38 @@ class SerpentWriter:
     _DEFAULT_DECLIB = "sss_endfb7.dec"
     _DEFAULT_NFYLIB = "sss_endfb7.nfy"
     bcmap = {"reflective": 2, "vacuum": 1, "periodic": 3}
-    model = TypedAttr("model", hydep.Model, allowNone=True)
-    burnable = IterableOf("burnable", hydep.BurnableMaterial, allowNone=True)
     _groupby = 7  # Arbitrary number of gcu, mdep, fmtx arguments to write per line
     hooks = TypedAttr("hooks", hdfeat.FeatureCollection)
+    burnable = IterableOf("burnable", hydep.BurnableMaterial, allowNone=True)
+
     _eneGridName = "energies"
 
     def __init__(self):
-        self.model = None
+        self._model = None
         self.burnable = None
-        self.base = None
         self.hooks = hdfeat.FeatureCollection()
         self.options = {}
         self.datafiles = None
         self._buleads = {}
         self._problemIsotopes = ProblematicIsotopes(missing=set(), replacements={})
+        self._textwrapper = TextWrapper(width=75)
+        self._commenter = TextWrapper(
+            width=75, initial_indent=" * ", subsequent_indent=" * ",
+        )
+
+    @property
+    def model(self):
+        return self._model
+
+    @model.setter
+    def model(self, m):
+        if m is None:
+            self._model = None
+        elif not isinstance(m, hydep.Model):
+            raise TypeError(f"model must be {hydep.Model}, not {type(m)}")
+        elif self._model is not None:
+            raise AttributeError(f"Refusing to overwrite model on {self}")
+        self._model = m
 
     @staticmethod
     def _setupfile(path):
@@ -79,8 +85,7 @@ class SerpentWriter:
         path.parent.mkdir(parents=True, exist_ok=True)
         return path
 
-    @staticmethod
-    def commentblock(stream, msg):
+    def commentblock(self, stream, msg):
         """Write a comment using the C-style multiline comments
 
         Parameters
@@ -92,44 +97,9 @@ class SerpentWriter:
             inside the comment
 
         """
-        stream.write("/*\n * ")
-        stream.write("\n * ".join(msg.split("\n")))
+        stream.write("/*\n")
+        stream.write(self._commenter.fill(msg))
         stream.write("\n */\n")
-
-    def writeBaseFile(self, path):
-        """Write the base input file to be included later
-
-        Parameters
-        ----------
-        path : str or pathlib.Path
-            Path of file to be written. If it is an existing file
-            it will be overwritten
-
-        Raises
-        ------
-        IOError
-            If the path indicated exists and is not a file
-        AttributeError
-            If :attr:`model` nor :attr:`options` have been
-            properly set
-
-        """
-        if self.model is None:
-            raise AttributeError("Geometry not passed to {}".format(self))
-        if not self.options or self.datafiles is None:
-            raise AttributeError("Not well configured")
-
-        self.base = self._setupfile(path)
-
-        materials = tuple(self.model.root.findMaterials())
-        sabLibraries = self._findSABTables(materials, self.datafiles.sab)
-
-        with self.base.open("w") as stream:
-            self._writematerials(stream, materials)
-            self._writegeometry(stream)
-            self._writesettings(stream, sabLibraries)
-            if self.hooks:
-                self._writehooks(stream)
 
     def _findSABTables(self, materials, sab: pathlib.Path) -> dict:
         replace = {
@@ -259,13 +229,6 @@ set nfg {self._eneGridName}
 """
         )
 
-    def _writematerials(self, stream, materials):
-        self.commentblock(stream, "BEGIN MATERIAL BLOCK")
-        for mat in materials:
-            if isinstance(mat, hydep.BurnableMaterial):
-                continue
-            self.writemat(stream, mat)
-
     def _getMaterialOptions(self, material):
         if material.adens is None:
             density = f"-{material.mdens:<9.7f}"
@@ -319,7 +282,7 @@ set nfg {self._eneGridName}
         self.writeMatIsoDef(stream, pairs, self._getmatlib(material))
         stream.write("\n")
 
-    def writeMatIsoDef(self, stream, pairs, tlib, threshold=1E-20) -> float:
+    def writeMatIsoDef(self, stream, pairs, tlib, threshold=1e-20) -> float:
         """Write ZAI, atom density pairs, considering problem isotopes
 
         Parameters
@@ -387,6 +350,11 @@ set nfg {self._eneGridName}
                 t = self._temps[ix - 1]
                 break
         return "{:02}c".format(t // 100)
+
+    def _writematerials(self, stream, materials):
+        self.commentblock(stream, "BEGIN MATERIAL BLOCK")
+        for mat in materials:
+            self.writemat(stream, mat)
 
     def _writegeometry(self, stream):
         self.commentblock(stream, "BEGIN GEOMETRY BLOCK")
@@ -720,6 +688,81 @@ of depletion. Add a single one day step here. Maybe hack something later""",
                     isotopes.add(prod)
         return reactions
 
+
+class SerpentWriter(BaseWriter):
+    """Class responsible for writing Serpent input files
+
+    Must be properly configured with particle history
+    information using :meth:`configure`. Model information
+    and burnable materials must be provided to
+    :attr:`model` and :attr:`burnable` prior to calling
+    :meth:`writeBaseFile` and :meth:`writeSteadyStateFile`
+
+    Attributes
+    ----------
+    model : hydep.Model or None
+        Geometry and material information. Must be provided
+    burnable : Iterable[hydep.BurnableMaterial] or None
+        Ordered iterable of burnable materials. Must be provided.
+    basefile : pathlib.Path or None
+        The primary input file that contians all geometry, settings,
+        and non-burnable material definitions
+    hooks : hydep.internal.features.FeatureCollection
+        Each entry indicates a specific type of physics that
+        must be run.
+    options : dict
+        Dictionary of various attributes to create the base file
+    datafiles : None or DataLibraries
+        Configured through :meth:`configure`
+
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.base = None
+
+    def _writematerials(self, stream, materials):
+        self.commentblock(stream, "BEGIN MATERIAL BLOCK")
+        for mat in materials:
+            if isinstance(mat, hydep.BurnableMaterial):
+                continue
+            self.writemat(stream, mat)
+
+    def writeBaseFile(self, path):
+        """Write the base input file to be included later
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Path of file to be written. If it is an existing file
+            it will be overwritten
+
+        Raises
+        ------
+        IOError
+            If the path indicated exists and is not a file
+        AttributeError
+            If :attr:`model` nor :attr:`options` have been
+            properly set
+
+        """
+        if self.model is None:
+            raise AttributeError("Geometry not passed to {}".format(self))
+        if not self.options or self.datafiles is None:
+            raise AttributeError("Not well configured")
+
+        self.base = self._setupfile(path)
+
+        materials = tuple(self.model.root.findMaterials())
+        sabLibraries = self._findSABTables(materials, self.datafiles.sab)
+
+        with self.base.open("w") as stream:
+            self._writematerials(stream, materials)
+            self._writegeometry(stream)
+            self._writesettings(stream, sabLibraries)
+            if self.hooks:
+                self._writehooks(stream)
+
     def writeSteadyStateFile(self, path, compositions, timestep, power, final=False):
         """Write updated burnable materials for steady state solution
 
@@ -755,15 +798,14 @@ of depletion. Add a single one day step here. Maybe hack something later""",
 
         steadystate = self._setupfile(path)
         with steadystate.open("w") as stream:
-            self.commentblock(
-                stream,
-                f"""Steady state input file
-Time step : {timestep.coarse}
-Time [d] : {timestep.currentTime/SECONDS_PER_DAY:.2f}
-Base file : {self.base}""",
-            )
-            stream.write(f'include "{self.base.resolve()}"\n')
-            stream.write(f"set power {power:.7E}\n")
+            stream.write(f"""/*
+ * Steady state input file
+ * Time step : {timestep.coarse}
+ * Time [d] : {timestep.currentTime/SECONDS_PER_DAY:.2f}
+ * Base file : {self.base}
+ */
+include "{self.base.resolve()}"
+set power {power:.7E}\n""")
 
             zais = tuple((iso.triplet for iso in compositions.isotopes))
 
