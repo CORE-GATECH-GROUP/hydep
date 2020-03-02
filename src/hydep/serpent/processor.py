@@ -168,13 +168,15 @@ class SerpentProcessor:
 
         return serpentFile
 
-    def getKeff(self, resultfile):
+    def getKeff(self, resultfile, index=0):
         """Pull just the multiplication factor from a result file
 
         Parameters
         ----------
         resultfile : str
             Path to the result file to be read
+        index : int, optional
+            Time step
 
         Returns
         -------
@@ -186,12 +188,12 @@ class SerpentProcessor:
 
         keff = results.resdata["absKeff"]
         if len(keff.shape) == 2:
-            keff = keff[0]
+            keff = keff[index]
         keff[1] *= keff[0]
         return keff
 
     @requireBurnable
-    def processResult(self, resultfile, reqXS):
+    def processResult(self, resultfile, reqXS, index=0):
         """Scrape fluxes, multiplication factor, and xs
 
         Expects all the universes to have been selected for
@@ -211,6 +213,8 @@ class SerpentProcessor:
             automatically, so this should include other arguments
             like ``"abs"`` for absorption cross section, ``"fiss"``
             for fission, etc.
+        index : int, optional
+            Time step from which to pull all data
 
         Returns
         -------
@@ -239,7 +243,7 @@ class SerpentProcessor:
 
         keff = results.resdata["absKeff"]
         if len(keff.shape) == 2:
-            keff = keff[0]
+            keff = keff[index]
         keff[1] *= keff[0]
 
         xsLeader = "inf" if self.options["results"]["xs.getInfXS"] else "b1"
@@ -251,7 +255,7 @@ class SerpentProcessor:
 
         for univKey in self.burnable:
             xsdata = {}
-            universe = results.getUniv(univKey, index=0)
+            universe = results.getUniv(univKey, index=index)
             source = getattr(universe, xsLeader + "Exp")
             allFluxes.append(source[xsLeader + "Flx"])
             for reqKey in reqXS:
