@@ -62,35 +62,6 @@ class TransportSolver(ABC):
 
         """
 
-    @abstractmethod
-    def execute(self) -> float:
-        """Execute the simulation
-
-        Returns
-        -------
-        float
-            Wall time [s] required for simulation
-
-        Raises
-        ------
-        hydep.FailedSolverError
-            This exception, or an appropriate subclass, should
-            be raised to indicate some fatal error occured
-            in the solution
-        """
-
-    @abstractmethod
-    def processResults(self) -> TransportResult:
-        """Process output of solution
-
-        Returns
-        -------
-        TransportResult
-            Containing at least the flux and multiplication
-            factor.
-
-        """
-
     def finalize(self, success) -> None:
         """Perform any final actions before moving on or terminating
 
@@ -104,19 +75,6 @@ class TransportSolver(ABC):
             Flag indicating the success of the current solution
         """
 
-    def _solve(self) -> TransportResult:
-        success = True
-        try:
-            runTime = self.execute()
-            res = self.processResults()
-            res.runTime = runTime
-        except Exception as ee:
-            success = False
-            raise ee
-        finally:
-            self.finalize(success)
-
-        return res
 
 class HighFidelitySolver(TransportSolver):
     """High fidelity transport solver"""
@@ -132,40 +90,6 @@ class HighFidelitySolver(TransportSolver):
         """
 
     @abstractmethod
-    def processResults(self) -> TransportResult:
-        """Process output of solution
-
-        Returns
-        -------
-        TransportResult
-            Containing flux, multiplication factor, and any
-            information needed by reduced order solver and
-            depletion manager. These will be declared through
-            :meth:`setHooks`
-
-        """
-
-    @abstractmethod
-    def bosUpdate(self, compositions, timestep, power) -> None:
-        """Perform any updating with new compositions
-
-        Assume that new materials have already been updated
-        in memory
-
-        Parameters
-        ----------
-        compositions : hydep.internal.CompBundle
-            New compositions for this point in time such that
-            ``compositions.densities[i][j]`` is the updated
-            atom density for ``compositions.zai[j]`` for material
-            ``i``
-        timestep : hydep.internal.TimeStep
-            Current point in calendar time for the beginning
-            of this coarse step
-        power : float
-            Current power [W]
-        """
-
     def bosSolve(self, compositions, timestep, power) -> TransportResult:
         """Solve BOS transport and return results
 
@@ -192,16 +116,13 @@ class HighFidelitySolver(TransportSolver):
             is computed from :meth:`bosExecute`. Additional data
             should be included corresponding to hooks
         """
-        self.bosUpdate(compositions, timestep, power)
-        return super()._solve()
 
     def eolSolve(self, compositions, timestep, power) -> TransportResult:
         """Perform the final transport solution
 
-        No further transport solutions will follow. Similar solution
-        routine as :meth:`bosSolve`, but update using :meth:`eolUpdate`
-        instead. Provided for subclasses that wish to change how the
-        final step is handled.
+        No further transport solutions will follow. If not overwritten,
+        defer back to :meth:`bosSolve`. Provided for subclasses that
+        wish to change how the final step is handled.
 
         Parameters
         ----------
@@ -224,34 +145,7 @@ class HighFidelitySolver(TransportSolver):
             should be included corresponding to hooks
 
         """
-        self.eolUpdate(compositions, timestep, power)
-        return super()._solve()
-
-    def eolUpdate(self, compositions, timestep, power) -> None:
-        """Prepare for the final transport simulation
-
-        Provided for subclasses that may wish to handle the final
-        step differently that all other steps. It should be expected
-        that no further transport solutions will be requested after
-        this method.
-
-        Defaults to :meth:`bosUpdate` unless overwritten by subclasses.
-
-        Parameters
-        ----------
-        compositions : hydep.internal.CompBundle
-            New compositions for this point in time such that
-            ``compositions.densities[i][j]`` is the updated
-            atom density for ``compositions.zai[j]`` for material
-            ``i``
-        timestep : hydep.internal.TimeStep
-            Current point in calendar time for the beginning
-            of this coarse step
-        power : float
-            Current power [W]
-
-        """
-        return self.bosUpdate(compositions, timestep, power)
+        return self.bosSolve(compositions, timestep, power)
 
     @abstractmethod
     def setHooks(self, needs):
@@ -320,40 +214,10 @@ class ReducedOrderSolver(TransportSolver):
         """Features needed by this reduced order solver"""
 
     @abstractmethod
-    def processResults(self) -> TransportResult:
-        """Process output of solution
-
-        Returns
-        -------
-        TransportResult
-            Containing at least the flux and multiplication
-            factor.
-
-        """
-
-    @abstractmethod
-    def substepUpdate(self, timestep, compositions, microCrossSections) -> None:
-        """Prepare for solution phase with new information
-
-        Parameters
-        ----------
-        timestep : hydep.internal.TimeStep
-            Current time step information
-        compositions : hydep.internal.CompBundle
-            Updated compositions for this ``timestep``
-        microCrossSections : iterable of hydep.internal.MicroXsVector
-            Microscopic cross sections extrapolated for this time step.
-            Each entry corresponds to a burnable material, ordered
-            conisistent with the remainder of the framework
-        """
-
     def substepSolve(
         self, timestep, compositions, microCrossSections
     ) -> TransportResult:
         """Solve reduced order problem at a substep
-
-        This method relies upon :meth:`substepUpdate`, :meth:`execute`,
-        :meth:`processResults`, and :meth:`finalize`
 
         Parameters
         ----------
@@ -372,8 +236,6 @@ class ReducedOrderSolver(TransportSolver):
             At least flux, keff, and run time for this substep solution
 
         """
-        self.substepUpdate(timestep, compositions, microCrossSections)
-        return super()._solve()
 
     def processBOS(self, txResult, timestep, power):
         """Process data from the beginning of step high fidelity solution
