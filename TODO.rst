@@ -1,18 +1,16 @@
 Big open items
 ==============
 
-* Storing of results in a nice framework
 * Documentation outside of docstrings
-* Non-constant fission yields
 
 TODOs
 =====
 
-* Status reporting 
-* Provide some enum or constants for reaction MTs
 * Ensure non-negativity of depletion results
 * Standardize microXS vs microXs
 * Guard against hooks that aren't supported by solvers
+* Improve result storing / setting up result storage. Kind of clunky
+  and hidden for the moment
 * Validate configuration options to avoid typos
 * Resolve how hydep.Pin objects are handled by numpy
 * Remove most assert statements in favor of actual checks
@@ -26,8 +24,6 @@ TODOs
 Serpent
 -------
 
-* Writing metastable isotopes
-* Writing / working with metastable isotopes
 * Get microscopic cross sections without second transport simulation
 * Improved parsing of error at output
 * Pull and check model.bounds, not model.root.bounds
@@ -40,7 +36,7 @@ Caveats
 
 Wish list
 =========
-* Verbosity control
+
 * Multigroup
 * Reflective geometry
 * OpenMC compatibility?
