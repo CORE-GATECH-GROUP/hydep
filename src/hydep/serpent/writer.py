@@ -617,7 +617,7 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
         else:
             self._writeFluxDetectors(stream)
         if hdfeat.MICRO_REACTION_XS in self.hooks:
-            self._writelocalmicroxs(stream)
+            self._writeMdep(stream)
 
     def _writefmtx(self, stream):
         stream.write("set fmtx 2 ")
@@ -635,14 +635,7 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
         lines = map("du {}".format, (m.id for m in self.burnable))
         stream.write(self._textwrapper.fill("\n".join(lines)) + "\n")
 
-    def _writelocalmicroxs(self, stream):
-        self.commentblock(
-            stream,
-            """BEGIN MICROSCOPIC REACTION XS BLOCK
-Need to trick Serpent into given this information, but we don't want a ton
-of depletion. Add a single one day step here. Maybe hack something later""",
-        )
-        stream.write("dep daystep 1\nset pcc 0\n")
+    def _writeMdep(self, stream):
         for m in self.burnable:
             stream.write(f"set mdep {m.id} 1.0 1 {m.id}\n")
             reactions = self._getReactions(set(m))
@@ -651,6 +644,7 @@ of depletion. Add a single one day step here. Maybe hack something later""",
 
     @staticmethod
     def _getReactions(isotopes):
+        # TODO Cache the reactions given a set of isotopes
         reactions = set()
         previous = {None}
         while isotopes:
@@ -790,6 +784,15 @@ class SerpentWriter(BaseWriter):
                 continue
             self.writemat(stream, mat)
 
+    def _writeMdep(self, stream):
+        self.commentblock(
+            stream,
+            """BEGIN MICROSCOPIC REACTION XS BLOCK
+Need to trick Serpent into given this information, but we don't want a ton
+of depletion. Add a single one day step here. Maybe hack something later""",
+        )
+        stream.write("dep daystep 1\nset pcc 0\n")
+        super()._writeMdep(stream)
 
     def writeSteadyStateFile(self, path, compositions, timestep, power, final=False):
         """Write updated burnable materials for steady state solution
