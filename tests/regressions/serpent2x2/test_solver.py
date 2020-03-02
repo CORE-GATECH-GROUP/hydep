@@ -1,4 +1,5 @@
 import pathlib
+from unittest.mock import Mock
 
 import pytest
 import hydep
@@ -10,7 +11,7 @@ from tests.regressions import ResultComparator, ProblemProxy
 
 
 @pytest.fixture
-def serpentModel(toy2x2lattice):
+def serpent2x2Problem(simpleChain, toy2x2lattice):
     # Include the chain so reactions are present
     model = hydep.Model(toy2x2lattice)
     model.differentiateBurnableMaterials(updateVolumes=False)
@@ -19,7 +20,11 @@ def serpentModel(toy2x2lattice):
     for m in burnable:
         m.volume = 2.0  # enforce some division in volumes
 
-    yield ProblemProxy(model, burnable)
+    manager = Mock()
+    manager.burnable = burnable
+    manager.chain = simpleChain
+
+    yield ProblemProxy(model, manager)
 
 
 @pytest.fixture
@@ -50,9 +55,7 @@ def serpentSolver(tmpdir):
 
 
 @pytest.mark.serpent
-def test_serpentSolver(simpleChain, serpentSolver, serpentModel):
-    model = serpentModel.model
-    burnable = serpentModel.burnable
+def test_serpentSolver(serpentSolver, serpent2x2Problem):
 
     # Set hooks for slightly realistic problem
     XS_KEYS = {"abs", "fiss"}
@@ -64,11 +67,12 @@ def test_serpentSolver(simpleChain, serpentSolver, serpentModel):
 
     assert serpentSolver.hooks == hooks
 
-    serpentSolver.beforeMain(model, burnable, simpleChain)
+    serpentSolver.beforeMain(serpent2x2Problem.model, serpent2x2Problem.manager)
 
     timeStep = hydep.internal.TimeStep(0, 0, 0, 0)
 
-    concentrations = hydep.internal.compBundleFromMaterials(serpentModel.burnable)
+    concentrations = hydep.internal.compBundleFromMaterials(
+        serpent2x2Problem.manager.burnable)
 
     # Set a realistic power for this time step
 

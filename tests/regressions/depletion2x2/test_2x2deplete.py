@@ -7,7 +7,6 @@ import pytest
 import hydep
 import hydep.internal
 
-from tests.regressions import ProblemProxy
 from . import DepletionComparator
 
 
@@ -81,13 +80,14 @@ def depletionModel():
     model = hydep.Model(assembly)
     model.bounds = assembly.bounds
 
-    yield ProblemProxy(model, tuple(model.root.findBurnableMaterials()))
+    yield model
 
 
 @pytest.fixture
 def depletionHarness(endfChain, depletionModel):
 
-    N_BURNABLE = len(depletionModel.burnable)
+    burnable = tuple(depletionModel.root.findBurnableMaterials())
+    N_BURNABLE = len(burnable)
     N_GROUPS = 1
 
     # Get microscopic cross sections, flux
@@ -104,7 +104,7 @@ def depletionHarness(endfChain, depletionModel):
     for ix in range(N_BURNABLE):
         mxsfile = datadir / "mxs{}.dat".format(ix + 1)
         assert mxsfile.is_file()
-        flux = fluxes[ix] / depletionModel.burnable[ix].volume
+        flux = fluxes[ix] / burnable[ix].volume
         mxsdata = numpy.loadtxt(mxsfile)
         zai = mxsdata[:, 0].astype(int)
         rxns = mxsdata[:, 1].astype(int)
@@ -120,7 +120,7 @@ def depletionHarness(endfChain, depletionModel):
     power = 6e6
     divisions = 1
     manager = hydep.Manager(endfChain, [timestep], [power], divisions)
-    manager.beforeMain(depletionModel.model)
+    manager.beforeMain(depletionModel)
 
     yield DepBundle(manager, microxs, fissionYields)
 

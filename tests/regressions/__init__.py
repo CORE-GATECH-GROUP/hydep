@@ -11,7 +11,7 @@ import pytest
 config = {"update": False}
 
 
-ProblemProxy = namedtuple("ProblemProxy", "model burnable")
+ProblemProxy = namedtuple("ProblemProxy", "model manager")
 
 
 def dumpSparseMatrix(writable, mtx, floatfmt="%.7E", intfmt="%5d"):
