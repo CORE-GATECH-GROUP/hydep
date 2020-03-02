@@ -41,7 +41,6 @@ class BaseWriter:
     _DEFAULT_DECLIB = "sss_endfb7.dec"
     _DEFAULT_NFYLIB = "sss_endfb7.nfy"
     bcmap = {"reflective": 2, "vacuum": 1, "periodic": 3}
-    _groupby = 7  # Arbitrary number of gcu, mdep, fmtx arguments to write per line
     hooks = TypedAttr("hooks", hdfeat.FeatureCollection)
     burnable = IterableOf("burnable", hydep.BurnableMaterial, allowNone=True)
 
@@ -607,19 +606,6 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
             bc.append(bcval)
         self.options["bc"] = bc
 
-    # TODO Replace with textwrap VVVV
-    def _writeIterableOverLines(self, stream, lines, delim=" "):
-        for count, line in enumerate(lines):
-            stream.write(line)
-            if count and count % self._groupby == 0:
-                stream.write("\n")
-            else:
-                stream.write(delim)
-        else:
-            return
-        if count % self._groupby != 0:
-            stream.write("\n")
-
     def _writehooks(self, stream):
         self.commentblock(stream, "BEGIN HOOKS")
         if hdfeat.FISSION_MATRIX in self.hooks:
@@ -634,20 +620,18 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
     def _writefmtx(self, stream):
         stream.write("set fmtx 2 ")
         lines = map("{}".format, (m.id for m in self.burnable))
-        self._writeIterableOverLines(stream, lines)
-        stream.write("\n")
+        stream.write(self._textwrapper.fill("\n".join(lines)) + "\n")
 
     def _writelocalgcu(self, stream):
         stream.write("set gcu ")
         lines = map("{}".format, (m.id for m in self.burnable))
-        self._writeIterableOverLines(stream, lines)
-        stream.write("\n")
+        stream.write(self._textwrapper.fill("\n".join(lines)) + "\n")
 
     def _writeFluxDetectors(self, stream):
         self.commentblock(stream, "BEGIN FLUX DETECTORS")
         stream.write(f"det flux de {self._eneGridName}\n")
         lines = map("du {}".format, (m.id for m in self.burnable))
-        self._writeIterableOverLines(stream, lines)
+        stream.write(self._textwrapper.fill("\n".join(lines)) + "\n")
 
     def _writelocalmicroxs(self, stream):
         self.commentblock(
@@ -661,7 +645,7 @@ of depletion. Add a single one day step here. Maybe hack something later""",
             stream.write(f"set mdep {m.id} 1.0 1 {m.id}\n")
             reactions = self._getReactions(set(m))
             lines = (f"{z} {m}" for z, m in sorted(reactions))
-            self._writeIterableOverLines(stream, lines)
+            stream.write(self._textwrapper.fill("\n".join(lines)) + "\n")
 
     @staticmethod
     def _getReactions(isotopes):
