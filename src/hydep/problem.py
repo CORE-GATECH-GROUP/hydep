@@ -70,10 +70,14 @@ class Problem(object):
 
             __logger__.debug(f"Setting default store to {HdfStore}")
 
-            self.store = HdfStore.fromManager(self.dep, nGroups=1)
+            self.store = HdfStore()
 
         self.store.beforeMain(
-            tuple(self.dep.chain), [(i, m) for i, m in enumerate(self.dep.burnable)],
+            nhf=len(self.dep.timesteps) + 1,
+            ntransport=sum(self.dep.substeps) + 1,
+            ngroups=1,
+            isotopes=tuple(self.dep.chain),
+            burnableIndexes=[(i, m) for i, m in enumerate(self.dep.burnable)],
         )
 
     def solve(self, initialDays=0):
