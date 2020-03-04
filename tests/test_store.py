@@ -70,6 +70,9 @@ def test_hdfStore(result, simpleChain, h5Destination):
     store = h5store.HdfStore(
         filename=h5Destination,
     )
+    assert store.fp.samefile(h5Destination)
+    assert store.fp.is_absolute()
+
     assert store.VERSION[0] == 0, "Test not updated for current file version"
 
     # Need to add an additional step to account for zeroth time step

@@ -176,6 +176,9 @@ class HdfStore(BaseStore):
         or performance improvements. Scripts that work for ``x.y`` can
         be expected to also work for ``x.z``, but compatability between
         ``a.b`` and ``c.d`` is not guaranteed.
+    fp : pathlib.Path
+        Read-only attribute with the absolute path of the intended result
+        result file
 
     Raises
     ------
@@ -210,7 +213,8 @@ class HdfStore(BaseStore):
         if filename is None:
             filename = "hydep-results.h5"
 
-        fp = pathlib.Path(filename)
+        fp = pathlib.Path(filename).resolve()
+
         if fp.exists():
             if not fp.is_file():
                 raise OSError(f"Result file {fp} exists but is not a file")
@@ -223,6 +227,10 @@ class HdfStore(BaseStore):
         with h5py.File(fp, mode="w", libver=libver) as h5f:
             h5f.attrs["file version"] = self.VERSION
         self._fp = fp
+
+    @property
+    def fp(self):
+        return self._fp
 
     @property
     def VERSION(self):
