@@ -5,10 +5,14 @@ Intended to provide a simple interface between user provided
 settings and individual solvers
 """
 
+import re
 from collections.abc import Sequence
 import typing
+from abc import abstractmethod, ABCMeta
 from hydep.typed import TypedAttr
 
+_CONFIG_CLASSES = {"hydep": None}
+_SUBSETTING_PATTERN = re.compile("^[A-Za-z][A-Za-z0-9_]*$")
 
 class ConfigMixin:
     """Mixin class for some basic type conversion"""
@@ -73,6 +77,29 @@ class ConfigMixin:
             return dtype(value)
         except ValueError as ve:
             raise ve from TypeError(f"Could not coerce {key}={value} to {dtype}")
+
+
+class SubSetting(ConfigMixin, metaclass=ABCMeta):
+    """Abstract base class for creating solver-specific settings"""
+    def __init_subclass__(cls, /, sectionName: str, **kwargs):
+        if not _SUBSETTING_PATTERN.match(sectionName):
+            raise ValueError(
+                f"Cannot create {cls} with section name {sectionName}. "
+                "Not a valid Python name, and \".\" characters are disallowed"
+            )
+        super().__init_subclass__(**kwargs)
+
+        if sectionName in _CONFIG_CLASSES:
+            reserved = ", ".join(sorted(_CONFIG_CLASSES))
+            raise ValueError(
+                f"Settings namespace {sectionName} already exists. Currently "
+                f"reserved namespaces are {reserved}"
+            )
+        _CONFIG_CLASSES[sectionName] = cls
+
+    @abstractmethod
+    def update(self, options: typing.Mapping[str, typing.Any]):
+        """Update given user-provided options"""
 
 
 class HydepSettings(ConfigMixin):
