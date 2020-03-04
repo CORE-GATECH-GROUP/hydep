@@ -1,5 +1,7 @@
+import random
+import string
 import pytest
-from hydep.settings import HydepSettings
+from hydep.settings import HydepSettings, SubSetting
 
 
 def test_settings():
@@ -39,3 +41,43 @@ def test_settings():
     assert fresh.boundaryConditions == ["reflective"] * 3
     assert fresh.archiveOnSuccess
     assert fresh.depletionSolver == "testSolver"
+
+
+def test_subsettings():
+    randomSection = "".join(random.sample(string.ascii_letters, 10))
+    settings = HydepSettings()
+    assert not hasattr(settings, "test")
+    assert not hasattr(settings, randomSection)
+
+    class IncompleteSetting(SubSetting, sectionName="incomplete"):
+        pass
+
+    with pytest.raises(TypeError, match=".*abstract methods"):
+        IncompleteSetting()
+
+    class MySubSettings(SubSetting, sectionName="test"):
+        def __init__(self):
+            self.truth = True
+
+        def update(self, options):
+            v = options.get("truth", None)
+            if v is not None:
+                self.truth = self.asBool("truth", v)
+
+    t = settings.test
+    assert isinstance(t, MySubSettings)
+    assert not hasattr(settings, randomSection)
+    assert t.truth
+    with pytest.raises(ValueError, match=".*test"):
+        class DuplicateSetting(SubSetting, sectionName="test"):
+            pass
+
+
+@pytest.mark.parametrize(
+    "name", ("0hello", "hello world", "hydep.serpent", "mock-test", "w!ld3xample")
+)
+def test_badSubsectionNames(name):
+    with pytest.raises(ValueError, match=f".*{name}"):
+
+        class Failure(SubSetting, sectionName=name):
+            pass
