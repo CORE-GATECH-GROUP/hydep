@@ -91,7 +91,7 @@ class SubSetting(ConfigMixin, metaclass=ABCMeta):
     expressions, and not contain any periods.
 
     """
-    def __init_subclass__(cls, /, sectionName: str, **kwargs):
+    def __init_subclass__(cls, sectionName: str, **kwargs):
         if not _SUBSETTING_PATTERN.match(sectionName):
             raise ValueError(
                 f"Cannot create {cls} with section name {sectionName}. "
