@@ -67,24 +67,19 @@ def test_hdfStore(result, simpleChain, h5Destination):
     START = TimeStep(0, 0, 0, 0)
     END = TimeStep(2, 1, 4, 10)
 
-    # Need to add an additional step to account for zeroth time step
-    store = HdfStore(
-        END.coarse + 1,
-        END.total + 1,
-        len(simpleChain),
-        N_BU_MATS,
-        N_GROUPS,
+    store = h5store.HdfStore(
         filename=h5Destination,
     )
     assert store.VERSION[0] == 0, "Test not updated for current file version"
 
-    assert store.nCoarseSteps == END.coarse + 1
-    assert store.nTotalSteps == END.total + 1
-    assert store.nIsotopes == len(simpleChain)
-    assert store.nGroups == N_GROUPS
-    assert store.nBurnableMaterials == N_BU_MATS
-
-    store.beforeMain(tuple(simpleChain), BU_INDEXES)
+    # Need to add an additional step to account for zeroth time step
+    store.beforeMain(
+        END.coarse + 1,
+        END.total + 1,
+        N_GROUPS,
+        tuple(simpleChain),
+        BU_INDEXES,
+    )
 
     store.postTransport(START, result)
 
@@ -122,7 +117,7 @@ def test_hdfStore(result, simpleChain, h5Destination):
     # existing files
 
     with pytest.raises(OSError):
-        HdfStore(1, 1, 1, 1, filename=h5Destination, existOkay=False)
+        h5store.HdfStore(filename=h5Destination, existOkay=False)
 
     with pytest.warns(UserWarning):
-        HdfStore(1, 1, 1, 1, filename=h5Destination, existOkay=True)
+        h5store.HdfStore(filename=h5Destination, existOkay=True)
