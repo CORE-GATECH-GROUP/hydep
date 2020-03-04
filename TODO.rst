@@ -9,8 +9,6 @@ TODOs
 * Ensure non-negativity of depletion results
 * Standardize microXS vs microXs
 * Guard against hooks that aren't supported by solvers
-* Improve result storing / setting up result storage. Kind of clunky
-  and hidden for the moment
 * Validate configuration options to avoid typos
 * Resolve how hydep.Pin objects are handled by numpy
 * Remove most assert statements in favor of actual checks
