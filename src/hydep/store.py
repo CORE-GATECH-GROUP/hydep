@@ -63,89 +63,29 @@ class BaseStore(ABC):
 
     """
 
-    def __init__(
-        self,
-        nCoarseSteps: int,
-        nTotalSteps: int,
-        nIsotopes: int,
-        nBurnableMaterials: int,
-        nGroups: typing.Optional[int] = 1,
-        **kwargs,
-    ):
-        self._nCoarseSteps = int(nCoarseSteps)
-        self._nTotalSteps = int(nTotalSteps)
-        self._nBurnableMaterials = int(nBurnableMaterials)
-        self._nIsotopes = int(nIsotopes)
-        self._nGroups = int(nGroups)
-
-    @classmethod
-    def fromManager(cls, manager, nGroups: typing.Optional[int] = 1, **kwargs):
-        """Construct a store given a depletion manager
-
-        Parameters
-        ----------
-        manager : hydep.Manager
-            Class containing depletion information, including time schedule,
-            isotopes, and burnable materials
-        ngroup : int, optional
-            Number of energy groups used for fluxes and cross sections in the
-            simulation. Default to 1
-        kwargs : dict
-            Additional keyword arguments to be passed to the primary
-            construction method
-
-        Returns
-        -------
-        BaseStore
-            Instance of some concrete class of :class:`BaseStore`
-
-        """
-        if manager.burnable is None:
-            raise AttributeError(f"No burnable materials stored on the {manager}")
-
-        return cls(
-            len(manager.timesteps),
-            sum(manager.substeps) + 1,
-            len(manager.chain),
-            len(manager.burnable),
-            nGroups,
-            **kwargs,
-        )
-
-    @property
-    def nCoarseSteps(self) -> int:
-        return self._nCoarseSteps
-
-    @property
-    def nTotalSteps(self) -> int:
-        return self._nTotalSteps
-
-    @property
-    def nBurnableMaterials(self) -> int:
-        return self._nBurnableMaterials
-
-    @property
-    def nIsotopes(self) -> int:
-        return self._nIsotopes
-
-    @property
-    def nGroups(self) -> int:
-        return self._nGroups
-
     @abstractmethod
-    def beforeMain(self, isotopes, burnableIndexes, **kwargs) -> None:
+    def beforeMain(self, nhf, ntransport, ngroups, isotopes, burnableIndexes) -> None:
         """Called before main simulation sequence
 
         Parameters
         ----------
+        nhf : int
+            Number of high-fidelity transport solutions that will be
+            used in this sequence. Also equal to one more than the
+            number of coarse depletion intervals
+        ntransport : int
+            Number of total transport solutions (high fidelity and
+            reduced oder) employed in this sequence. Also equal to
+            one more than the number of depletion events (including
+            substeps)
+        ngroups : int
+            Number of energy groups values like fluxes and cross sections
+            will contain
         isotopes : tuple of hydep.internal.Isotope
             Isotopes used in the depletion chain
         burnableIndexes : iterable of [int, str]
             Burnable material ids and names ordered how they
             are used across the sequence
-        kwargs : dict
-            Additional key word arguments that should be regarded
-            as descriptive
 
         """
 

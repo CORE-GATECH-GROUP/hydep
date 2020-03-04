@@ -154,26 +154,13 @@ class HdfStore(BaseStore):
 
     Parameters
     ----------
-    nCoarseSteps : int
-        Number of coarse time steps used in the simulation. These
-        values reflect the number of high fidelity transport
-        simulations in the coupled sequence
-    nTotalSteps : int
-        Number of total time steps, including substeps, in the
-        simulation. These correspond to be high fidelity and
-        reduced order solutions
-    nBurnableMaterials : int
-        Number of burnable materials in the entire problem
-    nGroups : int, optional
-        Number of energy groups [default 1] for fluxes, cross
-        sections, and reaction rates.
+    filename : str, optional
+        Name of the file to be written. Default: ``"hydep-results.h5"``
     libver : {"earliest", "latest"}, optional
         Which version of HDF file to write. Passing
         ``"earliest"`` helps with back compatability **with the
         hdf5 library**, while ``"latest"`` may come with
         performance improvements. Default: ``"latest"``
-    filename : str, optional
-        Name of the file to be written. Default: ``"hydep-results.h5"``
     existOkay : bool, optional
         If ``filename`` exists and is a file, this controls if
         a warning is raised (True) or error (False). The file
@@ -182,19 +169,6 @@ class HdfStore(BaseStore):
 
     Attributes
     ----------
-    nCoarseSteps : int
-        Number of coarse time steps used in the simulation. These
-        values reflect the number of high fidelity transport
-        simulations in the coupled sequence
-    nTotalSteps : int
-        Number of total time steps, including substeps, in the
-        simulation. These correspond to be high fidelity and
-        reduced order solutions
-    nBurnableMaterials : int
-        Number of burnable materials in the entire problem
-    nGroups : int, optional
-        Number of energy groups [default 1] for fluxes, cross
-        sections, and reaction rates.
     VERSION : Tuple[int, int]
         Major and minor version of the stored data. Changes to major
         version will reflect new layouts and/or data has been removed.
@@ -202,6 +176,9 @@ class HdfStore(BaseStore):
         or performance improvements. Scripts that work for ``x.y`` can
         be expected to also work for ``x.z``, but compatability between
         ``a.b`` and ``c.d`` is not guaranteed.
+    fp : pathlib.Path
+        Read-only attribute with the absolute path of the intended result
+        result file
 
     Raises
     ------
@@ -225,27 +202,19 @@ class HdfStore(BaseStore):
 
     def __init__(
         self,
-        nCoarseSteps: int,
-        nTotalSteps: int,
-        nIsotopes: int,
-        nBurnableMaterials: int,
-        nGroups: typing.Optional[int] = 1,
-        libver: typing.Optional[str] = None,
         filename: typing.Optional[str] = None,
+        libver: typing.Optional[str] = None,
         existOkay: typing.Optional[bool] = True,
     ):
 
         if libver is None:
             libver = "latest"
 
-        super().__init__(
-            nCoarseSteps, nTotalSteps, nIsotopes, nBurnableMaterials, nGroups
-        )
-
         if filename is None:
             filename = "hydep-results.h5"
 
-        fp = pathlib.Path(filename)
+        fp = pathlib.Path(filename).resolve()
+
         if fp.exists():
             if not fp.is_file():
                 raise OSError(f"Result file {fp} exists but is not a file")
@@ -253,26 +222,21 @@ class HdfStore(BaseStore):
                 raise FileExistsError(
                     f"Refusing to overwrite result file {fp} since existOkay is True"
                 )
-            warnings.warn("Result file {fp} exists and will be overwritten")
+            warnings.warn(f"Result file {fp} exists and will be overwritten")
 
         with h5py.File(fp, mode="w", libver=libver) as h5f:
             h5f.attrs["file version"] = self.VERSION
-            for src, dest in (
-                ("nCoarseSteps", "coarse steps"),
-                ("nTotalSteps", "total steps"),
-                ("nIsotopes", "isotopes"),
-                ("nBurnableMaterials", "burnable materials"),
-                ("nGroups", "energy groups"),
-            ):
-                h5f.attrs[dest] = getattr(self, src)
-
         self._fp = fp
+
+    @property
+    def fp(self):
+        return self._fp
 
     @property
     def VERSION(self):
         return self._VERSION
 
-    def beforeMain(self, isotopes, burnableIndexes):
+    def beforeMain(self, nhf, ntransport, ngroups, isotopes, burnableIndexes):
         """Called before main simulation sequence
 
         Parameters
@@ -285,22 +249,30 @@ class HdfStore(BaseStore):
 
         """
         with h5py.File(self._fp, "a") as h5f:
+            for src, dest in (
+                (nhf, "coarse steps"),
+                (ntransport, "total steps"),
+                (len(isotopes), "isotopes"),
+                (len(burnableIndexes), "burnable materials"),
+                (ngroups, "energy groups"),
+            ):
+                h5f.attrs[dest] = src
 
             tgroup = h5f.create_group(self._timeKey)
-            tgroup.create_dataset("time", (self.nTotalSteps,))
-            tgroup.create_dataset("high fidelity", (self.nTotalSteps,), dtype="i8")
+            tgroup.create_dataset("time", (ntransport,))
+            tgroup.create_dataset("high fidelity", (ntransport,), dtype="i8")
 
-            h5f.create_dataset(self._kKey, (self.nTotalSteps, 2))
+            h5f.create_dataset(self._kKey, (ntransport, 2))
 
-            h5f.create_dataset(self._cputimeKey, (self.nTotalSteps,))
+            h5f.create_dataset(self._cputimeKey, (ntransport,))
 
             h5f.create_dataset(
-                self._fluxKey, (self.nTotalSteps, self.nBurnableMaterials, self.nGroups)
+                self._fluxKey, (ntransport, len(burnableIndexes), ngroups)
             )
 
             h5f.create_dataset(
                 self._compKey,
-                (self.nTotalSteps, self.nBurnableMaterials, self.nIsotopes),
+                (ntransport, len(burnableIndexes), len(isotopes)),
             )
 
             isogroup = h5f.create_group(self._isotopeKey)
@@ -359,7 +331,7 @@ class HdfStore(BaseStore):
                 if fGroup is None:
                     fGroup = h5f.create_group(self._fmtxKey)
                     fGroup.attrs["structure"] = "csr"
-                    fGroup.attrs["shape"] = (self.nBurnableMaterials,) * 2
+                    fGroup.attrs["shape"] = fmtx.shape
                 thisG = fGroup.create_group(str(timeindex))
                 thisG.attrs["nnz"] = fmtx.nnz
                 for attr in {"data", "indices", "indptr"}:
@@ -381,6 +353,5 @@ class HdfStore(BaseStore):
             :meth:`beforeMain`
 
         """
-        index = timeStep.total
         with h5py.File(self._fp, mode="a") as h5f:
-            h5f[self._compKey][index] = compBundle.densities
+            h5f[self._compKey][timeStep.total] = compBundle.densities
