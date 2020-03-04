@@ -1,5 +1,6 @@
 import random
 import string
+
 import pytest
 from hydep.settings import HydepSettings, SubSetting
 
@@ -68,6 +69,20 @@ def test_subsettings():
     assert isinstance(t, MySubSettings)
     assert not hasattr(settings, randomSection)
     assert t.truth
+
+    settings.updateAll({"hydep": {}, "hydep.test": {"truth": "0"}})
+    assert not t.truth
+
+    fresh = HydepSettings()
+    fresh.updateAll(
+        {"hydep": {"depletion solver": "cram48"}, "hydep.test": {"truth": "n"}}
+    )
+    assert fresh.depletionSolver == "cram48"
+    assert not fresh.test.truth
+
+    with pytest.raises(ValueError, match=f".*{randomSection}"):
+        fresh.updateAll({"hydep": {}, f"hydep.{randomSection}": {"key": "value"}})
+
     with pytest.raises(ValueError, match=".*test"):
         class DuplicateSetting(SubSetting, sectionName="test"):
             pass

@@ -5,6 +5,7 @@ Intended to provide a simple interface between user provided
 settings and individual solvers
 """
 
+import copy
 import re
 from collections.abc import Sequence
 import typing
@@ -80,7 +81,16 @@ class ConfigMixin:
 
 
 class SubSetting(ConfigMixin, metaclass=ABCMeta):
-    """Abstract base class for creating solver-specific settings"""
+    """Abstract base class for creating solver-specific settings
+
+    Denoted as a sub-setting, because these are used by :class:`HydepSettings`
+    when a subsection is encountered. Subclasses should provide a unique
+    ``sectionName`` and also implement all abstract methods, as the
+    first subclass with ``sectionName`` will be found during
+    :meth:`HydepSettings.updateAll`. Section names must be valid python
+    expressions, and not contain any periods.
+
+    """
     def __init_subclass__(cls, /, sectionName: str, **kwargs):
         if not _SUBSETTING_PATTERN.match(sectionName):
             raise ValueError(
@@ -211,6 +221,65 @@ class HydepSettings(ConfigMixin):
         if len(bc) == 1:
             return bc * 3
         return bc
+
+    def updateAll(self, options):
+        """Update settings for this instance and any subsections
+
+        Sub-sections are expected to be found via first-level keys match
+        ``hydep.<key>``. Settings for the Serpent interface should be
+        in the sub-map ``options["hydep.serpent"]``. Any key not starting
+        with :attr:`self.name` will be skipped.
+
+        Parameters
+        ----------
+        option : dict of str -> {key: value}
+            Two-tiered dictionary mapping settings for this and connected
+            solvers / features.
+
+        Raises
+        ------
+        ValueError
+            If no values are found under :attr:`name`. If no
+            corresponding sub-section is found under ``<name>.<key>``.
+        AttributeError
+            If a subsection would collide with a non-subsection
+            attribute, e.g. :attr:`archiveOnSuccess`.
+
+        See Also
+        --------
+        *. :attr:`update` - Updating rules for just this class
+
+        """
+        mainkeys = options.get(self.name)
+        if mainkeys is None:
+            raise ValueError(f"No settings for {self.name} found. Refusing to advance")
+
+        self.update(copy.copy(mainkeys))
+
+        # Process sub-settings, but only go one level deep
+
+        pattern = re.compile(f"^{self.name}\\.(.*)")
+
+        for key, section in options.items():
+            if not key.startswith(self.name) or key == self.name:
+                continue
+
+            match = pattern.search(key)
+            if match is None:
+                raise ValueError(f"Subsections must match {pattern}. Found {key}")
+
+            name = match.groups()[0]
+
+            if not hasattr(self, name):
+                raise ValueError(f"No section found matching f{name}")
+
+            groups = getattr(self, name)
+            if not isinstance(groups, SubSetting):
+                raise AttributeError(
+                    f"Cannot provide a subsection {key} that matches a main setting "
+                    f"{name}"
+                )
+            groups.update(section)
 
     def update(self, options: typing.Mapping[str, typing.Any]):
         """Update attributes using a dictionary
