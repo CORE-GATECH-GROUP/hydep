@@ -10,8 +10,76 @@ import typing
 from hydep.typed import TypedAttr
 
 
-class HydepSettings:
+class ConfigMixin:
+    """Mixin class for some basic type conversion"""
+    @staticmethod
+    def asBool(key: str, value: typing.Union[str, bool, int]) -> bool:
+        """
+        Coerce a key to boolean
+
+        Parameters
+        ----------
+        key : str
+            Name of this setting. Used in error reporting
+        value : string or bool or int
+            Trivial for booleans. If integer, return the corresponding
+            value **only** for values of ``1`` and ``0``. If a string,
+            values of ``{"1", "yes", "y", "true"}`` denote True, values
+            of ``{"0", "no", "n", "false"}`` denote False. Strings are
+            case-insensitive
+
+        Raises
+        ------
+        TypeError
+            If the conversion fails
+
+        """
+        if isinstance(value, bool):
+            return value
+        elif isinstance(value, int):
+            if value == 0:
+                return False
+            if value == 1:
+                return True
+        elif isinstance(value, str):
+            if value.lower() in {"1", "yes", "y", "true"}:
+                return True
+            if value.lower() in {"0", "no", "n", "false"}:
+                return False
+
+        raise TypeError(f"Could not coerce {key}={value} to boolean")
+
+    @staticmethod
+    def asType(dtype: type, key: str, value: str):
+        """Convert an incoming string to a given type
+
+        Thin wrapper around ``dtype(value)`` with a better error
+        message.
+
+        Parameters
+        ----------
+        dtype : type, callable
+            Desired datatype or function that can produce it given ``value``
+        key : str
+            Name of the setting. Used only in error reporting
+        value : str
+            Incoming value from the configuration
+
+        Raises
+        ------
+        TypeError
+        """
+        try:
+            return dtype(value)
+        except ValueError as ve:
+            raise ve from TypeError(f"Could not coerce {key}={value} to {dtype}")
+
+
+class HydepSettings(ConfigMixin):
     """Main setting configuration with validation
+
+    Types are enforced so that downstream solvers can assume some
+    constancy.
 
     Parameters
     ----------
@@ -54,29 +122,6 @@ class HydepSettings:
         else:
             self.boundaryConditions = boundaryConditions
 
-    def asBool(self, key: str, value: typing.Union[str, bool]) -> bool:
-        """Coerce a key to boolean"""
-        if isinstance(value, bool):
-            return value
-        elif isinstance(value, int):
-            if value == 0:
-                return False
-            if value == 1:
-                return True
-        elif isinstance(value, str):
-            if value.lower() in {"1", "yes", "y", "true"}:
-                return True
-            if value.lower() in {"0", "no", "n", "false"}:
-                return False
-
-        raise TypeError(f"Could not coerce {key}={value} to boolean")
-
-    @staticmethod
-    def asType(dtype: type, key: str, value: str):
-        try:
-            return dtype(value)
-        except ValueError:
-            raise TypeError(f"Could not coerce {key}={value} to {dtype}")
 
     @property
     def name(self):
