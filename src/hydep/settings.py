@@ -103,7 +103,25 @@ class SubSetting(ConfigMixin, metaclass=ABCMeta):
 
 
 class HydepSettings(ConfigMixin):
-    """Main setting configuration with validation
+    """Main setting configuration with validation and dynamic lookup
+
+    Intended to be passed to various solvers in the framework. Solver
+    specific settings may be included in :class:`SubSetting` instances
+    that may not exist at construction, but will be dynamically
+    created and assigned. For example::
+
+    >>> h = HydepSettings()
+    >>> hasattr(h, "example")
+    False
+
+    >>> class ExampleSubsection(SubSetting, sectionName="example"):
+    ...    def __init__(self):
+    ...        self.value = 5
+    ...    def update(self, *args, **kwargs):
+    ...        pass   # noop
+
+    >>> h.example.value
+    5
 
     Types are enforced so that downstream solvers can assume some
     constancy.
@@ -149,6 +167,15 @@ class HydepSettings(ConfigMixin):
         else:
             self.boundaryConditions = boundaryConditions
 
+    def __getattr__(self, name):
+        klass = _CONFIG_CLASSES.get(name)
+        if klass is None:
+            raise AttributeError(
+                f"No attribute nor sub-settings of {name} found on {self}"
+            )
+        subset = klass()
+        setattr(self, name, subset)
+        return subset
 
     @property
     def name(self):
