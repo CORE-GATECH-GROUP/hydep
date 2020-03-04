@@ -10,6 +10,8 @@ import re
 from collections.abc import Sequence
 import typing
 from abc import abstractmethod, ABCMeta
+import numbers
+
 from hydep.typed import TypedAttr
 
 _CONFIG_CLASSES = {"hydep": None}
@@ -78,6 +80,19 @@ class ConfigMixin:
             return dtype(value)
         except ValueError as ve:
             raise ve from TypeError(f"Could not coerce {key}={value} to {dtype}")
+
+    @staticmethod
+    def asInt(key: str, value: typing.Any) -> int:
+        if not isinstance(value, numbers.Integral):
+            if isinstance(value, numbers.Real):
+                raise TypeError(f"Will not coerce {key}={value} from real to integer")
+        return int(value)
+
+    def asPositiveInt(self, key: str, value: typing.Any) -> int:
+        candidate = self.asInt(key, value)
+        if candidate > 0:
+            return candidate
+        raise ValueError(f"{key}={value} must be positive integer")
 
 
 class SubSetting(ConfigMixin, metaclass=ABCMeta):
