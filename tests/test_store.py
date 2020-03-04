@@ -2,9 +2,9 @@ import numpy
 import h5py
 import scipy.sparse
 import pytest
-from hydep.h5store import HdfStore
 from hydep.internal import TimeStep, TransportResult, CompBundle
 
+h5store = pytest.importorskip("hydep.h5store")
 
 @pytest.fixture
 def result() -> TransportResult:
