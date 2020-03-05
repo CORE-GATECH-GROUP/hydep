@@ -87,6 +87,8 @@ class ConfigMixin:
         if not isinstance(value, numbers.Integral):
             if isinstance(value, numbers.Real):
                 raise TypeError(f"Will not coerce {key}={value} from real to integer")
+        if isinstance(value, bool):
+            raise TypeError(f"Will not coerce {key}={value} from bool to integer")
         return int(value)
 
     def asPositiveInt(self, key: str, value: typing.Any) -> int:

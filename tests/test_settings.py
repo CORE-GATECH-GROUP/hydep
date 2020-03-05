@@ -43,6 +43,10 @@ def test_settings():
     assert fresh.archiveOnSuccess
     assert fresh.depletionSolver == "testSolver"
 
+    # Test some conversion
+    with pytest.raises(TypeError, match=".*bool.*integer"):
+        fresh.asInt("test", False)
+
 
 def test_subsettings():
     randomSection = "".join(random.sample(string.ascii_letters, 10))
