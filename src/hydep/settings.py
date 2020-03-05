@@ -17,6 +17,7 @@ from hydep.typed import TypedAttr
 _CONFIG_CLASSES = {"hydep": None}
 _SUBSETTING_PATTERN = re.compile("^[A-Za-z][A-Za-z0-9_]*$")
 
+
 class ConfigMixin:
     """Mixin class for some basic type conversion"""
     @staticmethod
@@ -156,7 +157,7 @@ class HydepSettings(ConfigMixin):
     archiveOnSuccess : bool, optional
         Intial value for :attr:`archiveOnSuccess`. Default: ``False``
     depletionSolver : str, optional
-        Initla value for :attr:`depletionSolver`. Default: ``"cram16"``
+        Initial value for :attr:`depletionSolver`.
     boundaryConditions : str or iterable of str, optional
         Initial value for :attr:`boundaryConditions`. Default is
         vacuum in x, y, and z direction
@@ -176,7 +177,6 @@ class HydepSettings(ConfigMixin):
 
     _name = "hydep"
     archiveOnSuccess = TypedAttr("_archiveOnSuccess", bool)
-    depletionSolver = TypedAttr("_depletionSolver", str)
     _ALLOWED_BC = frozenset({"reflective", "periodic", "vacuum"})
 
     def __init__(
@@ -186,7 +186,7 @@ class HydepSettings(ConfigMixin):
             boundaryConditions=None,
     ):
         self.archiveOnSuccess = archiveOnSuccess
-        self.depletionSolver = "cram16" if depletionSolver is None else depletionSolver
+        self.depletionSolver = depletionSolver
         if boundaryConditions is None:
             self._boundaryConditions = ("vacuum",) * 3
         else:
