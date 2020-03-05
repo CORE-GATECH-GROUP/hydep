@@ -9,11 +9,11 @@ Proc. Int. Conf. Mathematics and Computational Methods Applied to Nuclear
 Science and Engineering, Sun Valley, Idaho, May 5--9 (2013).
 
 """
-import configparser
 import io
 
 import pytest
 import hydep
+hdserpent = pytest.importorskip("hydep.serpent")
 from hydep.serpent.utils import Library
 
 
@@ -182,22 +182,21 @@ ENDF/B-VI.8 Data for Serpent 1.1.0 (HinH20 at 600.00K)         mat 125""")
 @pytest.fixture
 def serpentcfg(mockSerpentData):
     """Fixture with just the "hydep.serpent" configuration options"""
-    options = {
-        "hydep.serpent": {
-            "boundary conditions": "reflective",
-            "particles": 200,
-            "generations per batch": 5,
-            "active": 5, "skipped": 2,
-            "executable": "sss2",
-            "acelib": mockSerpentData[Library.ACE],
-            "declib": mockSerpentData[Library.DEC],
-            "nfylib": mockSerpentData[Library.NFY],
-            "thermal scattering": mockSerpentData[Library.SAB],
-        },
-    }
-    cfg = configparser.ConfigParser()
-    cfg.read_dict(options)
-    return cfg["hydep.serpent"]
+    serpent = hdserpent.SerpentSettings(
+        acelib=mockSerpentData[Library.ACE],
+        declib=mockSerpentData[Library.DEC],
+        nfylib=mockSerpentData[Library.NFY],
+        sab=mockSerpentData[Library.SAB],
+        particles=200,
+        generationsPerBatch=5,
+        active=5,
+        inactive=2,
+        executable="sss2",
+    )
+    settings = hydep.settings.HydepSettings(boundaryConditions="reflective")
+
+    settings.serpent = serpent
+    return settings
 
 
 @pytest.fixture
