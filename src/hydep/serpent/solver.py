@@ -16,7 +16,7 @@ from hydep.internal import configmethod, TransportResult
 import hydep.internal.features as hdfeat
 
 from .writer import SerpentWriter, ExtDepWriter
-from .runner import SerpentRunner, ExtDepRunner, STATE
+from .runner import SerpentRunner, ExtDepRunner
 from .processor import SerpentProcessor, FissionYieldFetcher
 from .xsavail import XS_2_1_30
 
