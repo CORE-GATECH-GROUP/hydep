@@ -153,7 +153,7 @@ class BaseWriter:
 
         return tables
 
-    def updateProblemIsotopes(self, zais, xsfile=None):
+    def updateProblemIsotopes(self, zais, xsfile):
         """Search through an ACE file and update special isotopes
 
         Some isotopes may be included in the depletion chain, but
@@ -166,10 +166,9 @@ class BaseWriter:
         zais : iterable of [int, int, int]
             Z, A, I triplets of isotopes that could be included in
             future transport simulations.
-        xsfile : str or pathlib.Path, optional
+        xsfile : str or pathlib.Path
             Path to cross section look up table, usually ending in
-            ``.xsdata``. If not provided, then :attr:`datafiles`
-            must be configured via :meth:`configure`
+            ``.xsdata``.
 
         Returns
         -------
@@ -178,13 +177,6 @@ class BaseWriter:
             the library, or found under a different ZA number
 
         """
-        if xsfile is None:
-            if self.datafiles is None:
-                raise ValueError(
-                    "Either provide xsfile directly, or include when " "configuring"
-                )
-            xsfile = self.datafiles.xs
-
         with xsfile.open("r") as s:
             p = findProblemIsotopes(s, zais)
 
