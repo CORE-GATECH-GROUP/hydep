@@ -1,3 +1,4 @@
+import os
 import pathlib
 from unittest.mock import Mock
 
@@ -37,8 +38,12 @@ def serpentSolver(tmpdir):
         yield solver
         solver.finalize(True)
 
+
 @pytest.fixture
 def regressionSettings():
+    datadir = os.environ.get("SERPENT_DATA")
+    if not datadir:
+        pytest.skip("Need SERPENT_DATA environment variable")
     options = {
         "hydep": {"archive on success": True, "boundary conditions": "reflective"},
         "hydep.serpent": {
@@ -51,6 +56,7 @@ def regressionSettings():
             "acelib": "sss_endfb7u.xsdata",
             "declib": "sss_endfb7.dec",
             "nfylib": "sss_endfb7.nfy",
+            "datadir": datadir,
         },
     }
     settings = HydepSettings()

@@ -56,6 +56,9 @@ def pincell():
 
 @pytest.mark.serpent
 def test_external(runInTempDir, endfChain, pincell):
+    datadir = os.environ.get("SERPENT_DATA")
+    if not datadir:
+        pytest.skip("Need SERPENT_DATA environment variable")
     serpent = hdserpent.CoupledSerpentSolver()
     simplerom = hydep.simplerom.SimpleROSolver()
 
@@ -75,6 +78,7 @@ def test_external(runInTempDir, endfChain, pincell):
                 "acelib": "sss_endfb7u.xsdata",
                 "declib": "sss_endfb7.dec",
                 "nfylib": "sss_endfb7.nfy",
+                "datadir": datadir,
             },
         }
     )
