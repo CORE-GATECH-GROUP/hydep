@@ -17,20 +17,18 @@ def test_write2x2(serpentcfg, write2x2Model):
     writer = hydep.serpent.SerpentWriter()
     writer.burnable = burnable
     writer.model = write2x2Model
-    writer.configure(serpentcfg, 3)
-
-    assert writer.options["bc"] == [2, 2, 2]
 
     rundir = pathlib.Path(__file__).parent
     output = rundir / "2x2.txt"
     reference = rundir / "2x2_ref.txt"
     failfile = rundir / "2x2_fail.txt"
 
-    writer.writeBaseFile(output)
+    writer.writeBaseFile(output, serpentcfg)
 
     written = output.read_text()
     for key in {"acelib", "nfylib", "declib"}:
-        written = written.replace(serpentcfg[key], key.upper())
+        target = str(getattr(serpentcfg.serpent, key))
+        written = written.replace(target, key.upper())
     failfile.write_text(written)
 
     assert filecompare(reference, failfile, failfile)
