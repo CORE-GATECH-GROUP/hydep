@@ -1,6 +1,6 @@
 from unittest.mock import patch
 import pytest
-from hydep.serpent import SerpentRunner
+from hydep.serpent import SerpentRunner, SerpentSettings
 
 MAGIC_OMP_THREADS = 1234
 
@@ -51,3 +51,13 @@ def test_runner():
             break
     else:
         raise ValueError(f"Number of MPI tasks not found in {cmd}")
+
+@pytest.mark.serpent
+def test_config():
+    settings = SerpentSettings(executable="sss2", omp="10", mpi="4")
+    runner = SerpentRunner()
+
+    runner.configure(settings)
+    assert runner.executable == "sss2"
+    assert runner.omp == 10
+    assert runner.mpi == 4
