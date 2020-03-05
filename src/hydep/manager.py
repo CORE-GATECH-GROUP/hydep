@@ -5,7 +5,7 @@ Control time-steps, material divisions, depletion, etc
 """
 
 import numbers
-from collections.abc import Sequence
+from collections.abc import Sequence, Callable
 from itertools import repeat, starmap
 import multiprocessing
 
@@ -14,7 +14,7 @@ import numpy
 from hydep import BurnableMaterial, DepletionChain
 from hydep.constants import SECONDS_PER_DAY
 from hydep.typed import TypedAttr, IterableOf
-from hydep.internal import Cram16Solver, CompBundle
+from hydep.internal import Cram16Solver, Cram48Solver, CompBundle
 from hydep.internal.features import FeatureCollection, MICRO_REACTION_XS, FISSION_YIELDS
 from hydep.internal.utils import FakeSequence
 
@@ -47,6 +47,9 @@ class Manager:
         Number of coarse depletion steps to take before engaging in
         coupled behavior. Useful for approaching some equilibrium value
         with smaller steps with the high fidelity code
+    depletionSolver : string or int or callable, optional
+        Value to use in configuring the depletion solver. Passed to
+        :meth:`setDepletionSolver`
 
     Attributes
     ----------
@@ -75,13 +78,18 @@ class Manager:
 
     """
 
-    _nExtrapSteps = 3  # TODO Make this configurable
-
-    # TODO Make depletion chain configurable property
     chain = TypedAttr("chain", DepletionChain)
     _burnable = IterableOf("burnable", BurnableMaterial, allowNone=True)
 
-    def __init__(self, chain, daysteps, power, substepDivision, numPreliminary=0):
+    def __init__(
+        self,
+        chain,
+        daysteps,
+        power,
+        substepDivision,
+        numPreliminary=0,
+        depletionSolver=None,
+    ):
         self.chain = chain
 
         daysteps = numpy.asarray(daysteps, dtype=float)
@@ -109,10 +117,7 @@ class Manager:
 
         self._substeps = self._validateSubsteps(substepDivision)
 
-        # TODO Make CRAM solver configurable property
-        # NOTE: Must be an importable function that we can dispatch
-        # through multiprocessing
-        self._depsolver = Cram16Solver
+        self.setDepletionSolver(depletionSolver)
 
     def _validatePowers(self, power):
         if isinstance(power, numbers.Real):
@@ -173,6 +178,66 @@ class Manager:
             "Substeps must be postive integer, or sequence of positive "
             f"integer, not {divisions}"
         )
+
+    def setDepletionSolver(self, solver):
+        """Configure the depletion solver
+
+        Solver can either be a string, e.g. ``"cram16"``,
+        integer, ``16``, or a callable function. Callable functions
+        should fulfill the following requirements:
+
+        1. Be importable / pickle-able in order to be dispatched via
+           :meth:`multiprocessing.Pool.starmap`
+        2. Have a call signature ``solver(A, N0, dt)`` where ``A`` is
+           the :class:`scipy.sparse.csr_matrix` sparse representation
+           of the depletion matrix with shape ``N x N``, ``N0`` is a
+           :class:`numpy.ndarray` with the beginning-of-step
+           compositions, and ``dt`` is the length of the depletion
+           interval in seconds
+
+        For the time being, no introspection is performed to ensure
+        that the correct signature is used. String values are
+        case-insensitive, and integers indicate the order of CRAM
+        to be used.
+
+        Parameters
+        ----------
+        solver : str or int or callable or None
+            Item indicating what solver should be used. A value
+            of ``None`` reverts to the default CRAM16.
+
+        Raises
+        ------
+        TypeError
+            If ``solver`` doesn't match any requirements
+
+        """
+
+        if solver is None:
+            self._depsolver = Cram16Solver.__call__
+            return
+
+        if isinstance(solver, str):
+            solver = solver.lower()
+
+        candidate = {
+            "cram16": Cram16Solver,
+            "cram48": Cram48Solver,
+            16: Cram16Solver,
+            48: Cram48Solver,
+            "16": Cram16Solver,
+            "48": Cram48Solver,
+        }.get(solver)
+
+        if candidate is not None:
+            self._depsolver = candidate.__call__
+            return
+
+        if isinstance(solver, Callable):
+            self._depsolver = solver
+            return solver
+
+        raise TypeError(f"Could not decipher {solver} of type {type(solver)}")
 
     @property
     def burnable(self):
