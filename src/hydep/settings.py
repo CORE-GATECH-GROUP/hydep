@@ -194,6 +194,10 @@ class HydepSettings(ConfigMixin):
         True to keep indefinitely many points for cross section
         extrapolation.
 
+    See Also
+    --------
+    *. :meth:`validate` - Performs some checks on current settings
+
     """
 
     _name = "hydep"
@@ -422,3 +426,17 @@ class HydepSettings(ConfigMixin):
                 self.numFittingPoints = self.asPositiveInt("fitting points", fitPoints)
         if unboundFit is not None:
             self.unboundedFitting = self.asBool("unbounded fitting", unboundFit)
+
+    def validate(self):
+        """Validate settings"""
+        if self.unboundedFitting:
+            if self.numFittingPoints is not None:
+                raise ValueError(
+                    f"Requesting unbounded fitting and {self.numFittingPoints} "
+                    "points to be retained for fitting not allowed"
+                )
+        elif self.fittingOrder > self.numFittingPoints:
+            raise ValueError(
+                f"Cannot produce a {self.fittingOrder} polynomial fit with "
+                f"{self.numFittingPoints} points"
+            )

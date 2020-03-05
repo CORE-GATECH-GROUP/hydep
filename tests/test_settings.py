@@ -32,6 +32,8 @@ def test_settings():
     assert h.numFittingPoints == 4
     assert not h.unboundedFitting
 
+    h.validate()
+
     h.update(
         {
             ARCHIVE: "0",
@@ -75,6 +77,17 @@ def test_settings():
         fresh.asInt("test", False)
 
 
+def test_validate():
+    with pytest.raises(ValueError):
+        HydepSettings(fittingOrder=2, numFittingPoints=1).validate()
+
+    with pytest.raises(ValueError):
+        HydepSettings(numFittingPoints=1, unboundedFitting=True).validate()
+
+    # Only enforce if number of previous points is definitely given
+    HydepSettings(numFittingPoints=None, unboundedFitting=True).validate()
+
+
 def test_subsettings():
     randomSection = "".join(random.sample(string.ascii_letters, 10))
     settings = HydepSettings()
@@ -115,6 +128,7 @@ def test_subsettings():
         fresh.updateAll({"hydep": {}, f"hydep.{randomSection}": {"key": "value"}})
 
     with pytest.raises(ValueError, match=".*test"):
+
         class DuplicateSetting(SubSetting, sectionName="test"):
             pass
 
