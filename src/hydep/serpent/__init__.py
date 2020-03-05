@@ -18,6 +18,7 @@ except ImportError:
         "serpentTools required for Serpent interface. Install as extra "
         "with pip install <options> hydep[serpent]")
 
+from .settings import SerpentSettings
 from .writer import SerpentWriter, ExtDepWriter
 from .runner import SerpentRunner, ExtDepRunner
 from .processor import SerpentProcessor
