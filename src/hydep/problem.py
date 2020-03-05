@@ -3,6 +3,11 @@ Primary class for handling geometry and material information
 """
 import numbers
 import logging
+from collections.abc import Mapping
+import copy
+import pathlib
+import configparser
+import typing
 
 import numpy
 
@@ -13,7 +18,6 @@ from .settings import HydepSettings
 from hydep.typed import TypedAttr
 from hydep.internal import (
     TimeStep,
-    configmethod,
     compBundleFromMaterials,
     XsTimeMachine,
 )
@@ -241,21 +245,54 @@ class Problem(object):
 
         return result, compositions
 
-    @configmethod
-    def configure(self, config):
-        """Configure each of the solvers
+    def configure(
+        self,
+        options: typing.Union[
+            str,
+            pathlib.Path,
+            typing.Mapping[str, typing.Any],
+        ],
+    ):
+        """Configure the associated solvers
+
+        This action can be performed multiple times, but the most
+        recently updated values will be used in the simulation. Must
+        have at least a key or section ``hydep`` in the first level.
+        Subsequent solvers, e.g. Serpent, can be configured using
+        a sub-level ``"hydep.<solver>"``.
+
+        The following would be appropriate to configure an associated
+        Serpent solver::
+
+            {
+                "hydep": {
+                    "archive on success": True,
+                    ...,
+                },
+                "hydep.serpent": {
+                    "executable": "sss2",
+                    ...
+                },
+            }
+
+        A corresponding configuration file would be
+
+        .. code:: INI
+
+            [hydep]
+            archive on success = 1
+
+            [hydep.serpent]
+            executable  = sss2
 
         Parameters
         ----------
-        config : Union[ConfigParser, str, Path, Mapping]
-            An object that is compatible with
-            :class:`configparser.ConfigParser`. If a string or
-            :class:`pathlib.Path`, assume a file and open for
-            reading. If a dictionary or
-            :class:`~collections.abc.Mapping`-like, assume the
-            data contain the necessary structure and config options
-            and read those in. Otherwise skip loading and use the
-            :class:`configparser.ConfigParser` directly.
+        config : Union[str, Path, dict]
+            If a string or :class:`pathlib.Path`, assume a INI / CFG
+            file. If a dictionary or
+            :class:`~collections.abc.Mapping`-like, assume the data
+            contain the necessary structure and config options and
+            read those in
 
         Raises
         ------
@@ -263,5 +300,17 @@ class Problem(object):
             If ``config`` is not understood
 
         """
-        self.hf.configure(config)
-        self.rom.configure(config)
+        if isinstance(options, (str, pathlib.Path)):
+            __logger__.debug(f"Reading config options from {options}")
+            cfg = configparser.ConfigParser()
+            with open(options, "r") as stream:
+                cfg.read_file(stream, options)
+            options = dict(cfg)
+        elif not isinstance(options, Mapping):
+            raise TypeError(
+                f"Options must be a mapping-type or file, not {type(options)}"
+            )
+        else:
+            options = copy.deepcopy(options)
+
+        self.settings.updateAll(options)
