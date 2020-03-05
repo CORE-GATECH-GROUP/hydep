@@ -55,7 +55,6 @@ def pincell():
 
 
 @pytest.mark.serpent
-@pytest.mark.xfail(reason=f"Patched verion of serpent should be found as {PATCHED_EXE}")
 def test_external(runInTempDir, endfChain, pincell):
     serpent = hdserpent.CoupledSerpentSolver()
     simplerom = hydep.simplerom.SimpleROSolver()
