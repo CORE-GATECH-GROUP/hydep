@@ -67,7 +67,7 @@ class Problem(object):
         """
 
         __logger__.debug("Executing pre-solution routines")
-        self.dep.beforeMain(self.model)
+        self.dep.beforeMain(self.model, self.settings)
         self.hf.beforeMain(self.model, self.dep, self.settings)
         self.rom.beforeMain(self.model, self.dep, self.settings)
 

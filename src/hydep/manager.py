@@ -284,7 +284,7 @@ class Manager:
         """
         return zip(self.timesteps[self._nprelim :], self.powers[self._nprelim :])
 
-    def beforeMain(self, model):
+    def beforeMain(self, model, settings=None):
         """Check that all materials have volumes and set indexes
 
         Parameters
@@ -292,8 +292,16 @@ class Manager:
         model : hydep.Model
             Problem to be solved. Must contain at least one
             :class:`hydep.BurnableMaterial`
+        settings : hydep.settings.HydepSettings, optional
+            Settings for the framework. Use to configure depletion
+            solver.
 
         """
+        if settings is not None:
+            solver = settings.depletionSolver
+            if solver is not None:
+                self.setDepletionSolver(solver)
+
         burnable = tuple(model.root.findBurnableMaterials())
 
         if not burnable:
