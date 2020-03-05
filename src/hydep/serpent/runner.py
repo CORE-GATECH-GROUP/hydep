@@ -141,26 +141,27 @@ class BaseRunner:
 
         return cmd
 
-    def configure(self, section):
-        """Configure this runner using the ``hydep.serpent`` section
+    def configure(self, settings):
+        """Configure the runner using user-provided settings
+
+        If any of the following attributes on ``settings`` exist and
+        are not ``None``, they will be mapped directly to attributes
+        on this instance:
+
+        * ``executable`` -> :attr:`executable`
+        * ``omp`` -> :attr:`omp`
+        * ``mpi`` -> :attr:`mpi`
 
         Parameters
         ----------
-        section : configparser.SectionProxy
-            Serpent specific options
+        settings : hydep.serpent.SerpentSettings
+            Serpent specific settings
 
         """
-        omp = section.getint("omp")
-        if omp is not None:
-            self.omp = omp
-
-        mpi = section.getint("mpi")
-        if mpi is not None:
-            self.mpi = mpi
-
-        executable = section.get("executable")
-        if executable is not None:
-            self.executable = executable
+        for attr in {"executable", "omp", "mpi"}:
+            value = getattr(settings, attr, None)
+            if value is not None:
+                setattr(self, attr, value)
 
 
 class SerpentRunner(BaseRunner):
