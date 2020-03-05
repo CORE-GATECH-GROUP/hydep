@@ -133,8 +133,12 @@ class Problem(object):
         self.rom.processBOS(result, timestep, self.dep.powers[0])
         self.store.postTransport(timestep, result)
 
-        # TODO Make xs poly order and number of previous steps configurable
-        xsmanager = XsTimeMachine(1, [startSeconds], [result.microXS], 3)
+        xsmanager = XsTimeMachine(
+            self.settings.fittingOrder,
+            [startSeconds],
+            [result.microXS],
+            None if self.settings.unboundedFitting else self.settings.numFittingPoints,
+        )
 
         fissionYields = result.fissionYields
 
