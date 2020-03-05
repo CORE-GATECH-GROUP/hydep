@@ -44,7 +44,7 @@ from hydep.exceptions import IncompatibityError
 class TransportSolver(ABC):
     """Base class"""
 
-    def beforeMain(self, model, manager):
+    def beforeMain(self, model, manager, settings):
         """Execute any initial actions prior to main sequence
 
         By default this performs no actions, but can be used to
@@ -57,6 +57,8 @@ class TransportSolver(ABC):
         manager : hydep.Manager
             Depletion interface containing information on time steps,
             powers, depletion chain, and substeps
+        settings : hydep.settings.HydepSettings
+            Settings for the entire interface
 
         """
 
@@ -116,22 +118,9 @@ class TransportSolver(ABC):
 
         return res
 
-    def configure(self, config):
-        """Configure the solver
-
-        Parameters
-        ----------
-        config : :class:`configparser.ConfigParser`
-            Configuration object that has loaded in user settings,
-            either from a file, dictionary, or in memory.
-        """
-
-
 class HighFidelitySolver(TransportSolver):
     """High fidelity transport solver"""
 
-    # TODO Some level of logging at each method
-    # TODO Verbosity control for solution
     # TODO Specify tempdir for execution?
 
     @property
