@@ -89,7 +89,7 @@ class BaseRunner:
     @executable.setter
     def executable(self, value):
         # This could be a path to an executable or a name of the executable
-        # as it can be found in PATH. Since it must be set before makeCmd
+        # as it can be found in PATH. Since it must be set before makeCommand
         # and a non-existent command will cause __call__ to fail, don't
         # perform checks
         self._executable = value
@@ -107,7 +107,7 @@ class BaseRunner:
         Examples
         --------
         >>> r = BaseRunner("sss2")
-        >>> r.makeCmd()
+        >>> r.makeCommand()
         ['sss2']
         >>> r.mpi = 2
         >>> r.makeCommand()
