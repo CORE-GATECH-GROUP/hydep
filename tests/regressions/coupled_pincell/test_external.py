@@ -71,7 +71,7 @@ def test_external(runInTempDir, endfChain, pincell):
                 "particles": 100,
                 "generations per batch": 10,
                 "active": 2,
-                "skipped": 5,
+                "inactive": 5,
                 "acelib": "sss_endfb7u.xsdata",
                 "declib": "sss_endfb7.dec",
                 "nfylib": "sss_endfb7.nfy",
