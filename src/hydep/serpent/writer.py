@@ -46,7 +46,6 @@ class BaseWriter:
     _DEFAULT_ACELIB = "sss_endfb7u.xsdata"
     _DEFAULT_DECLIB = "sss_endfb7.dec"
     _DEFAULT_NFYLIB = "sss_endfb7.nfy"
-    bcmap = {"reflective": 2, "vacuum": 1, "periodic": 3}
     hooks = TypedAttr("hooks", hdfeat.FeatureCollection)
     burnable = IterableOf("burnable", hydep.BurnableMaterial, allowNone=True)
 
@@ -592,14 +591,13 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
 
     def _parseboundaryconditions(self, conds):
         bc = []
-        if len(conds) == 1:
-            conds = conds * 3
+        bcmap = {"reflective": "2", "vacuum": "1", "periodic": "3"}
         for c in conds:
-            bcval = self.bcmap.get(c)
+            bcval = bcmap.get(c)
             if bcval is None:
                 raise ValueError(
                     "Unsure how to process boundary condition {}. "
-                    "Supported values are {}".format(c, ", ".join(self.bcmap))
+                    "Supported values are {}".format(c, ", ".join(bcmap))
                 )
             bc.append(bcval)
         self.options["bc"] = bc
