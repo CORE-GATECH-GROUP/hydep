@@ -217,7 +217,7 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
                 else:
                     myzip.write(ff, ff.name)
 
-    def beforeMain(self, model, manager):
+    def beforeMain(self, model, manager, settings):
         """Prepare the base input file
 
         Parameters
@@ -226,8 +226,12 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
             Geometry information to be written once
         manager : hydep.Manager
             Depletion information
+        settings : hydep.settings.HydepSettings
+            Shared settings
 
         """
+        self._runner.configure(settings.serpent)
+
         assert manager.burnable is not None
         orderedBumat = manager.burnable
 
@@ -239,12 +243,18 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
 
         self._writer.model = model
         self._writer.burnable = orderedBumat
-        self._writer.updateProblemIsotopes((iso.triplet for iso in manager.chain))
+
+        acelib = settings.serpent.acelib
+        if acelib is None:
+            raise AttributeError(
+                f"Serpent acelib setting not configured on {settings}"
+            )
+        self._writer.updateProblemIsotopes((iso.triplet for iso in manager.chain), acelib)
 
         __logger__.debug("Writing base Serpent input file")
 
         basefile = pathlib.Path.cwd() / "serpent" / "base.sss"
-        self._writer.writeBaseFile(basefile)
+        self._writer.writeBaseFile(basefile, settings)
 
         self._processor.burnable = matids
 
@@ -275,13 +285,22 @@ class CoupledSerpentSolver(hydep.lib.HighFidelitySolver):
     def features(self):
         return _FEATURES_ATLEAST_2_1_30
 
-    def beforeMain(self, model, manager):
+    def beforeMain(self, model, manager, settings):
         # TODO Share some of this with main SerpentSolver
         # TODO Pass some of this init stuff onto BaseWriter
         assert manager.burnable is not None
+
+        self._runner.configure(settings.serpent)
+
         self._writer.model = model
         self._writer.burnable = manager.burnable
-        self._writer.updateProblemIsotopes((iso.triplet for iso in manager.chain))
+
+        acelib = settings.serpent.acelib
+        if acelib is None:
+            raise AttributeError(
+                f"Serpent acelib setting not configured on {settings}"
+            )
+        self._writer.updateProblemIsotopes((iso.triplet for iso in manager.chain), acelib)
 
         self._volumes = numpy.empty((len(manager.burnable), 1))
         matids = numpy.empty(len(manager.burnable), dtype=object)
@@ -293,7 +312,7 @@ class CoupledSerpentSolver(hydep.lib.HighFidelitySolver):
         self._processor.burnable = matids.astype(str)
 
         self._fp = basefile = pathlib.Path.cwd() / "serpent-extdep" / "external"
-        self._writer.writeCouplingFile(basefile, manager.timesteps, manager.powers)
+        self._writer.writeCouplingFile(basefile, manager.timesteps, manager.powers, settings)
 
         if hdfeat.FISSION_YIELDS in self.hooks.features:
             fyproc = FissionYieldFetcher(matids, manager.chain)
