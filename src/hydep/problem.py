@@ -9,6 +9,7 @@ import numpy
 from .constants import SECONDS_PER_DAY
 from hydep.lib import HighFidelitySolver, ReducedOrderSolver, BaseStore
 from hydep import Model, Manager
+from .settings import HydepSettings
 from hydep.typed import TypedAttr
 from hydep.internal import (
     TimeStep,
@@ -36,6 +37,7 @@ class Problem(object):
         self.rom = rom
         self.dep = dep
         self.store = store
+        self.settings = HydepSettings()
 
     @property
     def store(self):
