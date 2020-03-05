@@ -176,7 +176,7 @@ def findProblemIsotopes(
             if ZA != serpentZA:
                 replacements[zai] = divmod(int(serpentZA), 1000)
         except Exception as ee:
-            raise ee from RuntimeError(f"Failed to process line\n{line}")
+            raise RuntimeError(f"Failed to process line\n{line}") from ee
 
         candidates.remove(zai)
         if not candidates:
