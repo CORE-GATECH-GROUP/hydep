@@ -13,7 +13,6 @@ from .results import TransportResult
 from .microxs import TemporalMicroXs, MicroXsVector, XsTimeMachine
 from .utils import (
     Boundaries,
-    configmethod,
     CompBundle,
     FakeSequence,
     compBundleFromMaterials,
