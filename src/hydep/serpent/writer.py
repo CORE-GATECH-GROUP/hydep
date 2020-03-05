@@ -43,9 +43,6 @@ class BaseWriter:
     _temps = (300, 600, 900, 1200, 1500)
     # TODO Allow config control over default material temperature
     _defaulttemp = 600
-    _DEFAULT_ACELIB = "sss_endfb7u.xsdata"
-    _DEFAULT_DECLIB = "sss_endfb7.dec"
-    _DEFAULT_NFYLIB = "sss_endfb7.nfy"
     hooks = TypedAttr("hooks", hdfeat.FeatureCollection)
     burnable = IterableOf("burnable", hydep.BurnableMaterial, allowNone=True)
 
@@ -55,7 +52,6 @@ class BaseWriter:
         self._model = None
         self.burnable = None
         self.hooks = hdfeat.FeatureCollection()
-        self.options = {}
         self.datafiles = None
         self._buleads = {}
         self._problemIsotopes = ProblematicIsotopes(missing=set(), replacements={})
@@ -184,39 +180,40 @@ class BaseWriter:
 
         return p
 
-    def _writesettings(self, stream, sabLibraries):
+    def _writesettings(self, stream, sabLibraries, settings):
         self.commentblock(stream, "BEGIN SETTINGS BLOCK")
 
-        libraries = []
-        for attr, lib in (("xs", "ace"), ("decay", "dec"), ("nfy", "nfy")):
-            userlib = getattr(self.datafiles, attr)
-            libraries.append(f'set {lib}lib "{userlib}"')
-        stream.write("\n".join(libraries) + "\n")
+        serpentSettings = settings.serpent
 
-        stream.write("set pop {} ".format(self.options["particles"]))
+        stream.write(f"""set acelib "{serpentSettings.acelib}"
+set declib "{serpentSettings.declib}"
+set nfylib "{serpentSettings.nfylib}"
+""")
+        particles = serpentSettings.particles
+        active = serpentSettings.active
+        inactive = serpentSettings.inactive
+        gen = serpentSettings.generationsPerBatch
 
-        gen = self.options["generations per batch"]
-        active = self.options["active"]
-        skipped = self.options["skipped"]
-        stream.write("{} {}".format(gen * active, gen * skipped))
+        if any([x is None for x in [particles, active, inactive, gen]]):
+            raise ValueError("Particle settings not well configured")
+        k0 = serpentSettings.k0 or 1.0
+
         # Batching is problematic for power reconstruction through INF_FLX
         # https://ttuki.vtt.fi/serpent/viewtopic.php?f=25&t=3306
-        stream.write(" {:.5f} % {}\n".format(self.options.get("k0", 1.0), gen))
+        stream.write(
+            f"set pop {particles} {gen * active} {inactive * gen} "
+            f"{k0:.5f} % {gen}\n"
+        )
 
-        stream.write("set bc")
-        for value in self.options.get("bc", [1]):
-            stream.write(f" {value}")
-        stream.write("\n")
+        bc = self._parseboundaryconditions(settings.boundaryConditions)
+        stream.write(f"set bc {' '.join(bc)}\n")
 
         if sabLibraries:
-            sab = []
             for (tablename, tempstr), tablelib in sabLibraries.items():
-                sab.append(f"therm {tablename}_{tempstr} {tablelib}")
-            stream.write("\n".join(sab) + "\n")
+                stream.write(f"therm {tablename}_{tempstr} {tablelib}\n")
 
-        seed = self.options.get("seed")
-        if seed is not None:
-            stream.write(f"set seed {seed}\n")
+        if serpentSettings.seed is not None:
+            stream.write(f"set seed {serpentSettings.seed}\n")
 
         stream.write(
             f"""% Hard set one group [0, 20] MeV for all data
@@ -523,72 +520,6 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
 
         return writeas
 
-    def configure(self, section, level):
-        """Configure the writer
-
-        Parameters
-        ----------
-        section : configparser.SectionProxy
-            This specific set of configuration options
-        level : int
-            Depth or specificity. Currently support three levels:
-            ``hydep``, ``hydep.montecarlo``, and ``hydep.serpent``.
-            Options like verbosity and initial :math:`k` will be
-            read read from level ``0``, with more specifics in levels
-            ``1`` and ``2``
-
-        """
-        k0 = section.getfloat("initial k")
-        if k0 is not None:
-            self.options["k0"] = k0
-
-        bc = section.get("boundary conditions")
-        if bc is not None:
-            self._parseboundaryconditions(bc.replace(",", " ").split())
-
-        if level == 0:
-            return
-
-        # Just Monte Carlo settings
-
-        seed = section.getint("random seed")
-        if seed is not None:
-            self.options["seed"] = seed
-
-        for key in [
-            "particles",
-            "generations per batch",
-            "active",
-            "skipped",
-        ]:
-            value = section.getint(key)
-            if value is not None:
-                self.options[key] = value
-
-        if level == 1:
-            return
-
-        # Serpent settings
-
-        files = [
-            pathlib.Path(p)
-            for p in [
-                section.get("acelib", self._DEFAULT_ACELIB),
-                section.get("declib", self._DEFAULT_DECLIB),
-                section.get("nfylib", self._DEFAULT_NFYLIB),
-            ]
-        ]
-
-        sab = section.get("thermal scattering")
-        if sab is not None:
-            sab = pathlib.Path(sab)
-
-        datadir = section.get("data directory")
-        if datadir is not None:
-            datadir = pathlib.Path(datadir)
-
-        self.datafiles = findLibraries(*files, sab, datadir)
-
     def _parseboundaryconditions(self, conds):
         bc = []
         bcmap = {"reflective": "2", "vacuum": "1", "periodic": "3"}
@@ -600,7 +531,7 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
                     "Supported values are {}".format(c, ", ".join(bcmap))
                 )
             bc.append(bcval)
-        self.options["bc"] = bc
+        return bc
 
     def _writehooks(self, stream):
         self.commentblock(stream, "BEGIN HOOKS")
@@ -662,7 +593,7 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
                     isotopes.add(prod)
         return reactions
 
-    def writeMainFile(self, path):
+    def writeMainFile(self, path, settings):
         """Write the main input file
 
         Parameters
@@ -670,14 +601,13 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
         path : str or pathlib.Path
             Path of file to be written. If it is an existing file
             it will be overwritten
+        settings : hydep.settings.HydepSettings
+            Various configuration settings
 
         Raises
         ------
         IOError
             If the path indicated exists and is not a file
-        AttributeError
-            If :attr:`model` nor :attr:`options` have been
-            properly set
 
         Returns
         -------
@@ -689,18 +619,33 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
             raise AttributeError(f"Geometry not passed to {self}")
         if self.burnable is None or not len(self.burnable):
             raise AttributeError(f"No burnable materials found on {self}")
-        if not self.options or self.datafiles is None:
-            raise AttributeError("Not well configured")
 
         path = self._setupfile(path)
 
+        # Resolve data libraries
+        files = []
+        ace = settings.serpent.acelib
+        if ace is None:
+            raise AttributeError("Cross section library <acelib> not configured")
+        files.append(ace)
+        dec = settings.serpent.declib
+        if dec is None:
+            raise AttributeError("Cross section library <declib> not configured")
+        files.append(dec)
+        nfy = settings.serpent.nfylib
+        if nfy is None:
+            raise AttributeError("Cross section library <nfylib> not configured")
+        files.append(nfy)
+
+        datafiles = findLibraries(*files, settings.serpent.sab, settings.serpent.datadir)
+
         materials = tuple(self.model.root.findMaterials())
-        sabLibraries = self._findSABTables(materials, self.datafiles.sab)
+        sabLibraries = self._findSABTables(materials, datafiles.sab)
 
         with path.open("w") as stream:
             self._writematerials(stream, materials)
             self._writegeometry(stream)
-            self._writesettings(stream, sabLibraries)
+            self._writesettings(stream, sabLibraries, settings)
             if self.hooks:
                 self._writehooks(stream)
 
@@ -728,10 +673,6 @@ class SerpentWriter(BaseWriter):
     hooks : hydep.internal.features.FeatureCollection
         Each entry indicates a specific type of physics that
         must be run.
-    options : dict
-        Dictionary of various attributes to create the base file
-    datafiles : None or DataLibraries
-        Configured through :meth:`configure`
 
     """
 
@@ -739,7 +680,7 @@ class SerpentWriter(BaseWriter):
         super().__init__()
         self.base = None
 
-    def writeBaseFile(self, path):
+    def writeBaseFile(self, path, settings):
         """Write the main input file
 
         The path is stored to be included later in
@@ -757,9 +698,6 @@ class SerpentWriter(BaseWriter):
         ------
         IOError
             If the path indicated exists and is not a file
-        AttributeError
-            If :attr:`model` nor :attr:`options` have been
-            properly set
 
         Returns
         -------
@@ -767,7 +705,7 @@ class SerpentWriter(BaseWriter):
             Absolute path to the file that has been written
 
         """
-        base = super().writeMainFile(path)
+        base = self.writeMainFile(path, settings)
         self.base = base
         return base
 
@@ -905,8 +843,8 @@ class ExtDepWriter(BaseWriter):
         self._burnable = mats
         self._names = names
 
-    def writeCouplingFile(self, path, timesteps, powers):
-        base = super().writeMainFile(path)
+    def writeCouplingFile(self, path, timesteps, powers, settings):
+        base = self.writeMainFile(path, settings)
 
         if self.compFile is None:
             self.compFile = base.with_suffix(".exdep")
