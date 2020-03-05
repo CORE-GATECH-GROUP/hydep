@@ -163,6 +163,16 @@ class HydepSettings(ConfigMixin):
     boundaryConditions : str or iterable of str, optional
         Initial value for :attr:`boundaryConditions`. Default is
         vacuum in x, y, and z direction
+    fittingOrder : int, optional
+        Polynomial order for fitting cross sections and other
+        nuclear data over time. Defaults to one (linear) due
+        to previous experience. Must be positive
+    numFittingPoints : int or None, optional
+        Number of points to use when fitting data. Defaults
+        to three due to previous experience
+    unboundedFitting : bool, optional
+        True to keep indefinitely many points for cross section
+        extrapolation.
 
     Attributes
     ----------
@@ -174,18 +184,31 @@ class HydepSettings(ConfigMixin):
     boundaryConditions : iterable of string
         Three valued list or iterable indicating X, Y, and Z
         boundary conditions
+    fittingOrder : int
+        Polynomial order for fitting cross sections and other
+        nuclear data over time. Must be positive
+    numFittingPoints : int or None
+        Number of points to use when fitting data. A value
+        of ``None`` implies :attr:`unboundedFitting`
+    unboundedFitting : bool, optional
+        True to keep indefinitely many points for cross section
+        extrapolation.
 
     """
 
     _name = "hydep"
     archiveOnSuccess = TypedAttr("_archiveOnSuccess", bool)
     _ALLOWED_BC = frozenset({"reflective", "periodic", "vacuum"})
+    unboundedFitting = TypedAttr("_unboundedFitting", bool)
 
     def __init__(
-            self,
-            archiveOnSuccess=False,
-            depletionSolver=None,
-            boundaryConditions=None,
+        self,
+        archiveOnSuccess=False,
+        depletionSolver=None,
+        boundaryConditions=None,
+        fittingOrder=1,
+        numFittingPoints=3,
+        unboundedFitting=False,
     ):
         self.archiveOnSuccess = archiveOnSuccess
         self.depletionSolver = depletionSolver
@@ -193,6 +216,9 @@ class HydepSettings(ConfigMixin):
             self._boundaryConditions = ("vacuum",) * 3
         else:
             self.boundaryConditions = boundaryConditions
+        self.fittingOrder = fittingOrder
+        self.numFittingPoints = numFittingPoints
+        self.unboundedFitting = unboundedFitting
 
     def __getattr__(self, name):
         klass = _CONFIG_CLASSES.get(name)
@@ -238,6 +264,42 @@ class HydepSettings(ConfigMixin):
         if len(bc) == 1:
             return bc * 3
         return bc
+
+    @property
+    def fittingOrder(self):
+        return self._fittingOrder
+
+    @fittingOrder.setter
+    def fittingOrder(self, value):
+        if value is None:
+            self._fittingOrder = None
+            return
+        if not isinstance(value, numbers.Integral):
+            raise TypeError(
+                f"fitting order must be non-negative integer or None, not {value}"
+            )
+        elif value < 0:
+            raise ValueError("fitting order cannot be negative (for now)")
+        self._fittingOrder = value
+
+    @property
+    def numFittingPoints(self):
+        return self._numFittingPoints
+
+    @numFittingPoints.setter
+    def numFittingPoints(self, value):
+        if value is None:
+            self._numFittingPoints = None
+            return
+        if not isinstance(value, numbers.Integral):
+            raise TypeError(
+                f"fitting points must be positive integer, not {value}"
+            )
+        elif not value > 0:
+            raise ValueError(
+                f"fitting points must be positive integer, not {value}"
+            )
+        self._numFittingPoints = value
 
     def updateAll(self, options):
         """Update settings for this instance and any subsections
@@ -309,6 +371,10 @@ class HydepSettings(ConfigMixin):
            :attr:`depletionSolver`
         *. ``"boundary conditions"`` : string or iterable of string
            - update :attr:`boundaryConditions`
+        *. ``"fitting order"`` : int - update :attr:`fittingOrder`
+        *. ``"fitting points"`` : int - update :attr:`numFittingPoints`
+        *. ``"unbounded fitting"`` : boolean - update
+           :attr:`unboundedFitting`
 
         Parameters
         ----------
@@ -327,6 +393,11 @@ class HydepSettings(ConfigMixin):
         depsolver = options.pop("depletion solver", None)
         bc = options.pop("boundary conditions", None)
 
+        fitOrder = options.pop("fitting order", None)
+        # None is an acceptable value here
+        fitPoints = options.pop("fitting points", False)
+        unboundFit = options.pop("unbounded fitting", None)
+
         if options:
             raise ValueError(
                 f"Not all {self.name} setting processed. The following did not "
@@ -339,3 +410,15 @@ class HydepSettings(ConfigMixin):
             self.depletionSolver = depsolver
         if bc is not None:
             self.boundaryConditions = bc
+        if fitOrder is not None:
+            self.fittingOrder = self.asInt("fitting order", fitOrder)
+        # None is an acceptable value
+        if fitPoints is not False:
+            if fitPoints is None or isinstance(fitPoints, numbers.Integral):
+                self.numFittingPoints = fitPoints
+            elif isinstance(fitPoints, str) and fitPoints.lower() == "none":
+                self.numFittingPoints = None
+            else:
+                self.numFittingPoints = self.asPositiveInt("fitting points", fitPoints)
+        if unboundFit is not None:
+            self.unboundedFitting = self.asBool("unbounded fitting", unboundFit)

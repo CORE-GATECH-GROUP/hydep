@@ -9,19 +9,43 @@ def test_settings():
     ARCHIVE = "archive on success"
     DEP_SOLVER = "depletion solver"
     BC = "boundary conditions"
+    FIT_ORDER = "fitting order"
+    N_FIT_POINTS = "fitting points"
+    UNBOUND_FIT = "unbounded fitting"
 
     h = HydepSettings()
     h.update(
-        {ARCHIVE: "true", DEP_SOLVER: "cram48", BC: "reflective reflective vacuum"}
+        {
+            ARCHIVE: "true",
+            DEP_SOLVER: "cram48",
+            BC: "reflective reflective vacuum",
+            FIT_ORDER: 2,
+            N_FIT_POINTS: 4,
+            UNBOUND_FIT: False,
+        }
     )
 
     assert h.archiveOnSuccess
     assert h.depletionSolver == "cram48"
     assert h.boundaryConditions == ["reflective", "reflective", "vacuum"]
+    assert h.fittingOrder == 2
+    assert h.numFittingPoints == 4
+    assert not h.unboundedFitting
 
-    h.update({ARCHIVE: "0", BC: "vacuum"})
+    h.update(
+        {
+            ARCHIVE: "0",
+            BC: "vacuum",
+            FIT_ORDER: "1",
+            N_FIT_POINTS: "none",
+            UNBOUND_FIT: "y",
+        }
+    )
     assert not h.archiveOnSuccess
     assert h.boundaryConditions == ["vacuum"] * 3
+    assert h.fittingOrder == 1
+    assert h.numFittingPoints is None
+    assert h.unboundedFitting
 
     with pytest.raises(TypeError, match=".*archive.*bool"):
         h.update({ARCHIVE: "positive"})
@@ -33,6 +57,9 @@ def test_settings():
 
     with pytest.raises(TypeError):
         h.archiveOnSuccess = 1
+
+    with pytest.raises(TypeError):
+        h.unboundedFitting = 1
 
     fresh = HydepSettings(
         archiveOnSuccess=True,
