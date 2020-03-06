@@ -9,6 +9,10 @@ TODOs
 * Ensure non-negativity of depletion results
 * Standardize microXS vs microXs
 * Guard against hooks that aren't supported by solvers
+* Using vectorized / subprocess-managed routines for SFV macroxs
+  reconstruction
+* Use vectorized / subprocess-managed routines when projecting
+  MicroXsVector on TemporalMicroXs
 * Resolve how hydep.Pin objects are handled by numpy
 * Remove most assert statements in favor of actual checks
 * Find a way to add regression test file (setup, post-process) into
@@ -21,6 +25,7 @@ Serpent
 -------
 
 * Improved parsing of error at output
+* Share a lot of code between SerpentSolver and CoupledSerpentSolver
 * Pull and check model.bounds, not model.root.bounds
 
 Caveats
