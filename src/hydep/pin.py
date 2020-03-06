@@ -182,8 +182,8 @@ class Pin(Universe):
                 continue
             if id(mat) in memo:
                 mat = updates[index] = mat.copy()
-                # TODO remove assumption of always hex ids
-                mat.name = "{}_copy{}".format(mat.name.split("_copy")[0], mat.id)
+                demangled = mat.name.split("_copy")[0]
+                mat.name = f"{demangled}_copy{mat.id}"
             memo.add(id(mat))
 
         if not updates:
@@ -201,5 +201,6 @@ class Pin(Universe):
 
         new = self.__class__(self.radii, materials, outer)
         if self.name is not None:
-            new.name = "{}_copy{}".format(self.name.split("_copy")[0], new.id)
+            demangled = self.name.split("_copy")[0]
+            new.name = f"{demangled}_copy{mat.id}"
         return new
