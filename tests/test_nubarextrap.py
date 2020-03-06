@@ -1,9 +1,11 @@
 import numpy
 from numpy.polynomial.polynomial import polyfit, polyval
 import pytest
-from hydep.sfv.utils import NubarPolyFit
+
+sfvutils = pytest.importorskip("hydep.sfv.utils")
 
 
+@pytest.mark.sfv
 @pytest.mark.parametrize("order", (1, 2))
 @pytest.mark.parametrize("how", ["insort", "append", "extend"])
 def test_sfvnubar(how, order):
@@ -13,7 +15,7 @@ def test_sfvnubar(how, order):
     TIMES = numpy.arange(1, 4)
     data = [TEST_VECTOR * t for t in TIMES]
 
-    nubarExtrap = NubarPolyFit(order=order)
+    nubarExtrap = sfvutils.NubarPolyFit(order=order)
     if how == "insort":
         for t, d in zip(TIMES, data):
             nubarExtrap.insort(t, d)

@@ -2,7 +2,7 @@ import pathlib
 
 import pytest
 from hydep.constants import SECONDS_PER_DAY
-from hydep.sfv import SfvSolver
+hsfv = pytest.importorskip("hydep.sfv")
 from hydep.internal import TimeStep
 
 from . import SfvComparator
@@ -12,7 +12,7 @@ from . import SfvComparator
 def test_sfvsimple(simpleSfvProblem, sfvMacroData, sfvMicroXS, sfvNewComps):
 
     manager = simpleSfvProblem.dep
-    solver = SfvSolver()
+    solver = hsfv.SfvSolver()
     solver.beforeMain(simpleSfvProblem.model, manager, simpleSfvProblem.settings)
 
     # Emulate BOS result
