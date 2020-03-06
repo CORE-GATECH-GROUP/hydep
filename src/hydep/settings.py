@@ -26,6 +26,7 @@ _SUBSETTING_PATTERN = re.compile("^[A-Za-z][A-Za-z0-9_]*$")
 
 class ConfigMixin:
     """Mixin class for some basic type conversion"""
+
     @staticmethod
     def asBool(key: str, value: typing.Union[str, bool, int]) -> bool:
         """
@@ -153,9 +154,16 @@ class ConfigMixin:
         if candidate > 0:
             return candidate
         raise ValueError(
-            f"{key} must be positive integer: converted {value} to "
-            f"{candidate}"
+            f"{key} must be positive integer: converted {value} to {candidate}"
         )
+
+    @staticmethod
+    def _makeAbsPath(p: typing.Union[pathlib.Path, str, typing.Any]) -> pathlib.Path:
+        if isinstance(p, pathlib.Path):
+            if p.is_absolute():
+                return p
+            return p.resolve()
+        return pathlib.Path(p).resolve()
 
 
 class SubSetting(ConfigMixin, metaclass=ABCMeta):
@@ -169,11 +177,12 @@ class SubSetting(ConfigMixin, metaclass=ABCMeta):
     expressions, and not contain any periods.
 
     """
+
     def __init_subclass__(cls, sectionName: str, **kwargs):
         if not _SUBSETTING_PATTERN.match(sectionName):
             raise ValueError(
                 f"Cannot create {cls} with section name {sectionName}. "
-                "Not a valid Python name, and \".\" characters are disallowed"
+                'Not a valid Python name, and "." characters are disallowed'
             )
         super().__init_subclass__(**kwargs)
 
@@ -288,6 +297,8 @@ class HydepSettings(ConfigMixin):
         fittingOrder: int = 1,
         numFittingPoints: int = 3,
         unboundedFitting: bool = False,
+        basedir: OptFile = None,
+        rundir: OptFile = None,
     ):
         self.archiveOnSuccess = archiveOnSuccess
         self.depletionSolver = depletionSolver
@@ -378,6 +389,28 @@ class HydepSettings(ConfigMixin):
             raise ValueError(f"fitting points must be positive integer, not {value}")
         self._numFittingPoints = value
 
+    @property
+    def basedir(self) -> PossiblePath:
+        return self._basedir
+
+    @basedir.setter
+    def basedir(self, base):
+        if base is not None:
+            self._basedir = self._makeAbsPath(base)
+        else:
+            self._basedir = None
+
+    @property
+    def rundir(self) -> PossiblePath:
+        return self._rundir
+
+    @rundir.setter
+    def rundir(self, run):
+        if run is not None:
+            self._rundir = self._makeAbsPath(run)
+        else:
+            self._rundir = None
+
     def updateAll(self, options):
         """Update settings for this instance and any subsections
 
@@ -452,6 +485,8 @@ class HydepSettings(ConfigMixin):
         *. ``"fitting points"`` : int - update :attr:`numFittingPoints`
         *. ``"unbounded fitting"`` : boolean - update
            :attr:`unboundedFitting`
+        *. ``"basedir"`` : path-like - update :attr:`basedir`
+        *. ``"rundir"`` : path-like - update :attr:`rundir`
 
         Parameters
         ----------
@@ -474,6 +509,10 @@ class HydepSettings(ConfigMixin):
         # None is an acceptable value here
         fitPoints = options.pop("fitting points", False)
         unboundFit = options.pop("unbounded fitting", None)
+
+        # Directories
+        basedir = options.pop("basedir", False)
+        rundir = options.pop("rundir", False)
 
         if options:
             raise ValueError(
@@ -499,6 +538,18 @@ class HydepSettings(ConfigMixin):
                 self.numFittingPoints = self.asPositiveInt("fitting points", fitPoints)
         if unboundFit is not None:
             self.unboundedFitting = self.asBool("unbounded fitting", unboundFit)
+
+        if basedir is not False:
+            if isinstance(basedir, str) and basedir.lower() == "none":
+                self.basedir = None
+            else:
+                self.basedir = basedir
+
+        if rundir is not False:
+            if isinstance(rundir, str) and rundir.lower() == "none":
+                self.rundir = None
+            else:
+                self.rundir = rundir
 
     def validate(self):
         """Validate settings"""

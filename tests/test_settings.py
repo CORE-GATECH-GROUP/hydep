@@ -1,5 +1,6 @@
 import random
 import string
+import pathlib
 
 import pytest
 from hydep.settings import HydepSettings, SubSetting
@@ -141,3 +142,49 @@ def test_badSubsectionNames(name):
 
         class Failure(SubSetting, sectionName=name):
             pass
+
+
+def test_directories():
+    FAKE_DIR = pathlib.Path(__file__).parent
+    settings = HydepSettings(basedir=FAKE_DIR, rundir=None)
+
+    assert settings.basedir.is_absolute()
+    assert settings.basedir == FAKE_DIR
+    assert settings.rundir is None
+
+    # Resolution
+    settings.rundir = FAKE_DIR.name
+    assert settings.rundir.is_absolute()
+    assert settings.rundir == FAKE_DIR
+
+    settings.basedir = str(FAKE_DIR)
+    assert settings.basedir.is_absolute()
+    assert settings.basedir == FAKE_DIR
+
+    # Check defaulting to CWD
+
+    fresh = HydepSettings(basedir=None)
+    assert fresh.basedir.is_absolute()
+    assert fresh.basedir == pathlib.Path.cwd()
+
+    # But we can revert back to None
+    fresh.basedir = None
+    assert fresh.basedir is None
+
+    fresh.update(
+        {"basedir": FAKE_DIR.name, "rundir": "nONe"}
+    )
+
+    assert fresh.basedir == FAKE_DIR
+    assert fresh.basedir.is_absolute()
+    assert fresh.rundir is None
+
+    # Swap
+
+    fresh.update(
+        {"rundir": FAKE_DIR.name, "basedir": "nOnE"}
+    )
+
+    assert fresh.rundir == FAKE_DIR
+    assert fresh.rundir.is_absolute()
+    assert fresh.basedir is None
