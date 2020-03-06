@@ -149,3 +149,21 @@ def test_validate(mockProblem):
 
     with pytest.raises(ValueError):
         mockProblem.beforeMain()
+
+
+def test_directories(tmpdir, mockProblem):
+
+    rootdir = tmpdir / "my-root"
+    basedir = rootdir / "base"
+
+    settings = mockProblem.settings
+
+    assert not basedir.exists()
+
+    settings.basedir = basedir
+    settings.rundir = None
+
+    mockProblem.beforeMain()
+
+    assert settings.basedir.is_dir()
+    assert settings.rundir == settings.basedir
