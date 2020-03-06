@@ -13,7 +13,12 @@ import typing
 from abc import abstractmethod, ABCMeta
 import numbers
 
-from hydep.typed import TypedAttr
+from hydep.typed import (
+    TypedAttr,
+    OptFile,
+    PossiblePath,
+    OptIntegral,
+)
 
 _CONFIG_CLASSES = {"hydep": None}
 _SUBSETTING_PATTERN = re.compile("^[A-Za-z][A-Za-z0-9_]*$")
@@ -277,14 +282,12 @@ class HydepSettings(ConfigMixin):
 
     def __init__(
         self,
-        archiveOnSuccess=False,
-        depletionSolver=None,
-        boundaryConditions=None,
-        fittingOrder=1,
-        numFittingPoints=3,
-        unboundedFitting=False,
-        basedir=None,
-        rundir=None,
+        archiveOnSuccess: bool = False,
+        depletionSolver: typing.Optional = None,
+        boundaryConditions: typing.Optional[typing.Sequence[str]] = None,
+        fittingOrder: int = 1,
+        numFittingPoints: int = 3,
+        unboundedFitting: bool = False,
     ):
         self.archiveOnSuccess = archiveOnSuccess
         self.depletionSolver = depletionSolver
@@ -344,7 +347,7 @@ class HydepSettings(ConfigMixin):
         return bc
 
     @property
-    def fittingOrder(self):
+    def fittingOrder(self) -> int:
         return self._fittingOrder
 
     @fittingOrder.setter
@@ -361,7 +364,7 @@ class HydepSettings(ConfigMixin):
         self._fittingOrder = value
 
     @property
-    def numFittingPoints(self):
+    def numFittingPoints(self) -> OptIntegral:
         return self._numFittingPoints
 
     @numFittingPoints.setter
@@ -370,13 +373,9 @@ class HydepSettings(ConfigMixin):
             self._numFittingPoints = None
             return
         if not isinstance(value, numbers.Integral):
-            raise TypeError(
-                f"fitting points must be positive integer, not {value}"
-            )
+            raise TypeError(f"fitting points must be positive integer, not {value}")
         elif not value > 0:
-            raise ValueError(
-                f"fitting points must be positive integer, not {value}"
-            )
+            raise ValueError(f"fitting points must be positive integer, not {value}")
         self._numFittingPoints = value
 
     def updateAll(self, options):
