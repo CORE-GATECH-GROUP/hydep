@@ -1,6 +1,6 @@
+import math
 import logging
 import numbers
-import warnings
 from collections import defaultdict
 import time
 
@@ -40,27 +40,13 @@ class SfvSolver(ReducedOrderSolver):
         These are exposed primarily for the sake of testing and
         should not be relied on.
 
-    Parameters
-    ----------
-    numModes : int, optional
-        Number of modes of the forward and adjoint flux to use. If not
-        provided, :meth:`beforeMain` will set this value to be all
-        possible modes
-    densityCutoff : float, optional
-        Threshold density [#/b-cm] that isotopes must exceed in order
-        to be included in the cross section reconstruction
-    numPreviousPoints : int, optional
-        Number of previous points to use for extrapolations,
-        specifically on :math:`\bar{\nu}`
-    fittingOrder : int, optional
-        Fitting order for polynomials like :math:`\bar{\nu}`
+    Configuration is done inside :meth:`beforeMain`.
 
     Attributes
     ----------
     numModes : int or None
-        Number of modes of the forward and adjoint flux that are used
-    densityCutoff : float
-        Cutoff density [#/b/cm] used in cross section reconstruction
+        Positive number of modes used in the solution. A value of None indicates
+        the simulation has not been configured
     needs : hydep.internal.features.FeatureCollection
         Physics required by this solver and macroscopic cross sections.
     macroAbs0 : tuple of float or None
@@ -109,16 +95,10 @@ class SfvSolver(ReducedOrderSolver):
         {REACTION_MTS.N_GAMMA, REACTION_MTS.N_2N, REACTION_MTS.N_3N}
     )
 
-    def __init__(
-        self, numModes=None, densityCutoff=0, numPreviousPoints=3, fittingOrder=1,
-    ):
+    def __init__(self):
+        self._modes = None
+        self._densityCutoff = None
         self._volumes = None
-        if numModes is None:
-            self._numModes = None
-        else:
-            self.numModes = numModes
-        self.densityCutoff = densityCutoff
-
         self._totalvolume = None
         self._forwardMoments = None
         self._adjointMoments = None
@@ -127,7 +107,11 @@ class SfvSolver(ReducedOrderSolver):
         self._keff0 = None
         self._currentPower = None
         self._isotopeFissionQs = None
-        self._nubar = NubarPolyFit(maxlen=numPreviousPoints, order=fittingOrder)
+        self._nubar = None
+
+    @property
+    def numModes(self):
+        return self._modes
 
     @property
     def needs(self):
@@ -135,38 +119,6 @@ class SfvSolver(ReducedOrderSolver):
             {hdfeat.FISSION_MATRIX, hdfeat.MICRO_REACTION_XS, hdfeat.HOMOG_LOCAL},
             {"abs", "nubar", "nsf"},
         )
-
-    @property
-    def numModes(self):
-        return self._numModes
-
-    @numModes.setter
-    def numModes(self, value):
-        if not isinstance(value, numbers.Integral):
-            raise TypeError(f"Modes must be integral, not {type(value)}")
-        elif value <= 0:
-            raise ValueError(f"Modes must be positive, not {value}")
-        elif self._volumes is not None and value > len(self._volumes):
-            raise ValueError(
-                f"More modes requested than allowable: {value} vs. "
-                "{len(self._volumes)}"
-            )
-
-        __logger__.debug(f"Using {value} flux modes")
-
-        self._numModes = value
-
-    @property
-    def densityCutoff(self):
-        return self._densityCutoff
-
-    @densityCutoff.setter
-    def densityCutoff(self, value):
-        if not isinstance(value, numbers.Real):
-            raise TypeError(value)
-        elif value < 0:
-            raise ValueError(value)
-        self._densityCutoff = value
 
     @property
     def macroAbs0(self):
@@ -210,13 +162,8 @@ class SfvSolver(ReducedOrderSolver):
             return None
         return tuple(self._macroData[:, self._INDEX_VOL_K_FIS] / self._volumes)
 
-    def beforeMain(self, _model, manager):
+    def beforeMain(self, _model, manager, settings):
         """Prepare solver before main solution routines
-
-        If :attr:`numModes` is not set, then it will be set to the
-        number of burnable materials. If more modes are requested than
-        burnable materials, a warning is raised and the value is
-        lowered to the number of burnable materials.
 
         Parameters
         ----------
@@ -226,25 +173,67 @@ class SfvSolver(ReducedOrderSolver):
             the interface.
         manager : hydep.Manager
             Depletion interface
+        settings : hydep.settings.HydepSettings
+            Settings prescribed by the user. Will overwrite any
+            currently stored values.
 
         """
         assert manager.burnable is not None
         vols = tuple(m.volume for m in manager.burnable)
         nvols = len(vols)
 
-        if self.numModes is None:
-            warnings.warn(
-                f"No self.numModes selected for {self!s}, using {nvols}",
-                RuntimeWarning,
+        sfvSettings = settings.sfv
+        modes = sfvSettings.modes
+
+        if modes is not None:
+            if not isinstance(modes, numbers.Integral):
+                raise TypeError(
+                    f"Expected integer number of modes or None, got {type(modes)}"
+                )
+            elif not (0 < modes <= nvols):
+                raise ValueError(
+                    "Modes must be positive, and (for this problem) less than "
+                    f"{nvols}, got {modes}"
+                )
+        else:
+            modeFraction = sfvSettings.modeFraction
+            if not isinstance(modeFraction, numbers.Real):
+                raise TypeError(
+                    f"Expected real for mode fraction, got {type(modeFraction)}"
+                )
+            elif not (0 < modeFraction <= 1):
+                raise ValueError(
+                    f"Mode fraction should be bounded (0, 1], got {modeFraction}"
+                )
+            modes = math.ceil(nvols * modeFraction)
+        self._modes = modes
+
+        densityCutoff = sfvSettings._densityCutoff
+        if not isinstance(densityCutoff, numbers.Real):
+            raise TypeError(
+                "Expected non-negative real for density cutoff, got "
+                f"{type(densityCutoff)}"
             )
-            self.numModes = nvols
-        elif self.numModes > nvols:
-            warnings.warn(
-                f"Cannot extract {self.numModes} from {nvols} materials, using "
-                f"{nvols}",
-                RuntimeWarning,
+        elif densityCutoff < 0:
+            raise ValueError(
+                f"Expected non-negative real for density cutoff, got {densityCutoff}"
             )
-            self.numModes = nvols
+        self._densityCutoff = densityCutoff
+
+        # Nubar extrapolation
+        fittingOrder = settings.fittingOrder
+        if settings.unboundedFitting or settings.numFittingPoints is None:
+            self._nubar = NubarPolyFit(order=fittingOrder, maxlen=None)
+        elif fittingOrder >= settings.numFittingPoints:
+            raise ValueError(
+                f"Cannot make {fittingOrder} polynomial for nubar with "
+                f"{settings.numFittingPoints} values"
+            )
+        else:
+            self._nubar = NubarPolyFit(
+                order=fittingOrder, maxlen=settings.numFittingPoints
+            )
+
         self._volumes = vols
         self._totalvolume = sum(vols)
         self._macroData = numpy.empty((len(vols), self._NUM_INDEXES))
@@ -343,11 +332,7 @@ class SfvSolver(ReducedOrderSolver):
     def _updateMacroFromMicroXs(self, compositions, microxs):
         assert len(microxs) == self._macroData.shape[0]
         zais = tuple(iso.zai for iso in compositions.isotopes)
-        cutoff = self.densityCutoff
-
-        __logger__.debug(
-            f"Building macroscopic cross sections with density cutoff {cutoff:.4E}"
-        )
+        cutoff = self._densityCutoff
 
         # TODO Subprocess??
         for matix, (comps, matxs) in enumerate(zip(compositions.densities, microxs)):
