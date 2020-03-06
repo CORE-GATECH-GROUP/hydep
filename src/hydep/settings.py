@@ -268,10 +268,8 @@ class HydepSettings(ConfigMixin):
     unboundedFitting : bool, optional
         True to keep indefinitely many points for cross section
         extrapolation.
-    basedir : pathlib.Path or None
+    basedir : pathlib.Path
         Directory where result files and archived files should be saved.
-        A value of ``None`` indicates to use the current working
-        directory
     rundir : pathlib.Path or None
         Directory where the simulation will be run if different that
         ``basedir``. Auxillary files may be written here. Passing a
@@ -390,7 +388,7 @@ class HydepSettings(ConfigMixin):
         self._numFittingPoints = value
 
     @property
-    def basedir(self) -> PossiblePath:
+    def basedir(self) -> pathlib.Path:
         return self._basedir
 
     @basedir.setter
@@ -398,7 +396,7 @@ class HydepSettings(ConfigMixin):
         if base is not None:
             self._basedir = self._makeAbsPath(base)
         else:
-            self._basedir = None
+            raise TypeError("Basedir must be path-like. Cannot be none")
 
     @property
     def rundir(self) -> PossiblePath:
@@ -511,7 +509,7 @@ class HydepSettings(ConfigMixin):
         unboundFit = options.pop("unbounded fitting", None)
 
         # Directories
-        basedir = options.pop("basedir", False)
+        basedir = options.pop("basedir", None)
         rundir = options.pop("rundir", False)
 
         if options:
@@ -539,9 +537,9 @@ class HydepSettings(ConfigMixin):
         if unboundFit is not None:
             self.unboundedFitting = self.asBool("unbounded fitting", unboundFit)
 
-        if basedir is not False:
+        if basedir is not None:
             if isinstance(basedir, str) and basedir.lower() == "none":
-                self.basedir = None
+                raise TypeError(f"basedir must be path-like, not {basedir}")
             else:
                 self.basedir = basedir
 

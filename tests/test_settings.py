@@ -167,9 +167,9 @@ def test_directories():
     assert fresh.basedir.is_absolute()
     assert fresh.basedir == pathlib.Path.cwd()
 
-    # But we can revert back to None
-    fresh.basedir = None
-    assert fresh.basedir is None
+    with pytest.raises(TypeError):
+        fresh.basedir = None
+    assert fresh.basedir == pathlib.Path.cwd()
 
     fresh.update(
         {"basedir": FAKE_DIR.name, "rundir": "nONe"}
@@ -179,12 +179,10 @@ def test_directories():
     assert fresh.basedir.is_absolute()
     assert fresh.rundir is None
 
-    # Swap
-
-    fresh.update(
-        {"rundir": FAKE_DIR.name, "basedir": "nOnE"}
-    )
+    fresh.update({"rundir": FAKE_DIR.name})
 
     assert fresh.rundir == FAKE_DIR
     assert fresh.rundir.is_absolute()
-    assert fresh.basedir is None
+
+    with pytest.raises(TypeError):
+        fresh.update({"basedir": "none"})
