@@ -79,23 +79,77 @@ class ConfigMixin:
         """
         try:
             return dtype(value)
-        except ValueError as ve:
-            raise ve from TypeError(f"Could not coerce {key}={value} to {dtype}")
+        except Exception as ee:
+            raise TypeError(f"Could not coerce {key}={value} to {dtype}") from ee
 
     @staticmethod
     def asInt(key: str, value: typing.Any) -> int:
-        if not isinstance(value, numbers.Integral):
-            if isinstance(value, numbers.Real):
-                raise TypeError(f"Will not coerce {key}={value} from real to integer")
+        """Coerce a value to an integer
+
+        The following rules are applied, in order
+
+        1. If the value is a boolean, reject
+        2. If the value is an integer, return immediately
+        3. If real, check process integer ratio -
+           :meth:`float.as_integer_ratio`, but don't cast as ``float``
+        4. Otherwise, convert to ``float`` and process integer ratio
+
+        A value is considered an integer if the denominator of the ratio
+        is positive or negative one.
+
+        Parameters
+        ----------
+        key : str
+            Description for this value. Used in error reporting only
+        value : object
+            Value that one would like to be an integer
+
+        Returns
+        -------
+        int
+
+        """
         if isinstance(value, bool):
             raise TypeError(f"Will not coerce {key}={value} from bool to integer")
-        return int(value)
+        if isinstance(value, numbers.Integral):
+            return value
+
+        if isinstance(value, numbers.Real) and hasattr(value, "as_integer_ratio"):
+            numer, denom = value.as_integer_ratio()
+        else:
+            numer, denom = float(value).as_integer_ratio()
+
+        if denom == 1:
+            return numer
+        elif denom == -1:
+            return -numer
+
+        raise TypeError(f"Could not coerce {key}={value} to integer")
 
     def asPositiveInt(self, key: str, value: typing.Any) -> int:
+        """Coerce a value to be a positive integer
+
+        Similar rules apply as in :meth:`asInt`
+
+        Parameters
+        ----------
+        key : str
+            Description of the value. Used in error reporting only
+        value : object
+            Value that maybe can be an integer
+
+        Returns
+        -------
+        int
+
+        """
         candidate = self.asInt(key, value)
         if candidate > 0:
             return candidate
-        raise ValueError(f"{key}={value} must be positive integer")
+        raise ValueError(
+            f"{key} must be positive integer: converted {value} to "
+            f"{candidate}"
+        )
 
 
 class SubSetting(ConfigMixin, metaclass=ABCMeta):
