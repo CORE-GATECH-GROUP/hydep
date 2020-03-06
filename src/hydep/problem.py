@@ -64,10 +64,28 @@ class Problem(object):
         Not required to be called by the user, and may go private.
         Called during :meth:`solve`.
 
+        Will create directories specified by
+        :attr:`hydep.settings.HydepSettings.basedir` and
+        :attr:`hydep.settings.HydepSettings.rundir` using
+        :meth:`pathlib.Path.mkdir`, making parent directories as
+        necessary. If ``rundir`` is ``None``, it will be assigned
+        as the base directory.
+
         """
         __logger__.debug("Executing pre-solution routines")
 
         self.settings.validate()
+
+        # Check directories, making them as necessary
+        basedir = self.settings.basedir
+        if not basedir.is_dir():
+            basedir.mkdir(parents=True)
+
+        rundir = self.settings.rundir
+        if rundir is None:
+            self.settings.rundir = basedir
+        elif not rundir.is_dir():
+            rundir.mkdir(parents=True)
 
         self.dep.beforeMain(self.model, self.settings)
         self.hf.beforeMain(self.model, self.dep, self.settings)
