@@ -12,8 +12,8 @@ from . import SfvComparator
 def test_sfvsimple(simpleSfvProblem, sfvMacroData, sfvMicroXS, sfvNewComps):
 
     manager = simpleSfvProblem.dep
-    solver = SfvSolver(numModes=len(manager.burnable), fittingOrder=0)
-    solver.beforeMain(simpleSfvProblem.model, manager)
+    solver = SfvSolver()
+    solver.beforeMain(simpleSfvProblem.model, manager, simpleSfvProblem.settings)
 
     # Emulate BOS result
     bos = sfvMacroData.toTransportResult()
