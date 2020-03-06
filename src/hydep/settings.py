@@ -6,6 +6,7 @@ settings and individual solvers
 """
 
 import copy
+import pathlib
 import re
 from collections.abc import Sequence
 import typing
@@ -227,6 +228,12 @@ class HydepSettings(ConfigMixin):
     unboundedFitting : bool, optional
         True to keep indefinitely many points for cross section
         extrapolation.
+    basedir : str or pathlib.Path, optional
+        Directory where result files and archived files should be saved.
+        Defaults to current working directory
+    rundir : str or pathlib.Path, optional
+        Directory where the simulation will be run if different that
+        ``basedir``. Auxillary files may be written here.
 
     Attributes
     ----------
@@ -247,6 +254,15 @@ class HydepSettings(ConfigMixin):
     unboundedFitting : bool, optional
         True to keep indefinitely many points for cross section
         extrapolation.
+    basedir : pathlib.Path or None
+        Directory where result files and archived files should be saved.
+        A value of ``None`` indicates to use the current working
+        directory
+    rundir : pathlib.Path or None
+        Directory where the simulation will be run if different that
+        ``basedir``. Auxillary files may be written here. Passing a
+        value of ``None`` indicates to use the same directory as
+        :attr:`basedir`
 
     See Also
     --------
@@ -267,6 +283,8 @@ class HydepSettings(ConfigMixin):
         fittingOrder=1,
         numFittingPoints=3,
         unboundedFitting=False,
+        basedir=None,
+        rundir=None,
     ):
         self.archiveOnSuccess = archiveOnSuccess
         self.depletionSolver = depletionSolver
@@ -277,6 +295,8 @@ class HydepSettings(ConfigMixin):
         self.fittingOrder = fittingOrder
         self.numFittingPoints = numFittingPoints
         self.unboundedFitting = unboundedFitting
+        self.basedir = basedir or pathlib.Path.cwd()
+        self.rundir = rundir
 
     def __getattr__(self, name):
         klass = _CONFIG_CLASSES.get(name)

@@ -1,4 +1,14 @@
+"""Typing help"""
+import typing
+import pathlib
 from collections.abc import Iterable
+
+
+OptBool = typing.Optional[bool]
+OptFile = typing.Optional[typing.Union[str, pathlib.Path]]
+OptIntegral = typing.Optional[int]
+OptReal = typing.Optional[float]
+PossiblePath = typing.Optional[pathlib.Path]
 
 
 class Descriptor:

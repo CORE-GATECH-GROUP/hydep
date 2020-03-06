@@ -4,11 +4,7 @@ import pathlib
 import numbers
 
 from hydep.settings import SubSetting
-
-OptFile = typing.Optional[typing.Union[str, pathlib.Path]]
-OptInt = typing.Optional[int]
-OptFloat = typing.Optional[float]
-PossiblePath = typing.Optional[pathlib.Path]
+from hydep.typed import OptFile, OptReal, OptIntegral, PossiblePath
 
 
 # TODO VER 3.7 dataclass
@@ -66,16 +62,16 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         declib: OptFile = None,
         nfylib: OptFile = None,
         sab: OptFile = None,
-        particles: OptInt = None,
-        generationsPerBatch: OptInt = None,
-        active: OptInt = None,
-        inactive: OptInt = None,
-        seed: OptInt = None,
+        particles: OptIntegral = None,
+        generationsPerBatch: OptIntegral = None,
+        active: OptIntegral = None,
+        inactive: OptIntegral = None,
+        seed: OptIntegral = None,
         k0: float = 1.0,
         # Runner settings
         executable: typing.Optional[str] = None,
-        omp: OptInt = None,
-        mpi: OptInt = None,
+        omp: OptIntegral = None,
+        mpi: OptIntegral = None,
     ):
         if datadir is None:
             datadir = os.environ.get("SERPENT_DATA") or None
@@ -192,66 +188,66 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         self._sab = s
 
     @property
-    def particles(self) -> OptInt:
+    def particles(self) -> OptIntegral:
         return self._particles
 
     @particles.setter
-    def particles(self, value: OptInt):
+    def particles(self, value: OptIntegral):
         if value is None:
             self._particles = None
             return
         self._particles = self.asPositiveInt("particles", value)
 
     @property
-    def active(self) -> OptInt:
+    def active(self) -> OptIntegral:
         return self._active
 
     @active.setter
-    def active(self, value: OptInt):
+    def active(self, value: OptIntegral):
         if value is None:
             self._active = None
             return
         self._active = self.asPositiveInt("active", value)
 
     @property
-    def inactive(self) -> OptInt:
+    def inactive(self) -> OptIntegral:
         return self._inactive
 
     @inactive.setter
-    def inactive(self, value: OptInt):
+    def inactive(self, value: OptIntegral):
         if value is None:
             self._inactive = None
             return
         self._inactive = self.asPositiveInt("inactive", value)
 
     @property
-    def generationsPerBatch(self) -> OptInt:
+    def generationsPerBatch(self) -> OptIntegral:
         return self._generations
 
     @generationsPerBatch.setter
-    def generationsPerBatch(self, value: OptInt):
+    def generationsPerBatch(self, value: OptIntegral):
         if value is None:
             self._generations = None
             return
         self._generations = self.asPositiveInt("generationsPerBatch", value)
 
     @property
-    def seed(self) -> OptInt:
+    def seed(self) -> OptIntegral:
         return self._seed
 
     @seed.setter
-    def seed(self, value: OptInt):
+    def seed(self, value: OptIntegral):
         if value is None:
             self._seed = None
             return
         self._seed = self.asPositiveInt("seed", value)
 
     @property
-    def k0(self) -> OptFloat:
+    def k0(self) -> OptReal:
         return self._k0
 
     @k0.setter
-    def k0(self, value: OptFloat):
+    def k0(self, value: OptReal):
         if value is None:
             self._k0 = None
             return
@@ -275,22 +271,22 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         self._executable = exe
 
     @property
-    def omp(self) -> OptInt:
+    def omp(self) -> OptIntegral:
         return self._omp
 
     @omp.setter
-    def omp(self, value: OptInt):
+    def omp(self, value: OptIntegral):
         if value is None:
             self._omp = None
             return
         self._omp = self.asPositiveInt("omp", value)
 
     @property
-    def mpi(self) -> OptInt:
+    def mpi(self) -> OptIntegral:
         return self._mpi
 
     @mpi.setter
-    def mpi(self, value: OptInt):
+    def mpi(self, value: OptIntegral):
         if value is None:
             self._mpi = None
             return
