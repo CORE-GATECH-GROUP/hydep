@@ -1,10 +1,11 @@
 """Basic unit testing for problem"""
 
+# TODO Use unittest.mock.Mock for as much as possible
 import configparser
 
 import pytest
 import hydep
-from hydep.lib import HighFidelitySolver, ReducedOrderSolver
+from hydep.lib import HighFidelitySolver, ReducedOrderSolver, BaseStore
 from hydep.settings import SubSetting, HydepSettings
 
 
@@ -68,6 +69,16 @@ class MockRomSettings(SubSetting, sectionName="mockROM"):
             self.bar = bar
 
 
+class MockStore(BaseStore):
+    @staticmethod
+    def beforeMain(*args, **kwargs):
+        pass
+
+    postTransport = beforeMain
+    writeCompositions = beforeMain
+    VERSION = (0, 0)
+
+
 @pytest.fixture
 def mockProblem():
     fuel = hydep.BurnableMaterial("fuel", mdens=10.4, volume=1.0, U235=1e-5)
@@ -78,7 +89,7 @@ def mockProblem():
     chain = hydep.DepletionChain(fuel.keys())
     manager = hydep.Manager(chain, [10], 1e6, 1)
 
-    return hydep.Problem(model, MockHFSolver(), MockROMSolver(), manager)
+    return hydep.Problem(model, MockHFSolver(), MockROMSolver(), manager, MockStore())
 
 
 @pytest.fixture
@@ -89,8 +100,8 @@ def settings():
             "depletion solver": "cram48",
             "boundary conditions": ("reflective", "reflective", "vacuum"),
         },
-        "hydep.mockHF": {"foo": "foo",},
-        "hydep.mockROM": {"bar": "bar",},
+        "hydep.mockHF": {"foo": "foo"},
+        "hydep.mockROM": {"bar": "bar"},
     }
 
 
