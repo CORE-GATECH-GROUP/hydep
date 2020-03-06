@@ -7,6 +7,7 @@ import time
 import numpy
 from numpy.linalg import LinAlgError
 
+from hydep import FailedSolverError
 from hydep.constants import BARN_PER_CM2, EV_PER_JOULE, REACTION_MTS, FISSION_REACTIONS
 from hydep.lib import ReducedOrderSolver
 from hydep.internal import TransportResult
@@ -206,6 +207,12 @@ class SfvSolver(ReducedOrderSolver):
                     f"Mode fraction should be bounded (0, 1], got {modeFraction}"
                 )
             modes = math.ceil(nvols * modeFraction)
+            __logger__.info("Solving with %d modes", modes)
+            __logger__.debug(
+                "  Computed from %d unique burnable materials with mode fraction %f",
+                nvols,
+                modeFraction,
+            )
         self._modes = modes
 
         densityCutoff = sfvSettings._densityCutoff
@@ -258,7 +265,7 @@ class SfvSolver(ReducedOrderSolver):
         AttributeError
             If no fission matrix is supplied and no fission matrix data
             is current stored.
-        numpy.linalg.LinAlgError
+        hydep.FailedSolverError
             If the eigenvalue solution of the fission matrix failed
 
         """
@@ -277,12 +284,10 @@ class SfvSolver(ReducedOrderSolver):
         self._nubar.insort(timestep.currentTime, nubar)
 
     def _bosProcessFmtx(self, txresult, timestep):
-        __logger__.debug("Processing forward and adjoint flux modes")
-
         try:
             adj, fwd, eig = getAdjFwdEig(txresult.fmtx)
         except LinAlgError as le:
-            raise LinAlgError(f"{self!s} at {timestep}\n{le!s}")
+            raise FailedSolverError(f"{self!s} at {timestep}\n{le!s}") from le
         self._adjointMoments = adj[:, : self.numModes]
         self._forwardMoments = fwd[:, : self.numModes]
         self._eigenvalues = eig[: self.numModes]
@@ -320,8 +325,6 @@ class SfvSolver(ReducedOrderSolver):
         self._macroData[:, self._INDEX_NUBAR] = self._nubar(timestep.currentTime)
 
     def _processIsotopeFissionQ(self, isotopes):
-        __logger__.debug("Processing fission Q values from isotopes")
-
         qvalues = defaultdict(float)
         for isotope in isotopes:
             for reaction in isotope.reactions:
