@@ -9,10 +9,8 @@ TODOs
 * Ensure non-negativity of depletion results
 * Standardize microXS vs microXs
 * Guard against hooks that aren't supported by solvers
-* Validate configuration options to avoid typos
 * Resolve how hydep.Pin objects are handled by numpy
 * Remove most assert statements in favor of actual checks
-* Make depletion solver / CRAM order configurable
 * Find a way to add regression test file (setup, post-process) into
   the repository
 * Make all tests less flaky. Failures can fill up the Material or
@@ -22,7 +20,6 @@ TODOs
 Serpent
 -------
 
-* Get microscopic cross sections without second transport simulation
 * Improved parsing of error at output
 * Pull and check model.bounds, not model.root.bounds
 
@@ -31,6 +28,9 @@ Caveats
 
 * Serpent fluxes, microscopic xs, and macroscopic xs are one group
 * Fetching microscopic reaction xs with Serpent requires depletion
+  unless using CoupledSerpentSolver. This class relies on a patched
+  version of Serpent that the author intends to distribute to the
+  user community.
 
 Wish list
 =========

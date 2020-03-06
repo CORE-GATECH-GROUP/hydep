@@ -182,7 +182,6 @@ class Pin(Universe):
                 continue
             if id(mat) in memo:
                 mat = updates[index] = mat.copy()
-                # TODO remove assumption of always hex ids
                 mat.name = "{}_copy{}".format(mat.name.split("_copy")[0], mat.id)
             memo.add(id(mat))
 

@@ -173,7 +173,6 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
         """
         base = str(self._tmpFile)
 
-        # TODO Divide fluxes by volumes here VVV
         if self.hooks is not None and self.hooks.macroXS:
             res = self._processor.processResult(base + "_res.m", self.hooks.macroXS)
         else:
