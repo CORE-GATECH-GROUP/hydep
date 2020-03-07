@@ -2,21 +2,22 @@
 The Serpent solver!
 """
 
+from abc import abstractmethod
 import time
 import tempfile
 import shutil
 import pathlib
-import warnings
 import zipfile
 import logging
 
 import numpy
 import hydep
+from hydep.lib import HighFidelitySolver
 from hydep.internal import configmethod, TransportResult
 import hydep.internal.features as hdfeat
 
-from .writer import SerpentWriter, ExtDepWriter
-from .runner import SerpentRunner, ExtDepRunner, STATE
+from .writer import BaseWriter, SerpentWriter, ExtDepWriter
+from .runner import BaseRunner, SerpentRunner, ExtDepRunner
 from .processor import SerpentProcessor, FissionYieldFetcher
 from .xsavail import XS_2_1_30
 
@@ -35,57 +36,92 @@ _FEATURES_ATLEAST_2_1_30 = hdfeat.FeatureCollection(
 )
 
 
-class SerpentSolver(hydep.lib.HighFidelitySolver):
-    """Primary entry point for using Serpent as high fidelity solver
+class BaseSolver(HighFidelitySolver):
+    """Base solver for interfacing with Serpent >= 2.1.30
 
-    Configuration should be done through the :meth:`configure` method.
+    Does not provide all methods needed by the
+    :class:`hydep.lib.HighFidelitySolver` other than
+    :attr:`features`, :meth:`setHooks`. :meth:`beforeMain`
+    is partially implemented, but requires a helper method for
+    writing solver-specific input files. Other methods for
+    directly interacting with Serpent are left to concrete
+    classes like :class:`SerpentSolver` and
+    :class:`CoupledSerpentSolver`.
+
+    Parameters
+    ----------
+    writer : hydep.serpent.BaseWriter
+        Passed to :attr:`writer`
+    runner : hydep.serpent.BaseRunner
+        Passed to :attr:`runner`
+    processor : hydep.serpent.SerpentProcessor, optional
+        If not provided, use a :class:`hydep.serpent.SerpentProcessor`.
+        Passed to :attr:`processor`
 
     Attributes
     ----------
+    writer : hydep.serpent.BaseWriter
+        Instance responsible for writing input files
+    runner : hydep.serpent.BaseRunner
+        Instance reponsible for controlling Serpent execution
+    processor : hydep.serpent.SerpentProcessor
+        Instance responsible for pulling data from output files
     features : hydep.internal.features.FeatureCollection
-        Capabilities employed by this code that are relevant for
-        this sequence.
-    hooks : hydep.internal.features.FeatureCollection or None
-        Hooks describing the physics needed by attached physics
-        solvers. Setting this more than once will produced
-        warnings, as it should not be modified after use.
+        A non-exhaustive list of features contained in Serpent >= 2.1.30
+        that are useful / necessary for this framework
+    hooks : hydep.internal.features.FeatureCollection
+        Collection of physics and cross sections needed by other
+        aspects of the framework
+
     """
 
-    def __init__(self):
+    def __init__(self, writer, runner, processor=None):
+        self._writer = writer
+        self._processor = processor or SerpentProcessor()
+        self._runner = runner
         self._hooks = None
-        self._curfile = None
-        self._tmpdir = None
-        self._tmpFile = None
-        self._writer = SerpentWriter()
-        self._runner = SerpentRunner()
-        self._processor = SerpentProcessor()
-        self._archiveOnSuccess = False
         self._volumes = None
+
+    @property
+    def features(self):
+        return _FEATURES_ATLEAST_2_1_30
 
     @property
     def hooks(self):
         return self._hooks
 
-    @hooks.setter
-    def hooks(self, value):
+    def setHooks(self, needs):
+        """Instruct the solver and helpers what physics are needed
+
+        Parameters
+        ----------
+        needs : hydep.internal.features.FeatureCollection
+            The needs of other solvers, e.g.
+            :class:`hydep.ReducedOrderSolver`
+
+        """
         # TODO Guard against hooks that aren't supported
-        if not isinstance(value, hdfeat.FeatureCollection):
+        if not isinstance(needs, hdfeat.FeatureCollection):
             raise TypeError(
                 "Hooks must be {}, not {}".format(
-                    hdfeat.FeatureCollection.__name__, type(value)
+                    hdfeat.FeatureCollection.__name__, type(needs)
                 )
             )
-        if self._hooks is not None:
-            warnings.warn(f"Overwritting hooks for {self}")
 
-        __logger__.debug(f"Updating hooks: {value}")
-
-        self._hooks = value
-        self._writer.hooks = value
+        self._hooks = needs
+        self._writer.hooks = needs
 
     @property
-    def features(self):
-        return _FEATURES_ATLEAST_2_1_30
+    def writer(self) -> BaseWriter:
+        return self._writer
+
+    @property
+    def runner(self) -> BaseRunner:
+        return self._runner
+
+    @property
+    def processor(self) -> SerpentProcessor:
+        return self._processor
 
     @configmethod
     def configure(self, config):
@@ -124,25 +160,126 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
 
         if config.has_section("hydep"):
             section = config["hydep"]
-            self._configure(section)
-            self._writer.configure(section, level=0)
+            self.writer.configure(section, level=0)
 
         if config.has_section("hydep.montecarlo"):
             section = config["hydep.montecarlo"]
-            self._configure(section)
-            self._writer.configure(section, level=1)
+            self.writer.configure(section, level=1)
 
         if config.has_section("hydep.serpent"):
             section = config["hydep.serpent"]
-            self._configure(section)
-            self._writer.configure(section, level=2)
-            self._runner.configure(section)
-            self._processor.configure(section)
+            self.writer.configure(section, level=2)
+            self.runner.configure(section)
+            self.processor.configure(section)
 
-    def _configure(self, section):
-        self._archiveOnSuccess = section.getboolean(
-            "archive on success", fallback=self._archiveOnSuccess
+    def _process(self, basefile, index=0):
+        if self.hooks is not None and self.hooks.macroXS:
+            res = self.processor.processResult(
+                basefile + "_res.m",
+                self.hooks.macroXS,
+                index=index,
+            )
+        else:
+            keff = self.processor.getKeff(basefile + "_res.m", index=index)
+            fluxes = self.processor.processDetectorFluxes(
+                basefile + f"_det{index}.m",
+                "flux",
+            )
+            res = TransportResult(fluxes, keff)
+
+        res.flux = res.flux / self._volumes
+
+        if not self.hooks:
+            return res
+
+        for feature in self.hooks.features:
+            if feature is hdfeat.FISSION_MATRIX:
+                res.fmtx = self.processor.processFmtx(basefile + f"_fmtx{index}.m")
+            elif feature is hdfeat.MICRO_REACTION_XS:
+                res.microXS = self.processor.processMicroXS(basefile + f"_mdx{index}.m")
+            elif feature is hdfeat.FISSION_YIELDS:
+                res.fissionYields = self.processor.processFissionYields(
+                    basefile + f"_det{index}.m"
+                )
+
+        return res
+
+    def beforeMain(self, model, manager):
+        """Prepare the base input file
+
+        Parameters
+        ----------
+        model : hydep.Model
+            Geometry information to be written once
+        manager : hydep.Manager
+            Depletion information
+
+        """
+        assert manager.burnable is not None
+        orderedBumat = manager.burnable
+
+        matids = []
+        self._volumes = numpy.empty((len(orderedBumat), 1))
+        for ix, m in enumerate(orderedBumat):
+            matids.append(str(m.id))
+            self._volumes[ix] = m.volume
+
+        self.writer.model = model
+        self.writer.burnable = orderedBumat
+        self.writer.updateProblemIsotopes((iso.triplet for iso in manager.chain))
+
+        __logger__.debug("Writing base Serpent input file")
+        mainfile = self._writeMainFile(model, manager)
+
+        self.processor.burnable = matids
+
+        # Not super pretty, as this interacts both with the writer's roles
+        # and the processors roles
+        if hdfeat.FISSION_YIELDS in self.hooks.features:
+            fyproc = FissionYieldFetcher(matids, manager.chain)
+            detlines = fyproc.makeDetectors(upperEnergy=20)
+            if detlines:
+                with mainfile.open("a") as s:
+                    s.write("\n".join(detlines))
+            self.processor.fyHelper = fyproc
+
+    @abstractmethod
+    def _writeMainFile(self, model, manager) -> pathlib.Path:
+        """Write the primary input file before transport solutions"""
+        pass
+
+
+class SerpentSolver(BaseSolver):
+    """Primary entry point for using Serpent as high fidelity solver
+
+    Configuration should be done through the :meth:`configure` method.
+
+    Attributes
+    ----------
+    writer : SerpentWriter
+        Responsible for writing Serpent inputs
+    runner : SerpentRunner
+        Responsible for runing Serpent
+    processor : SerpentProcessor
+        Responsible for processing outputs
+    features : hydep.internal.features.FeatureCollection
+        A non-exhaustive list of features contained in Serpent >= 2.1.30
+        that are useful / necessary for this framework
+    hooks : hydep.internal.features.FeatureCollection
+        Collection of physics and cross sections needed by other
+        aspects of the framework
+
+    """
+
+    def __init__(self):
+        super().__init__(
+            writer=SerpentWriter(),
+            runner=SerpentRunner(),
         )
+        self._curfile = None
+        self._tmpdir = None
+        self._tmpFile = None
+        self._archiveOnSuccess = False
 
     def bosUpdate(self, compositions, timestep, power):
         """Create a new input file with updated compositions
@@ -160,7 +297,7 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
         power : float
             Current reactor power [W]
        """
-        self._curfile = self._writer.writeSteadyStateFile(
+        self._curfile = self.writer.writeSteadyStateFile(
             f"./serpent/s{timestep.coarse}", compositions, timestep, power
         )
 
@@ -184,22 +321,9 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
             Current power [W]
 
         """
-        self._curfile = self._writer.writeSteadyStateFile(
+        self._curfile = self.writer.writeSteadyStateFile(
             f"./serpent/s{timestep.coarse}", compositions, timestep, power, final=True
         )
-
-    def setHooks(self, needs):
-        """Instruct the solver and helpers what physics are needed
-
-        Parameters
-        ----------
-        needs : hydep.internal.features.FeatureCollection
-            The needs of other solvers, e.g.
-            :class:`hydep.ReducedOrderSolver`
-
-        """
-        self.hooks = needs
-        self._writer.hooks = needs
 
     def execute(self):
         self._tmpdir = tempfile.TemporaryDirectory()
@@ -207,9 +331,20 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
         shutil.move(self._curfile, self._tmpFile)
 
         start = time.time()
-        self._runner(self._tmpFile)
+        self.runner(self._tmpFile)
 
         return time.time() - start
+
+    @configmethod
+    def configure(self, config):
+        super().configure(config)
+        for sectionName in ["hydep", "hydep.montecarlo", "hydep.serpent"]:
+            if config.has_section(sectionName):
+                section = config[sectionName]
+                self._archiveOnSucess = section.getboolean(
+                    "archive on success",
+                    fallback=self._archiveOnSuccess,
+                )
 
     def processResults(self):
         """Pull necessary information from Serpent outputs
@@ -230,32 +365,7 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
             :meth:`bosUpdate` or :meth:`beforeMain`
 
         """
-        base = str(self._tmpFile)
-
-        # TODO Divide fluxes by volumes here VVV
-        if self.hooks is not None and self.hooks.macroXS:
-            res = self._processor.processResult(base + "_res.m", self.hooks.macroXS)
-        else:
-            keff = self._processor.getKeff(base + "_res.m")
-            fluxes = self._processor.processDetectorFluxes(base + "_det0.m", "flux")
-            res = TransportResult(fluxes, keff)
-
-        res.flux = res.flux / self._volumes
-
-        if not self.hooks:
-            return res
-
-        for feature in self.hooks.features:
-            if feature is hdfeat.FISSION_MATRIX:
-                res.fmtx = self._processor.processFmtx(base + "_fmtx0.m")
-            elif feature is hdfeat.MICRO_REACTION_XS:
-                res.microXS = self._processor.processMicroXS(base + "_mdx0.m")
-            elif feature is hdfeat.FISSION_YIELDS:
-                res.fissionYields = self._processor.processFissionYields(
-                    base + "_det0.m"
-                )
-
-        return res
+        return self._process(str(self._tmpFile), index=0)
 
     def finalize(self, status):
         if self._curfile is not None and (self._archiveOnSuccess or not status):
@@ -276,46 +386,10 @@ class SerpentSolver(hydep.lib.HighFidelitySolver):
                 else:
                     myzip.write(ff, ff.name)
 
-    def beforeMain(self, model, manager):
-        """Prepare the base input file
-
-        Parameters
-        ----------
-        model : hydep.Model
-            Geometry information to be written once
-        manager : hydep.Manager
-            Depletion information
-
-        """
-        assert manager.burnable is not None
-        orderedBumat = manager.burnable
-
-        matids = []
-        self._volumes = numpy.empty((len(orderedBumat), 1))
-        for ix, m in enumerate(orderedBumat):
-            matids.append(str(m.id))
-            self._volumes[ix] = m.volume
-
-        self._writer.model = model
-        self._writer.burnable = orderedBumat
-        self._writer.updateProblemIsotopes((iso.triplet for iso in manager.chain))
-
-        __logger__.debug("Writing base Serpent input file")
-
+    def _writeMainFile(self, model, manager):
         basefile = pathlib.Path.cwd() / "serpent" / "base.sss"
-        self._writer.writeBaseFile(basefile)
-
-        self._processor.burnable = matids
-
-        # Not super pretty, as this interacts both with the writer's roles
-        # and the processors roles
-        if hdfeat.FISSION_YIELDS in self.hooks.features:
-            fyproc = FissionYieldFetcher(matids, manager.chain)
-            detlines = fyproc.makeDetectors(upperEnergy=20)
-            if detlines:
-                with basefile.open("a") as s:
-                    s.write("\n".join(detlines))
-            self._processor.fyHelper = fyproc
+        self.writer.writeBaseFile(basefile)
+        return basefile
 
 
 class CoupledSerpentSolver(hydep.lib.HighFidelitySolver):
