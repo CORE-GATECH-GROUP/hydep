@@ -135,21 +135,3 @@ def fileConfig(tmp_path, settings):
 def test_fileConfig(mockProblem, fileConfig):
     mockProblem.configure(fileConfig)
     _testSettings(mockProblem.settings)
-
-
-def test_directories(tmpdir, mockProblem):
-
-    rootdir = tmpdir / "my-root"
-    basedir = rootdir / "base"
-
-    settings = mockProblem.settings
-
-    assert not basedir.exists()
-
-    settings.basedir = basedir
-    settings.rundir = None
-
-    mockProblem.beforeMain()
-
-    assert settings.basedir.is_dir()
-    assert settings.rundir == settings.basedir
