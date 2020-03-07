@@ -30,17 +30,7 @@ def serpent2x2Problem(simpleChain, toy2x2lattice):
 
 
 @pytest.fixture
-def serpentSolver(tmpdir):
-    solver = hydep.serpent.SerpentSolver()
-
-    with tmpdir.as_cwd():
-        tmpdir.mkdir("serpent")
-        yield solver
-        solver.finalize(True)
-
-
-@pytest.fixture
-def regressionSettings():
+def regressionSettings(runInTempDir):
     datadir = os.environ.get("SERPENT_DATA")
     if not datadir:
         pytest.skip("Need SERPENT_DATA environment variable")
@@ -64,8 +54,9 @@ def regressionSettings():
     return settings
 
 
-@pytest.mark.serpent
-def test_serpentSolver(regressionSettings, serpentSolver, serpent2x2Problem):
+@pytest.fixture
+def serpentSolver(runInTempDir, regressionSettings, serpent2x2Problem):
+    regressionSettings.rundir = runInTempDir
 
     # Set hooks for slightly realistic problem
     XS_KEYS = {"abs", "fiss"}
@@ -73,11 +64,13 @@ def test_serpentSolver(regressionSettings, serpentSolver, serpent2x2Problem):
         {hdfeat.HOMOG_LOCAL, hdfeat.FISSION_MATRIX, hdfeat.FISSION_YIELDS}, XS_KEYS
     )
 
-    serpentSolver.setHooks(hooks)
+    solver = hydep.serpent.SerpentSolver()
 
-    assert serpentSolver.hooks == hooks
+    solver.setHooks(hooks)
 
-    serpentSolver.beforeMain(
+    assert solver.hooks == hooks
+
+    solver.beforeMain(
         serpent2x2Problem.model, serpent2x2Problem.manager, regressionSettings
     )
 
@@ -91,7 +84,12 @@ def test_serpentSolver(regressionSettings, serpentSolver, serpent2x2Problem):
 
     POWER = 6e6
 
-    serpentSolver.bosUpdate(concentrations, timeStep, POWER)
+    solver.bosUpdate(concentrations, timeStep, POWER)
+    yield solver
+    solver.finalize(True)
+
+@pytest.mark.serpent
+def test_serpentSolver(serpentSolver):
 
     serpentSolver.execute()
 
