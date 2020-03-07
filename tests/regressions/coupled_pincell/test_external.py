@@ -56,7 +56,9 @@ def test_external(runInTempDir, endfChain, pincell):
         {
             "hydep": {
                 "boundary conditions": "reflective",
-                "rundir": runInTempDir,
+                "basedir": runInTempDir,
+                "rundir": None,
+                "use temp dir": True,
             },
             "hydep.serpent": {
                 "seed": 123456789,
