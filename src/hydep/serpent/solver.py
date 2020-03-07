@@ -81,6 +81,9 @@ class BaseSolver(HighFidelitySolver):
     hooks : hydep.internal.features.FeatureCollection
         Collection of physics and cross sections needed by other
         aspects of the framework
+    basedir : pathlib.Path or None
+        Path where results will be saved and / or archived. Configured
+        in :meth:`self.beforeMain`
 
     """
 
@@ -90,6 +93,7 @@ class BaseSolver(HighFidelitySolver):
         self._runner = runner
         self._hooks = None
         self._volumes = None
+        self._basedir = None
 
     @property
     def features(self):
@@ -119,6 +123,10 @@ class BaseSolver(HighFidelitySolver):
 
         self._hooks = needs
         self._writer.hooks = needs
+
+    @property
+    def basedir(self):
+        return self._basedir
 
     @property
     def writer(self) -> BaseWriter:
@@ -178,6 +186,7 @@ class BaseSolver(HighFidelitySolver):
 
         """
         self.runner.configure(settings.serpent)
+        self._basedir = settings.basedir
 
         assert manager.burnable is not None
         orderedBumat = manager.burnable
@@ -331,9 +340,10 @@ class SerpentSolver(BaseSolver):
 
     def _archive(self):
         skipExts = {".seed", ".out", ".dep"}
-        zipf = self._curfile.with_suffix(".zip")
+        basedir = self.basedir or pathlib.Path.cwd()
+        zipf = basedir / self._curfile.with_suffix(".zip").name
 
-        __logger__.debug(f"Archiving Serpent results to {zipf.resolve()}")
+        __logger__.debug(f"Archiving Serpent results to {zipf}")
 
         with zipfile.ZipFile(zipf, "w") as myzip:
             for ff in self._tmpFile.parent.glob("*"):
