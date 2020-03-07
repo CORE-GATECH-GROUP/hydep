@@ -274,11 +274,40 @@ class HydepSettings(ConfigMixin):
         extrapolation.
     basedir : pathlib.Path
         Directory where result files and archived files should be saved.
+        If not given as an absolute path, resolves relative to the
+        current working directory
     rundir : pathlib.Path or None
         Directory where the simulation will be run if different that
         ``basedir``. Auxillary files may be written here. Passing a
         value of ``None`` indicates to use the same directory as
-        :attr:`basedir`
+        :attr:`basedir`. If not given as an absolute path, resolves
+        relative to the current working directory
+
+    Examples
+    --------
+
+    >>> import pathlib
+    >>> import os.path
+    >>> pwd = pathlib.Path.cwd()
+    >>> settings = HydepSettings()
+    >>> settings.basedir == pwd
+    True
+    >>> newbase = (pwd / "base").name
+    >>> newbase == "base"
+    True
+    >>> settings.basedir = newbase
+    >>> settings.basedir.is_absolute()
+    True
+    >>> settings.basedir == pwd / "base"
+    True
+
+    Same resolution rules apply to :attr:`rundir`
+
+    >>> settings.rundir = (pwd / "run").name
+    >>> settings.rundir.is_absolute()
+    True
+    >>> settings.rundir == pwd / "run"
+    True
 
     See Also
     --------
