@@ -344,7 +344,7 @@ class SerpentSolver(BaseSolver):
                     myzip.write(ff, ff.name)
 
     def _writeMainFile(self, model, manager, settings):
-        basefile = pathlib.Path.cwd() / "serpent" / "base.sss"
+        basefile = settings.rundir / "serpent" / "base.sss"
         self.writer.writeBaseFile(basefile, settings)
         return basefile
 
@@ -379,7 +379,7 @@ class CoupledSerpentSolver(BaseSolver):
         self._fp = None
 
     def _writeMainFile(self, model, manager, settings):
-        self._fp = basefile = pathlib.Path.cwd() / "serpent-extdep" / "external"
+        self._fp = basefile = settings.rundir / "serpent-extdep" / "external"
         self.writer.writeCouplingFile(
             basefile,
             manager.timesteps,
