@@ -156,6 +156,7 @@ def test_directories(tmpdir):
     assert settings.basedir.is_absolute()
     assert settings.basedir == FAKE_DIR
     assert settings.rundir is None
+    assert not settings.useTempDir
 
     # Resolution relative to current working directory
     settings.rundir = FAKE_DIR.name
@@ -177,17 +178,23 @@ def test_directories(tmpdir):
     assert fresh.basedir == pathlib.Path.cwd()
 
     fresh.update(
-        {"basedir": FAKE_DIR.name, "rundir": "nONe"}
+        {
+            "basedir": FAKE_DIR.name,
+            "rundir": "nONe",
+            "use temp dir": "true",
+        }
     )
 
     assert fresh.basedir == PWD / FAKE_DIR.name
     assert fresh.basedir.is_absolute()
     assert fresh.rundir is None
+    assert fresh.useTempDir
 
-    fresh.update({"rundir": FAKE_DIR.name})
+    fresh.update({"rundir": FAKE_DIR.name, "use temp dir": "falSe"})
 
     assert fresh.rundir == PWD / FAKE_DIR.name
     assert fresh.rundir.is_absolute()
+    assert not fresh.useTempDir
 
     with pytest.raises(TypeError):
         fresh.update({"basedir": "none"})

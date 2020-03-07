@@ -252,6 +252,9 @@ class HydepSettings(ConfigMixin):
     rundir : str or pathlib.Path, optional
         Directory where the simulation will be run if different that
         ``basedir``. Auxillary files may be written here.
+    useTempDir : bool, optional
+        Use a temporary directory in place of :attr:`rundir` when running
+        simulations. Default is False.
 
     Attributes
     ----------
@@ -282,6 +285,9 @@ class HydepSettings(ConfigMixin):
         value of ``None`` indicates to use the same directory as
         :attr:`basedir`. If not given as an absolute path, resolves
         relative to the current working directory
+    useTempDir : bool
+        Flag signalling to use a temporary directory in :attr:`rundir`
+        is ``None``
 
     Examples
     --------
@@ -319,17 +325,19 @@ class HydepSettings(ConfigMixin):
     archiveOnSuccess = TypedAttr("_archiveOnSuccess", bool)
     _ALLOWED_BC = frozenset({"reflective", "periodic", "vacuum"})
     unboundedFitting = TypedAttr("_unboundedFitting", bool)
+    useTempDir = TypedAttr("_useTempDir", bool)
 
     def __init__(
         self,
         archiveOnSuccess: bool = False,
-        depletionSolver: typing.Optional = None,
+        depletionSolver: typing.Optional[typing.Any] = None,
         boundaryConditions: typing.Optional[typing.Sequence[str]] = None,
         fittingOrder: int = 1,
         numFittingPoints: int = 3,
         unboundedFitting: bool = False,
         basedir: OptFile = None,
         rundir: OptFile = None,
+        useTempDir: typing.Optional[bool] = False,
     ):
         self.archiveOnSuccess = archiveOnSuccess
         self.depletionSolver = depletionSolver
@@ -342,6 +350,7 @@ class HydepSettings(ConfigMixin):
         self.unboundedFitting = unboundedFitting
         self.basedir = basedir or pathlib.Path.cwd()
         self.rundir = rundir
+        self.useTempDir = useTempDir
 
     def __getattr__(self, name):
         klass = _CONFIG_CLASSES.get(name)
@@ -518,6 +527,7 @@ class HydepSettings(ConfigMixin):
            :attr:`unboundedFitting`
         *. ``"basedir"`` : path-like - update :attr:`basedir`
         *. ``"rundir"`` : path-like - update :attr:`rundir`
+        *. ``"use temp dir"`` : boolean - update :attr:`useTempDir`
 
         Parameters
         ----------
@@ -544,6 +554,7 @@ class HydepSettings(ConfigMixin):
         # Directories
         basedir = options.pop("basedir", None)
         rundir = options.pop("rundir", False)
+        tempdir = options.pop("use temp dir", None)
 
         if options:
             raise ValueError(
@@ -581,6 +592,9 @@ class HydepSettings(ConfigMixin):
                 self.rundir = None
             else:
                 self.rundir = rundir
+
+        if tempdir is not None:
+            self.useTempDir = self.asBool("use temp dir", tempdir)
 
     def validate(self):
         """Validate settings"""
