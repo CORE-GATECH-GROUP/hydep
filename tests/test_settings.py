@@ -77,6 +77,9 @@ def test_settings():
     with pytest.raises(TypeError, match=".*bool.*integer"):
         fresh.asInt("test", False)
 
+    with pytest.raises(ValueError):
+        fresh.asBool("test", 2)
+
 
 def test_validate():
     with pytest.raises(ValueError):

@@ -56,6 +56,10 @@ class ConfigMixin:
                 return False
             if value == 1:
                 return True
+            raise ValueError(
+                f"Could not coerrce {key}={value} to boolean. Integers "
+                "must be zero or one"
+            )
         elif isinstance(value, str):
             if value.lower() in {"1", "yes", "y", "true"}:
                 return True
