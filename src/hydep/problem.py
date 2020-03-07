@@ -6,8 +6,10 @@ import logging
 from collections.abc import Mapping
 import copy
 import pathlib
+import os
 import configparser
 import typing
+import tempfile
 
 import numpy
 
@@ -74,19 +76,6 @@ class Problem(object):
         """
         __logger__.debug("Executing pre-solution routines")
 
-        self.settings.validate()
-
-        # Check directories, making them as necessary
-        basedir = self.settings.basedir
-        if not basedir.is_dir():
-            basedir.mkdir(parents=True)
-
-        rundir = self.settings.rundir
-        if rundir is None:
-            self.settings.rundir = basedir
-        elif not rundir.is_dir():
-            rundir.mkdir(parents=True)
-
         self.dep.beforeMain(self.model, self.settings)
         self.hf.beforeMain(self.model, self.dep, self.settings)
         self.rom.beforeMain(self.model, self.dep, self.settings)
@@ -124,12 +113,39 @@ class Problem(object):
 
         self.hf.setHooks(self.dep.needs.union(self.rom.needs))
 
-        self.beforeMain()
+        self.settings.validate()
 
-        # Context manager?
-        self._locked = True
-        self._mainsequence(initialDays * SECONDS_PER_DAY)
-        self._locked = False
+        # Check directories, making them as necessary
+        basedir = self.settings.basedir
+        if not basedir.is_dir():
+            basedir.mkdir(parents=True)
+
+        rundir = self.settings.rundir
+        tempdir = None
+        if rundir is None:
+            if self.settings.useTempDir:
+                tempdir = tempfile.TemporaryDirectory()
+                previousDir = str(pathlib.Path.cwd())
+                os.chdir(tempdir.name)
+                self.settings.rundir = pathlib.Path(tempdir.name)
+            else:
+                self.settings.rundir = basedir
+                tempdir = previousDir = None
+        elif not rundir.is_dir():
+            rundir.mkdir(parents=True)
+
+        try:
+            self.beforeMain()
+
+            # Context manager?
+            self._locked = True
+            self._mainsequence(initialDays * SECONDS_PER_DAY)
+        finally:
+            self._locked = False
+            if tempdir is not None:
+                os.chdir(previousDir)
+                tempdir.cleanup()
+                self.settings.rundir = None
 
     def _mainsequence(self, startSeconds):
         compositions = compBundleFromMaterials(
