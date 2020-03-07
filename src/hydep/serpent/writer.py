@@ -780,7 +780,7 @@ set power {power:.7E}\n"""
                     try:
                         mat = self.burnable[ix]
                     except IndexError as ie:
-                        raise ie from KeyError(f"Cannot find burnable material {ix}")
+                        raise KeyError(f"Cannot find burnable material {ix}") from ie
                     matdef = " ".join(self._getMaterialOptions(mat))
                     tlib = self._getmatlib(mat)
                     self._buleads[ix] = matdef, tlib

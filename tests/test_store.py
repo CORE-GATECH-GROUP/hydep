@@ -121,6 +121,3 @@ def test_hdfStore(result, simpleChain, h5Destination):
 
     with pytest.raises(OSError):
         h5store.HdfStore(filename=h5Destination, existOkay=False)
-
-    with pytest.warns(UserWarning):
-        h5store.HdfStore(filename=h5Destination, existOkay=True)

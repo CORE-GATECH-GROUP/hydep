@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+#
+#                             Test runner
+# 
+# Ideally, this should be replaced just with a single call
+# to pytest. Unfortunately, especially for some of the regression
+# tests, there are a lot of flaky side effects. Due to the material
+# ID registry and how pytest retains failed tests, failure in a test
+# that involves materials can cause later tests to fail. This is 
+# especially problematic for the Serpent writer, that (currently)
+# expects exact files with static material -> universe id pairs.
+#
+# Basically this script is a crutch and better tests should be written.
+#
+#                                Usage
+#
+# Run all the tests with coverage
+# ./runtests
+# Run all the tesets without coverage
+# Any non-null value other than 1 will skip coverage
+# COVERAGE=0 ./runtests
+# Run with custom pytest-coverage commands
+# COVERAGE_OPTS=--cov=hydep --cov-report=html
+#
+# Note: these commands will be passed to every unique invocation of
+# pytest, so passing a non-null value to --cov-report= will produce
+# several reports to be printed / generated. Each of these
+# individually may not reflect the total coverage. The script
+# automatically combines coverage files generated during regression
+# tests, but not well.
+#
+# Failed tests are not reflected in the overall return code at the
+# moment.
+
+set -eu
+
+_COV_OPTS="--cov=hydep --cov-report= --no-cov-on-fail"
+
+COVERAGE=${COVERAGE:-"0"}
+
+if [ $COVERAGE != "1" ]; then
+    COVERAGE_OPTS=""
+else
+    COVERAGE_OPTS=${COVERAGE_OPTS:-$_COV_OPTS}
+fi
+
+pytest $COVERAGE_OPTS --doctest-modules --ignore=tests/regressions tests src
+
+find tests/regressions/ -mindepth 1 -type f -name "test*py" -print \( \
+    -execdir pytest ${COVERAGE_OPTS} -q {} \; -o -quit \
+    \)
+
+if [ $COVERAGE == "1" ]; then
+    coverage combine --append $(find tests -name "*.coverage")
+    coverage report
+fi

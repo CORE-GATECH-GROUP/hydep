@@ -141,7 +141,6 @@ attributes:
 """
 import typing
 import pathlib
-import warnings
 
 import numpy
 import h5py
@@ -162,10 +161,8 @@ class HdfStore(BaseStore):
         hdf5 library**, while ``"latest"`` may come with
         performance improvements. Default: ``"latest"``
     existOkay : bool, optional
-        If ``filename`` exists and is a file, this controls if
-        a warning is raised (True) or error (False). The file
-        will be overwritten if it exists and ``eixstOkay`` evaluates
-        to True.
+        Raise an error if ``filename`` already exists. Otherwise
+        silently overwrite an existing file
 
     Attributes
     ----------
@@ -222,7 +219,6 @@ class HdfStore(BaseStore):
                 raise FileExistsError(
                     f"Refusing to overwrite result file {fp} since existOkay is True"
                 )
-            warnings.warn(f"Result file {fp} exists and will be overwritten")
 
         with h5py.File(fp, mode="w", libver=libver) as h5f:
             h5f.attrs["file version"] = self.VERSION
