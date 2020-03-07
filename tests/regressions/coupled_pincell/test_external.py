@@ -54,7 +54,10 @@ def test_external(runInTempDir, endfChain, pincell):
 
     problem.configure(
         {
-            "hydep": {"boundary conditions": "reflective"},
+            "hydep": {
+                "boundary conditions": "reflective",
+                "rundir": runInTempDir,
+            },
             "hydep.serpent": {
                 "seed": 123456789,
                 "executable": PATCHED_EXE,

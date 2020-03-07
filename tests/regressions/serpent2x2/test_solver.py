@@ -30,7 +30,7 @@ def serpent2x2Problem(simpleChain, toy2x2lattice):
 
 
 @pytest.fixture
-def regressionSettings(runInTempDir):
+def regressionSettings():
     datadir = os.environ.get("SERPENT_DATA")
     if not datadir:
         pytest.skip("Need SERPENT_DATA environment variable")
@@ -58,6 +58,9 @@ def regressionSettings(runInTempDir):
 def serpentSolver(runInTempDir, regressionSettings, serpent2x2Problem):
     regressionSettings.rundir = runInTempDir
 
+    serpentDir = runInTempDir / "serpent"
+    assert not serpentDir.exists()
+
     # Set hooks for slightly realistic problem
     XS_KEYS = {"abs", "fiss"}
     hooks = hdfeat.FeatureCollection(
@@ -73,6 +76,7 @@ def serpentSolver(runInTempDir, regressionSettings, serpent2x2Problem):
     solver.beforeMain(
         serpent2x2Problem.model, serpent2x2Problem.manager, regressionSettings
     )
+    assert serpentDir.is_dir()
 
     timeStep = hydep.internal.TimeStep(0, 0, 0, 0)
 
