@@ -147,25 +147,27 @@ def test_badSubsectionNames(name):
             pass
 
 
-def test_directories():
-    FAKE_DIR = pathlib.Path(__file__).parent
+def test_directories(tmpdir):
+    PWD = pathlib.Path.cwd()
+    FAKE_DIR = pathlib.Path(tmpdir)
+
     settings = HydepSettings(basedir=FAKE_DIR, rundir=None)
 
     assert settings.basedir.is_absolute()
     assert settings.basedir == FAKE_DIR
     assert settings.rundir is None
 
-    # Resolution
+    # Resolution relative to current working directory
     settings.rundir = FAKE_DIR.name
     assert settings.rundir.is_absolute()
-    assert settings.rundir == FAKE_DIR
+    assert settings.rundir == PWD / FAKE_DIR.name
 
+    # String contains an absolute path
     settings.basedir = str(FAKE_DIR)
     assert settings.basedir.is_absolute()
     assert settings.basedir == FAKE_DIR
 
     # Check defaulting to CWD
-
     fresh = HydepSettings(basedir=None)
     assert fresh.basedir.is_absolute()
     assert fresh.basedir == pathlib.Path.cwd()
@@ -178,13 +180,13 @@ def test_directories():
         {"basedir": FAKE_DIR.name, "rundir": "nONe"}
     )
 
-    assert fresh.basedir == FAKE_DIR
+    assert fresh.basedir == PWD / FAKE_DIR.name
     assert fresh.basedir.is_absolute()
     assert fresh.rundir is None
 
     fresh.update({"rundir": FAKE_DIR.name})
 
-    assert fresh.rundir == FAKE_DIR
+    assert fresh.rundir == PWD / FAKE_DIR.name
     assert fresh.rundir.is_absolute()
 
     with pytest.raises(TypeError):
