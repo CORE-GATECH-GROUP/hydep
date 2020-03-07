@@ -94,9 +94,10 @@ class Problem(object):
         if self.store is None:
             from .h5store import HdfStore
 
-            __logger__.debug(f"Setting default store to {HdfStore}")
+            filename = self.settings.basedir / "hydep-results.h5"
+            __logger__.debug(f"Storing result in {filename}")
 
-            self.store = HdfStore()
+            self.store = HdfStore(filename=filename)
 
         self.store.beforeMain(
             nhf=len(self.dep.timesteps) + 1,
