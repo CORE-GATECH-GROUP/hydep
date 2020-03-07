@@ -1,3 +1,7 @@
+import os
+import pathlib
+import tempfile
+
 import pytest
 import hydep
 
@@ -39,3 +43,13 @@ def serpentSolver(tmpdir):
         tmpdir.mkdir("serpent")
         yield solver
         solver.finalize(True)
+
+@pytest.fixture
+def runInTempDir():
+    """Inspired by similar openmc regression fixture"""
+    pwd = pathlib.Path.cwd()
+
+    with tempfile.TemporaryDirectory() as tdir:
+        os.chdir(tdir)
+        yield pathlib.Path(tdir)
+        os.chdir(pwd)

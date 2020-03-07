@@ -1,7 +1,5 @@
 import os
-import tempfile
 import math
-import pathlib
 
 import pytest
 import hydep
@@ -14,17 +12,6 @@ h5store = pytest.importorskip("hydep.h5store")
 
 
 PATCHED_EXE = "sss2-extdep"
-
-
-@pytest.fixture
-def runInTempDir():
-    """Inspired by similar openmc regression fixture"""
-    pwd = pathlib.Path.cwd()
-
-    with tempfile.TemporaryDirectory() as tdir:
-        os.chdir(tdir)
-        yield pathlib.Path(tdir)
-        os.chdir(pwd)
 
 
 @pytest.fixture
