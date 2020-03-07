@@ -137,20 +137,6 @@ def test_fileConfig(mockProblem, fileConfig):
     _testSettings(mockProblem.settings)
 
 
-def test_validate(mockProblem):
-    mockProblem.settings.fittingOrder = 4
-    mockProblem.settings.fittingPoints = 1
-
-    with pytest.raises(ValueError):
-        mockProblem.beforeMain()
-
-    mockProblem.settings.unboundedFitting = True
-    mockProblem.settings.fittingOrder = 0
-
-    with pytest.raises(ValueError):
-        mockProblem.beforeMain()
-
-
 def test_directories(tmpdir, mockProblem):
 
     rootdir = tmpdir / "my-root"
