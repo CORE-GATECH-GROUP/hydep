@@ -117,9 +117,23 @@ class TimeTraveller(ABC):
         """Insert an object such that the time ordering is consistent"""
         if not isinstance(time, numbers.Real):
             raise TypeError("Time must be numbers.Real, not {}".format(type(time)))
+
         ix = bisect.bisect_left(self._times, time)
-        self._insert(ix, value)
-        self._times.insert(ix, time)
+        if ix == len(self):
+            return self.append(time, value)
+
+        if self._times.maxlen is None or len(self) < self._times.maxlen - 1:
+            self._insert(ix, value)
+            self._times.insert(ix, time)
+            return
+
+        # No point in adding to the end where it would fall off
+        if ix == 0:
+            return
+
+        self.popleft()
+        self._insert(ix - 1, value)
+        self._times.insert(ix - 1, time)
 
     @abstractmethod
     def _insert(self, index: int, value: typing.Any):
@@ -140,6 +154,19 @@ class TimeTraveller(ABC):
         value : object
             Value to be inserted
 
+        """
+
+    def popleft(self) -> typing.Tuple[float, typing.Any]:
+        """Remove the value that corresponds to the smallest time point"""
+        v = self._popleft()
+        t = self._times.popleft()
+        return t, v
+
+    @abstractmethod
+    def _popleft(self):
+        """Remove the value from the smallest time point
+
+        Used by :meth:`popleft` and :meth:`insort` in some cases.
         """
 
     def append(self, time: float, value: typing.Any):

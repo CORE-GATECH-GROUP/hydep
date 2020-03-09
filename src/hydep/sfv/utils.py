@@ -171,6 +171,9 @@ class NubarPolyFit(TimeTraveller):
         self._nubar.extend(valid)
         self._coeffs = None
 
+    def _popleft(self):
+        return self._nubar.popleft()
+
     def __call__(self, time: float) -> numpy.ndarray:
         """Return nubar across burnable regions at a specific time
 

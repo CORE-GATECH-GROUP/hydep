@@ -484,6 +484,9 @@ class TemporalMicroXs(CachedTimeTraveller):
         self._mxs.extend(extensions)
         self._coeffs = None
 
+    def _popleft(self):
+        return self._mxs.popleft()
+
     def __call__(self, time: float) -> MicroXsVector:
         """Evaluate the microscopic cross sections at a given time
 
