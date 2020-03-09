@@ -125,16 +125,16 @@ class Problem(object):
         if rundir is None:
             if self.settings.useTempDir:
                 tempdir = tempfile.TemporaryDirectory()
-                previousDir = str(pathlib.Path.cwd())
-                os.chdir(tempdir.name)
                 self.settings.rundir = pathlib.Path(tempdir.name)
             else:
                 self.settings.rundir = basedir
-                tempdir = previousDir = None
         elif not rundir.is_dir():
             rundir.mkdir(parents=True)
 
+        previousDir = pathlib.Path.cwd()
+
         try:
+            os.chdir(self.settings.rundir)
             self.beforeMain()
 
             # Context manager?
@@ -142,8 +142,8 @@ class Problem(object):
             self._mainsequence(initialDays * SECONDS_PER_DAY)
         finally:
             self._locked = False
+            os.chdir(previousDir)
             if tempdir is not None:
-                os.chdir(previousDir)
                 tempdir.cleanup()
                 self.settings.rundir = None
 
