@@ -96,6 +96,15 @@ class ConfigMixin:
             raise TypeError(f"Could not coerce {key}={value} to {dtype}") from ee
 
     @staticmethod
+    def _enforceInt(key: str, value: typing.Any, positive: bool = False):
+        if isinstance(value, bool):
+            raise TypeError(f"{key} must be integer, not boolean")
+        elif not isinstance(value, numbers.Integral):
+            raise TypeError(f"{key} must be integer, not {type(value)}")
+        elif positive and not value > 0:
+            raise ValueError(f"{key} must be positive integer, not {value}")
+
+    @staticmethod
     def asInt(key: str, value: typing.Any) -> int:
         """Coerce a value to an integer
 
@@ -693,33 +702,10 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         self.k0 = k0
         self.executable = executable
         if omp is None:
-            omp = os.environ.get("OMP_NUM_THREADS") or None
+            omp = os.environ.get("OMP_NUM_THREADS")
+            omp = int(omp) if omp else None
         self.omp = omp
         self.mpi = mpi
-
-    @classmethod
-    def pairs(cls) -> typing.Generator[typing.Tuple[str, str], None, None]:
-        """Iterate over expected setting names and their attribute targets"""
-        for attr in (
-            "datadir",
-            "acelib",
-            "declib",
-            "nfylib",
-            "particles",
-            "active",
-            "inactive",
-            "omp",
-            "mpi",
-            "executable",
-            "k0",
-            "seed",
-        ):
-            yield attr, attr
-        for setting, attr in [
-            ("generations per batch", "generationsPerBatch"),
-            ("thermal scattering", "sab"),
-        ]:
-            yield setting, attr
 
     @property
     def datadir(self) -> PossiblePath:
@@ -801,7 +787,8 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         if value is None:
             self._particles = None
             return
-        self._particles = self.asPositiveInt("particles", value)
+        self._enforceInt("particles", value, True)
+        self._particles = value
 
     @property
     def active(self) -> OptIntegral:
@@ -812,7 +799,8 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         if value is None:
             self._active = None
             return
-        self._active = self.asPositiveInt("active", value)
+        self._enforceInt("active", value, True)
+        self._active = value
 
     @property
     def inactive(self) -> OptIntegral:
@@ -823,7 +811,8 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         if value is None:
             self._inactive = None
             return
-        self._inactive = self.asPositiveInt("inactive", value)
+        self._enforceInt("inactive", value, True)
+        self._inactive = value
 
     @property
     def generationsPerBatch(self) -> OptIntegral:
@@ -834,7 +823,8 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         if value is None:
             self._generations = None
             return
-        self._generations = self.asPositiveInt("generationsPerBatch", value)
+        self._enforceInt("generations per batch", value, True)
+        self._generations = value
 
     @property
     def seed(self) -> OptIntegral:
@@ -845,7 +835,8 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         if value is None:
             self._seed = None
             return
-        self._seed = self.asPositiveInt("seed", value)
+        self._enforceInt("seed", value, True)
+        self._seed = value
 
     @property
     def k0(self) -> OptReal:
@@ -884,7 +875,8 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         if value is None:
             self._omp = None
             return
-        self._omp = self.asPositiveInt("omp", value)
+        self._enforceInt("omp", value, True)
+        self._omp = value
 
     @property
     def mpi(self) -> OptIntegral:
@@ -895,7 +887,8 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         if value is None:
             self._mpi = None
             return
-        self._mpi = self.asPositiveInt("mpi", value)
+        self._enforceInt("mpi", value, True)
+        self._mpi = value
 
     def update(self, options: typing.Mapping[str, typing.Any]):
         """Update from a map of user supplied values
@@ -921,18 +914,105 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
             If a setting fails to be coerced to the expected data type
 
         """
-        for setting, attr in self.pairs():
-            value = options.pop(setting, None)
-            if value is not None:
-                try:
-                    setattr(self, attr, value)
-                except Exception as ee:
-                    raise ee from RuntimeError(
-                        f"Failed to coerce {setting} to allowable value from {value}"
-                    )
+        datadir = options.pop("datadir", False)
+        acelib = options.pop("acelib", None)
+        declib = options.pop("declib", None)
+        nfylib = options.pop("nfylib", None)
+        sab = options.pop("thermal scattering", None)
+        particles = options.pop("particles", None)
+        generations = options.pop("generations per batch", None)
+        seed = options.pop("seed", None)
+        active = options.pop("active", None)
+        inactive = options.pop("inactive", None)
+        k0 = options.pop("k0", None)
+        executable = options.pop("executable", None)
+        omp = options.pop("omp", False)
+        mpi = options.pop("mpi", False)
+
         if options:
             remain = ", ".join(sorted(options))
             raise ValueError(
                 f"The following Serpent settings were given, but "
                 f"do not have corresponding attributes: {remain}",
             )
+
+        if datadir is not False:
+            # Check that it is None
+            if datadir is None or (
+                isinstance(datadir, str) and datadir.lower() == "none"
+            ):
+                self.datadir = None
+            else:
+                self.datadir = self._makeAbsPath(datadir)
+
+        # libraries
+        for value, dest in [
+            [acelib, "acelib"],
+            [declib, "declib"],
+            [nfylib, "nfylib"],
+            [sab, "sab"],
+        ]:
+            if value is None:
+                continue
+
+            if isinstance(value, pathlib.Path):
+                candidate = value
+            else:
+                candidate = pathlib.Path(value)
+
+            # If pointing to a file already, resolve to this
+            if candidate.is_file():
+                setattr(self, dest, candidate.resolve())
+                continue
+
+            # Try and resolve to datadir, if given
+            if self.datadir is None:
+                raise FileNotFoundError(
+                    f"Cannot set {dest}={value} as file does not exist "
+                    "and datadir is not configured"
+                )
+            candidate = self.datadir / candidate
+            if not candidate.is_file():
+                raise FileNotFoundError(
+                    f"Cannot set {dest}={candidate} from {value} using "
+                    "target file does not exist"
+                )
+            setattr(self, dest, candidate)
+
+        # Integers for particle settings, value of None skipped
+        for value, dest in [
+            [particles, "particles"],
+            [generations, "generationsPerBatch"],
+            [active, "active"],
+            [inactive, "inactive"],
+            [seed, "seed"],
+        ]:
+            if value is None:
+                continue
+            setattr(self, dest, self.asPositiveInt(dest, value))
+
+        if k0 is not None:
+            candidate = float(k0)
+            if not (0 < candidate < 2):
+                raise ValueError(
+                    f"Cannot set k0 to {candidate} from {k0}. Must be "
+                    "positive and less than 2"
+                )
+            self.k0 = candidate
+
+        # Run settings
+        if executable is not None:
+            self.executable = executable
+
+        if omp is not False:
+            if omp is None or (isinstance(omp, str) and omp.lower() == "none"):
+                raise ValueError(
+                    f"Cannot set omp to None from {omp}. By default, OMP will "
+                    "infer threads from OMP_NUM_THREADS"
+                )
+            self.omp = self.asPositiveInt("omp", omp)
+
+        if mpi is not False:
+            if mpi is None or (isinstance(mpi, str) and mpi.lower() == "none"):
+                raise ValueError(f"Cannot set mpi to None from {mpi}")
+            self.mpi = self.asPositiveInt("mpi", mpi)

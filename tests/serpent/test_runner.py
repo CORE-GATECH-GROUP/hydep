@@ -55,7 +55,7 @@ def test_runner():
 
 @pytest.mark.serpent
 def test_config():
-    settings = SerpentSettings(executable="sss2", omp="10", mpi="4")
+    settings = SerpentSettings(executable="sss2", omp=10, mpi=4)
     runner = SerpentRunner()
 
     runner.configure(settings)

@@ -24,8 +24,6 @@ def test_integers(cleanEnviron, attribute):
     assert getattr(fresh, attribute) is None
     setattr(fresh, attribute, 10)
     assert getattr(fresh, attribute) == 10
-    setattr(fresh, attribute, "10")
-    assert getattr(fresh, attribute) == 10
 
     fkwargs = SerpentSettings(**{attribute: 10})
     assert getattr(fkwargs, attribute) == 10
@@ -47,6 +45,9 @@ def test_integers(cleanEnviron, attribute):
 
     with pytest.raises(TypeError):
         SerpentSettings(**{attribute: 1.45})
+
+    with pytest.raises(TypeError):
+        setattr(fresh, attribute, "10")
 
 
 @pytest.mark.serpent
