@@ -251,26 +251,36 @@ class HdfStore(BaseStore):
                 h5f.attrs[dest] = src
 
             tgroup = h5f.create_group(self._timeKey)
-            tds = tgroup.create_dataset("time", (ntransport,))
-            tds.make_scale("time")
+            tgroup.create_dataset("time", (ntransport,))
             tgroup.create_dataset("highFidelity", (ntransport,), dtype=bool)
 
+            h5f.create_dataset(self._kKey, (ntransport, 2))
+
+            h5f.create_dataset(self._cputimeKey, (ntransport,))
+
+            h5f.create_dataset(
+                self._fluxKey, (ntransport, len(burnableIndexes), ngroups)
+            )
+
+            h5f.create_dataset(
+                self._compKey, (ntransport, len(burnableIndexes), len(isotopes)),
+            )
+
             isogroup = h5f.create_group(self._isotopeKey)
-            zds = isogroup.create_dataset("zais", (len(isotopes),), dtype=int)
-            zds.make_scale("zai")
-            names = numpy.empty(len(isotopes), dtype=object)
+            zai = numpy.empty(len(isotopes), dtype=int)
+            names = numpy.empty_like(zai, dtype=object)
 
             for ix, iso in enumerate(isotopes):
-                zds[ix] = iso.zai
+                zai[ix] = iso.zai
                 names[ix] = iso.name
 
+            isogroup["zais"] = zai
             isogroup["names"] = names.astype("S")
 
             materialgroup = h5f.create_group(self._matKey)
             mids = materialgroup.create_dataset(
                 "ids", (len(burnableIndexes),), dtype=int
             )
-            mids.make_scale("material")
             names = numpy.empty_like(mids, dtype=object)
 
             for ix, (matid, name) in enumerate(burnableIndexes):
@@ -278,33 +288,6 @@ class HdfStore(BaseStore):
                 names[ix] = name
 
             materialgroup["names"] = names.astype("S")
-
-            ds = h5f.create_dataset(self._kKey, (ntransport, 2))
-            ds.dims[0].attach_scale(tds)
-            ds.dims[0].label = "time"
-
-            ds = h5f.create_dataset(self._cputimeKey, (ntransport,))
-            ds.dims[0].attach_scale(tds)
-            ds.dims[0].label = "time"
-
-            ds = h5f.create_dataset(
-                self._fluxKey, (ntransport, len(burnableIndexes), ngroups)
-            )
-            ds.dims[0].attach_scale(tds)
-            ds.dims[0].label = "time"
-            ds.dims[1].attach_scale(mids)
-            ds.dims[1].label = "material"
-            ds.dims[2].label = "group"
-
-            ds = h5f.create_dataset(
-                self._compKey, (ntransport, len(burnableIndexes), len(isotopes)),
-            )
-            ds.dims[0].attach_scale(tds)
-            ds.dims[0].label = "time"
-            ds.dims[1].label = "material"
-            ds.dims[1].attach_scale(mids)
-            ds.dims[2].label = "isotope"
-            ds.dims[2].attach_scale(zds)
 
     def postTransport(self, timeStep, transportResult) -> None:
         """Store transport results
