@@ -1,14 +1,12 @@
 """Unit tests for SFV interface, not module"""
 import pytest
-import hydep
-
-hsfv = pytest.importorskip("hydep.sfv")
+from hydep.settings import SfvSettings, HydepSettings
 
 
 @pytest.mark.sfv
 def test_config():
     """Test basic configuration, value checking, etc"""
-    settings = hsfv.SfvSettings(modes=1, modeFraction=0.5, densityCutoff=1e-6)
+    settings = SfvSettings(modes=1, modeFraction=0.5, densityCutoff=1e-6)
 
     assert settings.modes == 1
     assert settings.modeFraction == 0.5
@@ -67,10 +65,9 @@ def test_config():
         settings.update({"modes": "200", "fake setting": "1"})
 
 
-
 def test_fromSettings():
     """Test the integration into the dynamic settings framework"""
-    hsettings = hydep.settings.HydepSettings()
+    hsettings = HydepSettings()
 
     hsettings.updateAll(
         {
@@ -82,6 +79,6 @@ def test_fromSettings():
             },
         }
     )
-    assert hsettings.sfv.modes == 1E6
+    assert hsettings.sfv.modes == 1e6
     assert hsettings.sfv.modeFraction == 0.5
-    assert hsettings.sfv.densityCutoff == 1E-5
+    assert hsettings.sfv.densityCutoff == 1e-5

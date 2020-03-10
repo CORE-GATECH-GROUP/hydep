@@ -16,6 +16,7 @@ import numbers
 
 from hydep.typed import (
     TypedAttr,
+    BoundedTyped,
     OptFile,
     PossiblePath,
     OptIntegral,
@@ -1016,3 +1017,111 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
             if mpi is None or (isinstance(mpi, str) and mpi.lower() == "none"):
                 raise ValueError(f"Cannot set mpi to None from {mpi}")
             self.mpi = self.asPositiveInt("mpi", mpi)
+
+
+class SfvSettings(SubSetting, sectionName="sfv"):
+    """Configuration for the SFV solver
+
+    Parameters
+    ----------
+    modes : int, optional
+        Number of higher order flux modes to use
+    modeFraction : float, optional
+        Fraction of allowable modes to use (0, 1]
+    densityCutoff : float, optional
+        Threshold density [#/b/cm] that isotopes must exceed
+        in order to contribute when rebuilding macroscopic cross
+        sections. Defaults to zero
+
+    Attributes
+    ----------
+    modes : int or None
+        Number of modes to use. A value of ``None`` will defer
+        to :attr:`modeFrac`
+    modeFraction : float
+        Fraction of possible modes to use if :attr:`modes` is None
+    densityCutoff : float
+        Threshold density [#/b/cm] that isotopes must exceed
+        in order to contribute when rebuilding macroscopic cross
+        sections
+
+    """
+    modes = BoundedTyped("_modes", numbers.Integral, gt=0, allowNone=True)
+    densityCutoff = BoundedTyped("_densityCutoff", numbers.Real, ge=0.0)
+
+    def __init__(self, modes=None, modeFraction=1.0, densityCutoff=0):
+        self.modes = modes
+        self.modeFraction = modeFraction
+        self.densityCutoff = densityCutoff
+
+    @property
+    def modeFraction(self):
+        return self._modeFraction
+
+    @modeFraction.setter
+    def modeFraction(self, value):
+        if not isinstance(value, numbers.Real):
+            raise TypeError(f"Fraction of modes used must be real, not {type(value)}")
+        elif not (0 < value <= 1):
+            raise ValueError(
+                f"Fraction of modes must satisfy 0 < frac <= 1, got {value}"
+            )
+        self._modeFraction = value
+
+    def update(self, options: typing.Mapping[str, typing.Any]):
+        """Update the SFV solver
+
+        The following keys map directly to attributes, if provided
+
+        *. ``"modes"`` - :attr:`modes` (positive integer or none-like)
+        *. ``"mode fraction"`` - :attr:`modeFraction` (float)
+        *. ``"density cutoff"`` - :attr:`densityCutoff` (non-negative
+           float)
+
+        Parameters
+        ----------
+        options : mapping of key names to values
+            Poppable map of settings and values
+
+        Raises
+        ------
+        ValueError
+            If keys exist in ``options`` that don't correspond
+            to supported settings
+
+        """
+        # None is allowed
+        modes = options.pop("modes", False)
+        fraction = options.pop("mode fraction", None)
+        densityCutoff = options.pop("density cutoff", None)
+
+        if options:
+            remain = ", ".join(sorted(options))
+            raise ValueError(
+                "The following SFV settings were given, but do not "
+                f"have corresponding settings: {remain}"
+            )
+
+        if modes is not False:
+            if modes is None or (isinstance(modes, str) and modes.lower() == "none"):
+                self.modes = None
+            else:
+                self.modes = self.asPositiveInt("modes", modes)
+
+        if fraction is not None:
+            try:
+                value = float(fraction)
+            except ValueError as ve:
+                raise TypeError(
+                    f"Failed to coerce mode fraction={fraction} to float"
+                ) from ve
+            self.modeFraction = value
+
+        if densityCutoff is not None:
+            try:
+                value = float(densityCutoff)
+            except ValueError as ve:
+                raise TypeError(
+                    f"Failed to coerce density cutoff={densityCutoff} to float"
+                ) from ve
+            self.densityCutoff = value
