@@ -5,6 +5,7 @@ Intended to provide a simple interface between user provided
 settings and individual solvers
 """
 
+import warnings
 import copy
 import os
 import pathlib
@@ -620,6 +621,62 @@ class HydepSettings:
                 f"Cannot produce a {self.fittingOrder} polynomial fit with "
                 f"{self.numFittingPoints} points"
             )
+
+    @classmethod
+    def fromFile(
+        cls,
+        configFile: typing.Union[str, pathlib.Path],
+        strict: bool = True,
+        encoding: typing.Optional[str] = None,
+    ):
+        """Load settings directly from config file
+
+        Parameters
+        ----------
+        configFile : str or pathlib.Path
+            File to be read containing settings
+        strict : bool, optional
+            Controls behavior if not ``hydep`` settings are found.
+            True [default] -> KeyError, otherwise warn
+        encoding : str, optional
+            Encoding to be used when reading the file
+
+        Returns
+        -------
+        HydepSettings
+
+        See Also
+        --------
+        *. :meth:`updateAll` - Update directly in memory
+        *. :meth:`validate` - Validation of settings
+
+        """
+        settings = cls()
+
+        cfg = configparser.ConfigParser()
+        with open(configFile, encoding=encoding) as s:
+            cfg.read_file(s, configFile)
+
+        options = {}
+
+        for key, section in cfg.items():
+            if key.startswith(f"{settings.name}.") or key == settings.name:
+                options[key] = dict(section)
+
+        if not options:
+            msg = (
+                f"No [{settings.name}] nor [{settings.name}.*] sections "
+                f"found in {configFile}"
+            )
+            if strict:
+                raise KeyError(msg)
+            warnings.warn(msg, UserWarning)
+
+        settings.updateAll(options)
+
+        settings.validate()
+
+        return settings
 
 
 class SerpentSettings(SubSetting, sectionName="serpent"):
