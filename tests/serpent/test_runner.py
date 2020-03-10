@@ -1,6 +1,7 @@
 from unittest.mock import patch
 import pytest
-from hydep.serpent import SerpentRunner, SerpentSettings
+from hydep.settings import SerpentSettings
+from hydep.serpent import SerpentRunner
 
 MAGIC_OMP_THREADS = 1234
 

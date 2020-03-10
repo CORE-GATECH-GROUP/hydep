@@ -4,6 +4,7 @@ import pathlib
 import pytest
 from hydep.settings import HydepSettings
 
+from hydep.settings import SerpentSettings
 hdserpent = pytest.importorskip("hydep.serpent")
 from hydep.serpent.utils import Library
 
@@ -19,38 +20,38 @@ def cleanEnviron():
     "attribute", ("particles", "active", "inactive", "generationsPerBatch", "mpi")
 )
 def test_integers(cleanEnviron, attribute):
-    fresh = hdserpent.SerpentSettings()
+    fresh = SerpentSettings()
     assert getattr(fresh, attribute) is None
     setattr(fresh, attribute, 10)
     assert getattr(fresh, attribute) == 10
     setattr(fresh, attribute, "10")
     assert getattr(fresh, attribute) == 10
 
-    fkwargs = hdserpent.SerpentSettings(**{attribute: 10})
+    fkwargs = SerpentSettings(**{attribute: 10})
     assert getattr(fkwargs, attribute) == 10
 
     with pytest.raises(ValueError):
         setattr(fresh, attribute, -10)
 
     with pytest.raises(ValueError):
-        hdserpent.SerpentSettings(**{attribute: -10})
+        SerpentSettings(**{attribute: -10})
 
     with pytest.raises(ValueError):
         setattr(fresh, attribute, 0)
 
     with pytest.raises(ValueError):
-        hdserpent.SerpentSettings(**{attribute: 0})
+        SerpentSettings(**{attribute: 0})
 
     with pytest.raises(TypeError):
         setattr(fresh, attribute, 1.45)
 
     with pytest.raises(TypeError):
-        hdserpent.SerpentSettings(**{attribute: 1.45})
+        SerpentSettings(**{attribute: 1.45})
 
 
 @pytest.mark.serpent
 def test_datafiles(cleanEnviron, mockSerpentData):
-    fresh = hdserpent.SerpentSettings()
+    fresh = SerpentSettings()
 
     assert fresh.datadir is None
     for attr in ["acelib", "declib", "nfylib", "sab"]:
@@ -69,7 +70,7 @@ def test_datafiles(cleanEnviron, mockSerpentData):
     fresh.datadir = mockSerpentData[Library.DATA_DIR]
     assert fresh.datadir.is_dir()
 
-    full = hdserpent.SerpentSettings(
+    full = SerpentSettings(
         datadir=mockSerpentData[Library.DATA_DIR],
         acelib=mockSerpentData[Library.ACE].name,
         declib=mockSerpentData[Library.DEC].name,
@@ -97,7 +98,7 @@ def test_environ(cleanEnviron):
     with patch.dict(
         "os.environ", {"SERPENT_DATA": str(FAKE_DIR), "OMP_NUM_THREADS": str(FAKE_OMP)}
     ):
-        bare = hdserpent.SerpentSettings()
+        bare = SerpentSettings()
 
     assert bare.datadir == FAKE_DIR
     assert bare.omp == FAKE_OMP
@@ -137,7 +138,7 @@ def test_update(cleanEnviron, mockSerpentData, useDataDir, allStrings, onHydep):
         hset.updateAll(SETTINGS)
         serpent = hset.serpent
     else:
-        serpent = hdserpent.SerpentSettings()
+        serpent = SerpentSettings()
         serpent.update(SETTINGS)
 
     if useDataDir:

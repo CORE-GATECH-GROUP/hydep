@@ -13,6 +13,7 @@ import io
 
 import pytest
 import hydep
+from hydep.settings import SerpentSettings
 hdserpent = pytest.importorskip("hydep.serpent")
 from hydep.serpent.utils import Library
 
@@ -182,7 +183,7 @@ ENDF/B-VI.8 Data for Serpent 1.1.0 (HinH20 at 600.00K)         mat 125""")
 @pytest.fixture
 def serpentcfg(mockSerpentData):
     """Fixture with just the "hydep.serpent" configuration options"""
-    serpent = hdserpent.SerpentSettings(
+    serpent = SerpentSettings(
         acelib=mockSerpentData[Library.ACE],
         declib=mockSerpentData[Library.DEC],
         nfylib=mockSerpentData[Library.NFY],
