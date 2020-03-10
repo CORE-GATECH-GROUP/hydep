@@ -9,59 +9,7 @@ __all__ = ["BaseStore"]
 
 
 class BaseStore(ABC):
-    """Abstract base class for storing data after transport and depletion
-
-    Concrete classes are expected to provide three methods:
-
-    .. autosummary::
-        :toctree: generated
-
-        beforeMain
-        postTransport
-        writeCompositions
-
-    At construction, no data is expected to be written.
-
-    Parameters
-    ----------
-    nCoarseSteps : int
-        Number of coarse time steps used in the simulation. These
-        values reflect the number of high fidelity transport
-        simulations in the coupled sequence
-    nTotalSteps : int
-        Number of total time steps, including substeps, in the
-        simulation. These correspond to be high fidelity and
-        reduced order solutions
-    nBurnableMaterials : int
-        Number of burnable materials in the entire problem
-    nGroups : int, optional
-        Number of energy groups [default 1] for fluxes, cross
-        sections, and reaction rates.
-
-    Attributes
-    ----------
-    nCoarseSteps : int
-        Number of coarse time steps used in the simulation. These
-        values reflect the number of high fidelity transport
-        simulations in the coupled sequence
-    nTotalSteps : int
-        Number of total time steps, including substeps, in the
-        simulation. These correspond to be high fidelity and
-        reduced order solutions
-    nBurnableMaterials : int
-        Number of burnable materials in the entire problem
-    nGroups : int, optional
-        Number of energy groups [default 1] for fluxes, cross
-        sections, and reaction rates.
-    VERSION : Tuple[int, int]
-        Major and minor version of the stored data. Changes to major
-        version will reflect new layouts and/or data has been removed.
-        Changes to the minor version reflect new data has been added,
-        or performance improvements. Scripts that work for ``x.y`` can
-        be expected to also work for ``x.z``, but compatability between
-        ``a.b`` and ``c.d`` is not guaranteed.
-
-    """
+    """Abstract base class for storing data after transport and depletion"""
 
     @abstractmethod
     def beforeMain(self, nhf, ntransport, ngroups, isotopes, burnableIndexes) -> None:
@@ -125,8 +73,3 @@ class BaseStore(ABC):
             :meth:`beforeMain`
 
         """
-
-    @property
-    @abstractmethod
-    def VERSION(self) -> typing.Tuple[int, int]:
-        pass
