@@ -12,7 +12,7 @@ from tests.regressions import CompareBase
 
 class HdfResultCompare(CompareBase):
     targetFile = "hydep-results.h5"
-    expectsVersion = (0, 0)
+    expectsVersion = (0, 1)
 
     def __init__(self):
         super().__init__(pathlib.Path(__file__).parent)
@@ -47,7 +47,7 @@ class HdfResultCompare(CompareBase):
         return fails
 
     def _compareK(self, test, ref):
-        actualDS = test.get("multiplication factor")
+        actualDS = test.get("multiplicationFactor")
         if actualDS is None:
             return False
         refK = ref["multiplication factor"]
