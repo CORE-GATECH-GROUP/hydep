@@ -3,7 +3,7 @@ import string
 import pathlib
 
 import pytest
-from hydep.settings import HydepSettings, SubSetting
+from hydep.settings import HydepSettings, SubSetting, asBool
 
 
 def test_settings():
@@ -73,13 +73,6 @@ def test_settings():
     assert fresh.archiveOnSuccess
     assert fresh.depletionSolver == "testSolver"
 
-    # Test some conversion
-    with pytest.raises(TypeError, match=".*bool.*integer"):
-        fresh.asInt("test", False)
-
-    with pytest.raises(ValueError):
-        fresh.asBool("test", 2)
-
 
 def test_validate():
     with pytest.raises(ValueError):
@@ -111,7 +104,7 @@ def test_subsettings():
         def update(self, options):
             v = options.get("truth", None)
             if v is not None:
-                self.truth = self.asBool("truth", v)
+                self.truth = asBool("truth", v)
 
     t = settings.test
     assert isinstance(t, MySubSettings)

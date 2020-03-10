@@ -27,162 +27,159 @@ _CONFIG_CLASSES = {"hydep": None}
 _SUBSETTING_PATTERN = re.compile("^[A-Za-z][A-Za-z0-9_]*$")
 
 
-class ConfigMixin:
-    """Mixin class for some basic type conversion"""
+def asBool(key: str, value: typing.Union[str, bool, int]) -> bool:
+    """
+    Coerce a key to boolean
 
-    @staticmethod
-    def asBool(key: str, value: typing.Union[str, bool, int]) -> bool:
-        """
-        Coerce a key to boolean
+    Parameters
+    ----------
+    key : str
+        Name of this setting. Used in error reporting
+    value : string or bool or int
+        Trivial for booleans. If integer, return the corresponding
+        value **only** for values of ``1`` and ``0``. If a string,
+        values of ``{"1", "yes", "y", "true"}`` denote True, values
+        of ``{"0", "no", "n", "false"}`` denote False. Strings are
+        case-insensitive
 
-        Parameters
-        ----------
-        key : str
-            Name of this setting. Used in error reporting
-        value : string or bool or int
-            Trivial for booleans. If integer, return the corresponding
-            value **only** for values of ``1`` and ``0``. If a string,
-            values of ``{"1", "yes", "y", "true"}`` denote True, values
-            of ``{"0", "no", "n", "false"}`` denote False. Strings are
-            case-insensitive
+    Raises
+    ------
+    TypeError
+        If the conversion fails
 
-        Raises
-        ------
-        TypeError
-            If the conversion fails
-
-        """
-        if isinstance(value, bool):
-            return value
-        elif isinstance(value, int):
-            if value == 0:
-                return False
-            if value == 1:
-                return True
-            raise ValueError(
-                f"Could not coerrce {key}={value} to boolean. Integers "
-                "must be zero or one"
-            )
-        elif isinstance(value, str):
-            if value.lower() in {"1", "yes", "y", "true"}:
-                return True
-            if value.lower() in {"0", "no", "n", "false"}:
-                return False
-
-        raise TypeError(f"Could not coerce {key}={value} to boolean")
-
-    @staticmethod
-    def asType(dtype: type, key: str, value: str):
-        """Convert an incoming string to a given type
-
-        Thin wrapper around ``dtype(value)`` with a better error
-        message.
-
-        Parameters
-        ----------
-        dtype : type, callable
-            Desired datatype or function that can produce it given ``value``
-        key : str
-            Name of the setting. Used only in error reporting
-        value : str
-            Incoming value from the configuration
-
-        Raises
-        ------
-        TypeError
-        """
-        try:
-            return dtype(value)
-        except Exception as ee:
-            raise TypeError(f"Could not coerce {key}={value} to {dtype}") from ee
-
-    @staticmethod
-    def _enforceInt(key: str, value: typing.Any, positive: bool = False):
-        if isinstance(value, bool):
-            raise TypeError(f"{key} must be integer, not boolean")
-        elif not isinstance(value, numbers.Integral):
-            raise TypeError(f"{key} must be integer, not {type(value)}")
-        elif positive and not value > 0:
-            raise ValueError(f"{key} must be positive integer, not {value}")
-
-    @staticmethod
-    def asInt(key: str, value: typing.Any) -> int:
-        """Coerce a value to an integer
-
-        The following rules are applied, in order
-
-        1. If the value is a boolean, reject
-        2. If the value is an integer, return immediately
-        3. If real, check process integer ratio -
-           :meth:`float.as_integer_ratio`, but don't cast as ``float``
-        4. Otherwise, convert to ``float`` and process integer ratio
-
-        A value is considered an integer if the denominator of the ratio
-        is positive or negative one.
-
-        Parameters
-        ----------
-        key : str
-            Description for this value. Used in error reporting only
-        value : object
-            Value that one would like to be an integer
-
-        Returns
-        -------
-        int
-
-        """
-        if isinstance(value, bool):
-            raise TypeError(f"Will not coerce {key}={value} from bool to integer")
-        if isinstance(value, numbers.Integral):
-            return value
-
-        if isinstance(value, numbers.Real) and hasattr(value, "as_integer_ratio"):
-            numer, denom = value.as_integer_ratio()
-        else:
-            numer, denom = float(value).as_integer_ratio()
-
-        if denom == 1:
-            return numer
-        elif denom == -1:
-            return -numer
-
-        raise TypeError(f"Could not coerce {key}={value} to integer")
-
-    def asPositiveInt(self, key: str, value: typing.Any) -> int:
-        """Coerce a value to be a positive integer
-
-        Similar rules apply as in :meth:`asInt`
-
-        Parameters
-        ----------
-        key : str
-            Description of the value. Used in error reporting only
-        value : object
-            Value that maybe can be an integer
-
-        Returns
-        -------
-        int
-
-        """
-        candidate = self.asInt(key, value)
-        if candidate > 0:
-            return candidate
+    """
+    if isinstance(value, bool):
+        return value
+    elif isinstance(value, int):
+        if value == 0:
+            return False
+        if value == 1:
+            return True
         raise ValueError(
-            f"{key} must be positive integer: converted {value} to {candidate}"
+            f"Could not coerrce {key}={value} to boolean. Integers "
+            "must be zero or one"
         )
+    elif isinstance(value, str):
+        if value.lower() in {"1", "yes", "y", "true"}:
+            return True
+        if value.lower() in {"0", "no", "n", "false"}:
+            return False
 
-    @staticmethod
-    def _makeAbsPath(p: typing.Union[pathlib.Path, str, typing.Any]) -> pathlib.Path:
-        if isinstance(p, pathlib.Path):
-            if p.is_absolute():
-                return p
-            return p.resolve()
-        return pathlib.Path(p).resolve()
+    raise TypeError(f"Could not coerce {key}={value} to boolean")
 
 
-class SubSetting(ConfigMixin, metaclass=ABCMeta):
+def asType(dtype: type, key: str, value: str):
+    """Convert an incoming string to a given type
+
+    Thin wrapper around ``dtype(value)`` with a better error
+    message.
+
+    Parameters
+    ----------
+    dtype : type, callable
+        Desired datatype or function that can produce it given ``value``
+    key : str
+        Name of the setting. Used only in error reporting
+    value : str
+        Incoming value from the configuration
+
+    Raises
+    ------
+    TypeError
+    """
+    try:
+        return dtype(value)
+    except Exception as ee:
+        raise TypeError(f"Could not coerce {key}={value} to {dtype}") from ee
+
+
+def enforceInt(key: str, value: typing.Any, positive: bool = False):
+    if isinstance(value, bool):
+        raise TypeError(f"{key} must be integer, not boolean")
+    elif not isinstance(value, numbers.Integral):
+        raise TypeError(f"{key} must be integer, not {type(value)}")
+    elif positive and not value > 0:
+        raise ValueError(f"{key} must be positive integer, not {value}")
+
+
+def asInt(key: str, value: typing.Any) -> int:
+    """Coerce a value to an integer
+
+    The following rules are applied, in order
+
+    1. If the value is a boolean, reject
+    2. If the value is an integer, return immediately
+    3. If real, check process integer ratio -
+       :meth:`float.as_integer_ratio`, but don't cast as ``float``
+    4. Otherwise, convert to ``float`` and process integer ratio
+
+    A value is considered an integer if the denominator of the ratio
+    is positive or negative one.
+
+    Parameters
+    ----------
+    key : str
+        Description for this value. Used in error reporting only
+    value : object
+        Value that one would like to be an integer
+
+    Returns
+    -------
+    int
+
+    """
+    if isinstance(value, bool):
+        raise TypeError(f"Will not coerce {key}={value} from bool to integer")
+    if isinstance(value, numbers.Integral):
+        return value
+
+    if isinstance(value, numbers.Real) and hasattr(value, "as_integer_ratio"):
+        numer, denom = value.as_integer_ratio()
+    else:
+        numer, denom = float(value).as_integer_ratio()
+
+    if denom == 1:
+        return numer
+    elif denom == -1:
+        return -numer
+
+    raise TypeError(f"Could not coerce {key}={value} to integer")
+
+
+def asPositiveInt(key: str, value: typing.Any) -> int:
+    """Coerce a value to be a positive integer
+
+    Similar rules apply as in :meth:`asInt`
+
+    Parameters
+    ----------
+    key : str
+        Description of the value. Used in error reporting only
+    value : object
+        Value that maybe can be an integer
+
+    Returns
+    -------
+    int
+
+    """
+    candidate = asInt(key, value)
+    if candidate > 0:
+        return candidate
+    raise ValueError(
+        f"{key} must be positive integer: converted {value} to {candidate}"
+    )
+
+
+def makeAbsPath(p: typing.Union[pathlib.Path, str, typing.Any]) -> pathlib.Path:
+    if isinstance(p, pathlib.Path):
+        if p.is_absolute():
+            return p
+        return p.resolve()
+    return pathlib.Path(p).resolve()
+
+
+class SubSetting(metaclass=ABCMeta):
     """Abstract base class for creating solver-specific settings
 
     Denoted as a sub-setting, because these are used by :class:`HydepSettings`
@@ -215,7 +212,7 @@ class SubSetting(ConfigMixin, metaclass=ABCMeta):
         """Update given user-provided options"""
 
 
-class HydepSettings(ConfigMixin):
+class HydepSettings:
     """Main setting configuration with validation and dynamic lookup
 
     Intended to be passed to various solvers in the framework. Solver
@@ -448,7 +445,7 @@ class HydepSettings(ConfigMixin):
     @basedir.setter
     def basedir(self, base):
         if base is not None:
-            self._basedir = self._makeAbsPath(base)
+            self._basedir = makeAbsPath(base)
         else:
             raise TypeError("Basedir must be path-like. Cannot be none")
 
@@ -459,7 +456,7 @@ class HydepSettings(ConfigMixin):
     @rundir.setter
     def rundir(self, run):
         if run is not None:
-            self._rundir = self._makeAbsPath(run)
+            self._rundir = makeAbsPath(run)
         else:
             self._rundir = None
 
@@ -575,13 +572,13 @@ class HydepSettings(ConfigMixin):
             )
 
         if archive is not None:
-            self.archiveOnSuccess = self.asBool("archive on success", archive)
+            self.archiveOnSuccess = asBool("archive on success", archive)
         if depsolver is not None:
             self.depletionSolver = depsolver
         if bc is not None:
             self.boundaryConditions = bc
         if fitOrder is not None:
-            self.fittingOrder = self.asInt("fitting order", fitOrder)
+            self.fittingOrder = asInt("fitting order", fitOrder)
         # None is an acceptable value
         if fitPoints is not False:
             if fitPoints is None or isinstance(fitPoints, numbers.Integral):
@@ -589,9 +586,9 @@ class HydepSettings(ConfigMixin):
             elif isinstance(fitPoints, str) and fitPoints.lower() == "none":
                 self.numFittingPoints = None
             else:
-                self.numFittingPoints = self.asPositiveInt("fitting points", fitPoints)
+                self.numFittingPoints = asPositiveInt("fitting points", fitPoints)
         if unboundFit is not None:
-            self.unboundedFitting = self.asBool("unbounded fitting", unboundFit)
+            self.unboundedFitting = asBool("unbounded fitting", unboundFit)
 
         if basedir is not None:
             if isinstance(basedir, str) and basedir.lower() == "none":
@@ -606,7 +603,7 @@ class HydepSettings(ConfigMixin):
                 self.rundir = rundir
 
         if tempdir is not None:
-            self.useTempDir = self.asBool("use temp dir", tempdir)
+            self.useTempDir = asBool("use temp dir", tempdir)
 
     def validate(self):
         """Validate settings"""
@@ -788,7 +785,7 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         if value is None:
             self._particles = None
             return
-        self._enforceInt("particles", value, True)
+        enforceInt("particles", value, True)
         self._particles = value
 
     @property
@@ -800,7 +797,7 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         if value is None:
             self._active = None
             return
-        self._enforceInt("active", value, True)
+        enforceInt("active", value, True)
         self._active = value
 
     @property
@@ -812,7 +809,7 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         if value is None:
             self._inactive = None
             return
-        self._enforceInt("inactive", value, True)
+        enforceInt("inactive", value, True)
         self._inactive = value
 
     @property
@@ -824,7 +821,7 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         if value is None:
             self._generations = None
             return
-        self._enforceInt("generations per batch", value, True)
+        enforceInt("generations per batch", value, True)
         self._generations = value
 
     @property
@@ -836,7 +833,7 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         if value is None:
             self._seed = None
             return
-        self._enforceInt("seed", value, True)
+        enforceInt("seed", value, True)
         self._seed = value
 
     @property
@@ -876,7 +873,7 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         if value is None:
             self._omp = None
             return
-        self._enforceInt("omp", value, True)
+        enforceInt("omp", value, True)
         self._omp = value
 
     @property
@@ -888,7 +885,7 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         if value is None:
             self._mpi = None
             return
-        self._enforceInt("mpi", value, True)
+        enforceInt("mpi", value, True)
         self._mpi = value
 
     def update(self, options: typing.Mapping[str, typing.Any]):
@@ -944,7 +941,7 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
             ):
                 self.datadir = None
             else:
-                self.datadir = self._makeAbsPath(datadir)
+                self.datadir = makeAbsPath(datadir)
 
         # libraries
         for value, dest in [
@@ -990,7 +987,7 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         ]:
             if value is None:
                 continue
-            setattr(self, dest, self.asPositiveInt(dest, value))
+            setattr(self, dest, asPositiveInt(dest, value))
 
         if k0 is not None:
             candidate = float(k0)
@@ -1011,12 +1008,12 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
                     f"Cannot set omp to None from {omp}. By default, OMP will "
                     "infer threads from OMP_NUM_THREADS"
                 )
-            self.omp = self.asPositiveInt("omp", omp)
+            self.omp = asPositiveInt("omp", omp)
 
         if mpi is not False:
             if mpi is None or (isinstance(mpi, str) and mpi.lower() == "none"):
                 raise ValueError(f"Cannot set mpi to None from {mpi}")
-            self.mpi = self.asPositiveInt("mpi", mpi)
+            self.mpi = asPositiveInt("mpi", mpi)
 
 
 class SfvSettings(SubSetting, sectionName="sfv"):
@@ -1046,6 +1043,7 @@ class SfvSettings(SubSetting, sectionName="sfv"):
         sections
 
     """
+
     modes = BoundedTyped("_modes", numbers.Integral, gt=0, allowNone=True)
     densityCutoff = BoundedTyped("_densityCutoff", numbers.Real, ge=0.0)
 
@@ -1106,7 +1104,7 @@ class SfvSettings(SubSetting, sectionName="sfv"):
             if modes is None or (isinstance(modes, str) and modes.lower() == "none"):
                 self.modes = None
             else:
-                self.modes = self.asPositiveInt("modes", modes)
+                self.modes = asPositiveInt("modes", modes)
 
         if fraction is not None:
             try:
