@@ -2,9 +2,11 @@ import numpy
 import h5py
 import scipy.sparse
 import pytest
+import hydep
 from hydep.internal import TimeStep, TransportResult, CompBundle
 
 h5store = pytest.importorskip("hydep.h5store")
+
 
 @pytest.fixture
 def result() -> TransportResult:
@@ -37,15 +39,15 @@ def compareHdfStore(result, timestep, h5file):
 
     tgroup = h5file["time"]
     assert tgroup["time"][index] == pytest.approx(timestep.currentTime)
-    assert tgroup["high fidelity"][index] != bool(timestep.substep)
+    assert tgroup["highFidelity"][index] != bool(timestep.substep)
 
-    assert h5file["cpu times"][index] == pytest.approx(result.runTime)
-    assert h5file["multiplication factor"][index] == pytest.approx(result.keff)
+    assert h5file["cpuTimes"][index] == pytest.approx(result.runTime)
+    assert h5file["multiplicationFactor"][index] == pytest.approx(result.keff)
     assert h5file["fluxes"][index] == pytest.approx(result.flux)
 
     if result.fmtx is not None:
         fmtx = result.fmtx
-        fgroup = h5file["fission matrix"]
+        fgroup = h5file["fissionMatrix"]
         shape = fgroup.attrs["shape"]
         assert len(shape) == 2 and shape[0] == shape[1], shape
 
@@ -61,15 +63,13 @@ def compareHdfStore(result, timestep, h5file):
 def test_hdfStore(result, simpleChain, h5Destination):
     """Test that what goes in is what is written"""
     N_BU_MATS, N_GROUPS = result.flux.shape
-    BU_INDEXES = [[x, "mat {}".format(x)] for x in range(N_BU_MATS)]
+    BU_INDEXES = [[x, f"mat {x}"] for x in range(N_BU_MATS)]
 
     # Emulate some depletion time
     START = TimeStep(0, 0, 0, 0)
     END = TimeStep(2, 1, 4, 10)
 
-    store = h5store.HdfStore(
-        filename=h5Destination,
-    )
+    store = h5store.HdfStore(filename=h5Destination,)
     assert store.fp.samefile(h5Destination)
     assert store.fp.is_absolute()
 
@@ -77,11 +77,7 @@ def test_hdfStore(result, simpleChain, h5Destination):
 
     # Need to add an additional step to account for zeroth time step
     store.beforeMain(
-        END.coarse + 1,
-        END.total + 1,
-        N_GROUPS,
-        tuple(simpleChain),
-        BU_INDEXES,
+        END.coarse + 1, END.total + 1, N_GROUPS, tuple(simpleChain), BU_INDEXES,
     )
 
     store.postTransport(START, result)
@@ -93,20 +89,22 @@ def test_hdfStore(result, simpleChain, h5Destination):
     store.postTransport(END, result)
 
     with h5py.File(h5Destination, "r") as h5:
-        for ix, [matid, matname] in enumerate(BU_INDEXES):
-            grp = h5["materials/{}".format(ix)]
-            assert grp.attrs["id"] == matid
-            assert grp.attrs["name"] == matname
-        assert h5.get("materials/{}".format(len(BU_INDEXES))) is None
+        assert tuple(h5.attrs["fileVersion"][:]) == store.VERSION
+        assert tuple(h5.attrs["hydepVersion"][:]) == tuple(
+            int(x) for x in hydep.__version__.split(".")[:3]
+        )
 
-        zais = []
+        for ix, [matid, matname] in enumerate(BU_INDEXES):
+            assert h5["/materials/ids"][ix] == matid
+            assert h5["/materials/names"][ix].decode() == matname
+
+        zais = h5["isotopes/zais"]
+        names = h5["isotopes/names"]
         for ix, iso in enumerate(simpleChain):
-            isoG = h5["isotopes/{}".format(ix)]
-            zais.append(iso.zai)
-            assert isoG.attrs["ZAI"] == iso.zai
-            assert isoG.attrs["name"] == iso.name
-        assert h5["isotopes/zais"][:] == pytest.approx(zais)
-        assert h5.get("isotopes/{}".format(len(simpleChain))) is None
+            assert zais[ix] == iso.zai
+            assert names[ix].decode() == iso.name
+
+        assert len(simpleChain) == len(zais) == len(names)
 
         compareHdfStore(result, START, h5)
         compareHdfStore(result, END, h5)
