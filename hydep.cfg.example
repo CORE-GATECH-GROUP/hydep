@@ -1,0 +1,232 @@
+# Example configuration file for hydep
+# Follows the INI / CFG (loose) specification
+# This file is not used by the framework, but is provided as a
+# template and starting point
+
+# Values are expected to be of the form
+# key = value
+# where key can include spaces
+# Anything after a # symbol is considered
+
+
+# Booleans can be retrieved in a variety of ways.
+# The following options (case insensitive) will evaluate to True:
+# 1 yes y true
+# The following options (case insensitive) will evaluate to False:
+# 0 no n false
+
+# Sections are used to configure various solvers
+# and are differentiated with
+# [section]
+
+# The main section that must occur
+[hydep]
+# Values here are intended to be used by some or all solvers
+## archive on success
+# Boolean switch instructing solvers to save auxiliary files
+# even in the simulation succeeds
+# Currently not fully implemented
+
+## boundary condition
+# Allowable values:
+# reflective, vacuum, periodic
+# Default: vacuum in all directions
+# Can be delimited by commas or spaces.
+# Must contain one or three values.
+# A single value will be applied to all directions
+# For the case of three values, the conditions will be applied
+# to the x, y, and z dimension
+boundary conditions = reflective vacuum reflective
+
+## basedir
+# Path to where the final results should be saved
+# Default: save to current working directory
+# If provided, must be able to produce an absolute path
+# to a directory. If the directory does not exist,
+# it will be created
+basedir = example/base
+
+## depletion solver
+# String indicating what depletion solver to use.
+# Currently allowed values are (case insensitive)
+# cram16, 16, cram48, 48
+# to use the 16th and 48th order Chebyshev Rational Approximation
+# method (incomplete partial factorization)
+depletion solver = 48
+
+## fitting order
+# Non-negative integer for the maximum polynomial fitting to be 
+# used when projecting microscopic cross sections and other
+# data forwards in time. Used in the depletion engine to compute
+# reaction rates at substeps, as well as the SFV solver.
+# Defaults to linear, but be careful using linear or above for
+# large steps (<20 days) without sufficient previous points
+# Fitting routines will the maximum order up to this value, depending
+# on the number of time points possible. For the first coarse step,
+# there will only be a single point of reference data and thus a 
+# linear fit will not be possible.
+fitting order = 0
+
+## fitting points
+# Positive integer for the number of values to store when constructing
+# polynomial fits. Must be greater than fitting order or none. Defaults to three.
+# A value of None (case insensitive) implies no limit on previous points
+# but using "unbounded fitting" is preferred.
+# Older values are pushed out as newer values arrive unless the
+# setting unbounded fitting is True
+fitting points = 2
+
+## rundir
+# Directory where the simulations will be run
+# Default behavior is determined by basedir and
+# use temp dir setting.
+# Simulations will create auxiliary files in this directory
+# If provided, it must resolve to an absolute path to a 
+# directory. If a directory is provided and it does not exist,
+# it will be created
+# If not provided, will be set to
+# - a temporary directory if use temp dir is true, or
+# - basedir
+rundir = example/run
+
+## unbounded fitting
+# Boolean switch that instructs polynomial fits to place no limit on
+# the number of previous points to keep. Defaults to false.
+# Will produce errors if this evaluates to True and a value f
+# fitting points is provided
+unbounded fitting = false
+
+## use temp dir
+# Boolean switch to run simulations in a temporary directory
+# Will only be used if rundir is not provided
+# Temporary directory will be created, managed, and removed
+# by the program
+# Simulations will be run in this temporary directory, and 
+# any auxiliary files not archived will be lost
+use temp dir = false
+
+# Solver-specific options are expected to be in a "subsection"
+# [hydep.<solver>]
+# Two solvers are provided with this framework, and detailed below
+
+[hydep.serpent]
+# Configuring the Serpent interface
+
+## datadir
+# Absolute path to the directory that contains Serpent nuclear
+# data files like acelib, declib, and nfylib. If not provided,
+# attempt to obtain the SERPENT_DATA environment variable.
+# Otherwise, must resolve to an existing absolute path to a directory
+# datadir = 
+
+## acelib
+# Path to the primary cross section lookup file.
+# Must eventually be provided, and can be an absolute path to an existing
+# file, or a path relative to datadir (or SERPENT_DATA). Regardless,
+# it must resolve to an absolute path to an existing file.
+acelib = sss_endfb7u.xsdata
+
+## declib
+# Path to decay library
+# Must eventually be provided, and can be an absolute path to an existing
+# file, or a path relative to datadir (or SERPENT_DATA). Regardless,
+# it must resolve to an absolute path to an existing file.
+declib = sss_endfb71.dec
+
+## nfylib
+# Path to neutron induced fission product yield file
+# Must eventually be provided, and can be an absolute path to an existing
+# file, or a path relative to datadir (or SERPENT_DATA). Regardless,
+# it must resolve to an absolute path to an existing file.
+nfylib = sss_endfb71.nfy
+
+## thermal scattering
+# Path to S(a,b) scattering file
+# Not necessary unless a material requires the data, indicated by a call to
+# Material.addSAlphaBeta(name)
+# If provided and needed, it must resolve to an absolute path to an existing
+# file containing S(a,b) data. If it is not provided and it is needed, then
+# the following locations will be tried
+# datadir/acedata/sssth1
+# $(SERPENT_DATA)/acedata/sssth1
+# If none of these files exist, and the scattering data are needed, an error
+# will be raised
+# thermal scattering = 
+
+## particles
+# Positive integer with the number of particle to simulate each cycle.
+# There is no default, and a value must be provided, or else the
+# simulation will fail
+particles = 5E6
+
+## generations per batch
+# Positive integer for the number of generations (or cycles) per a single
+# batch. Used to compute the total number of active and inactive cycles.
+# There is no default, and a value must be provided, or else the
+# simulation will fail
+generations per batch = 10
+
+## active
+# Positive integer for the number of active **batches** to simulate.
+# The number of active cycles will be active * generations per batch
+# There is no default, and a value must be provided, or else the
+# simulation will fail
+active = 20
+
+## inactive
+# Positive integer for the number of inactive **batches** to simulate.
+# The number of inactive cycles will be inactive * generations per batch.
+# There is no default, and a value must be provided, or else the
+# simulation will fail
+inactive = 15
+
+## seed
+# Positive integer for an initial random seed. Not required, and no default
+seed = 123456
+
+## k0
+# Initial guess for the multiplication factor. Must be a float between
+# 0 and 2, exclusive. Not required, and defaults to 1.0
+k0 = 1.2
+
+## executable
+# Name or path to the serpent executable. Will be used to form the command
+# that runs Serpent using subprocess.run / subprocess.Popen.
+# There is no default, and one must be provided or else nothing can be run
+executable = sss2
+
+## omp
+# Positive integer for the number of parallel threads to use. If not
+# provided, attempt to pull from OMP_NUM_THREADS environment variable.
+# Otherwise the default is to run with a single thread.
+omp = 16
+
+## mpi
+# Positive integer for the number of MPI tasks to use when executing
+# Serpent. Will prepend "mpirun -np <mpi>" to the execution command.
+# The default is run with in serial, with or without omp threads as
+# determined by the omp setting
+mpi = 2
+
+[hydep.sfv]
+# Configure the spatial flux variation solver
+
+## modes
+# Positive integer for the number of higher order flux modes to use
+# when prediction the change in spatial flux. If not provided, the
+# value will be determined using mode fraction. An error will be
+# raised is this value exceeds the number of burnable materials
+# in the problem. For maximum compatibility, it is recommended to
+# use mode fraction unless you know how many modes are available
+modes = 10
+
+## mode fraction
+# Real number bounded between (0, 1] for the fraction of available
+# modes to use in the prediction. The default value of one will use
+# all the available modes, while a value of 0.5 will use half.
+mode fraction = 0.75
+
+## density cutoff
+# Non-negative density [atoms/b/cm] that isotopes must exceed when
+# reconstructing macroscopic cross sections. Default value of 0.0
+density cutoff = 1E-20

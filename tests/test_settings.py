@@ -1,6 +1,7 @@
 import random
 import string
 import pathlib
+from unittest.mock import patch
 
 import pytest
 from hydep.settings import HydepSettings, SubSetting, asBool
@@ -191,3 +192,75 @@ def test_directories(tmpdir):
 
     with pytest.raises(TypeError):
         fresh.update({"basedir": "none"})
+
+
+@pytest.fixture
+def serpentdata(tmpdir):
+    datadir = pathlib.Path(tmpdir / "serpentdata")
+    datadir.mkdir()
+
+    # Must match up with example config file
+    files = {"sss_endfb7u.xsdata", "sss_endfb71.dec", "sss_endfb71.nfy"}
+
+    for name in files:
+        (datadir / name).touch()
+
+    with patch.dict(
+        "os.environ", {"SERPENT_DATA": str(datadir), "OMP_NUM_THREADS": ""}
+    ):
+        yield datadir
+
+    for name in files:
+        (datadir / name).unlink()
+
+
+def test_exampleConfig(serpentdata):
+    cfg = pathlib.Path(__file__).parents[1] / "hydep.cfg.example"
+    assert cfg.is_file(), cfg
+
+    settings = HydepSettings.fromFile(cfg)
+
+    assert settings.boundaryConditions == ("reflective", "vacuum", "reflective")
+    assert settings.basedir == pathlib.Path("example/base").resolve()
+    assert settings.depletionSolver == "48"
+    assert settings.rundir == pathlib.Path("example/run").resolve()
+    assert not settings.useTempDir
+    assert settings.fittingOrder == 0
+    assert settings.numFittingPoints == 2
+    assert not settings.unboundedFitting  # default
+
+    serpent = settings.serpent
+
+    assert serpent.acelib.parent == serpentdata
+    assert serpent.acelib.name == "sss_endfb7u.xsdata"
+    assert serpent.declib.parent == serpentdata
+    assert serpent.declib.name == "sss_endfb71.dec"
+    assert serpent.nfylib.parent == serpentdata
+    assert serpent.nfylib.name == "sss_endfb71.nfy"
+
+    assert serpent.particles == int(5e6)
+    assert serpent.generationsPerBatch == 10
+    assert serpent.active == 20
+    assert serpent.inactive == 15
+    assert serpent.seed == 123456
+    assert serpent.k0 == 1.2
+
+    assert serpent.executable == "sss2"
+    assert serpent.omp == 16
+    assert serpent.mpi == 2
+
+    sfv = settings.sfv
+    assert sfv.modes == 10
+    assert sfv.modeFraction == 0.75
+    assert sfv.densityCutoff == 1e-20
+
+
+def test_emptyconfig(tmpdir):
+    cfg = tmpdir / "bad.cfg"
+    cfg.write("[DEFAULT]\nkey = value\n")
+
+    with pytest.raises(KeyError):
+        HydepSettings.fromFile(cfg, strict=True)
+
+    with pytest.warns(UserWarning):
+        HydepSettings.fromFile(cfg, strict=False)
