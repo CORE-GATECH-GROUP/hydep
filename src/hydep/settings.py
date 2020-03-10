@@ -13,6 +13,7 @@ from collections.abc import Sequence
 import typing
 from abc import abstractmethod, ABCMeta
 import numbers
+import configparser
 
 from hydep.typed import (
     TypedAttr,
@@ -468,7 +469,7 @@ class HydepSettings:
         Sub-sections are expected to be found via first-level keys match
         ``hydep.<key>``. Settings for the Serpent interface should be
         in the sub-map ``options["hydep.serpent"]``. Any key not starting
-        with :attr:`self.name` will be skipped.
+        with ``hydep`` will be skipped.
 
         Parameters
         ----------
@@ -479,8 +480,9 @@ class HydepSettings:
         Raises
         ------
         ValueError
-            If no values are found under :attr:`name`. If no
-            corresponding sub-section is found under ``<name>.<key>``.
+            If a subsection is found that does not adhere to
+            the pattern ``hydep\\..*``, e.g. ``hydep.serpent`` is good,
+            but ``hydep_serpent`` is not``
         AttributeError
             If a subsection would collide with a non-subsection
             attribute, e.g. :attr:`archiveOnSuccess`.
@@ -491,10 +493,8 @@ class HydepSettings:
 
         """
         mainkeys = options.get(self.name)
-        if mainkeys is None:
-            raise ValueError(f"No settings for {self.name} found. Refusing to advance")
-
-        self.update(copy.copy(mainkeys))
+        if mainkeys is not None:
+            self.update(copy.copy(mainkeys))
 
         # Process sub-settings, but only go one level deep
 

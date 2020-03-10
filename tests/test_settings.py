@@ -111,7 +111,7 @@ def test_subsettings():
     assert not hasattr(settings, randomSection)
     assert t.truth
 
-    settings.updateAll({"hydep": {}, "hydep.test": {"truth": "0"}})
+    settings.updateAll({"hydep.test": {"truth": "0"}})
     assert not t.truth
 
     fresh = HydepSettings()
@@ -122,7 +122,7 @@ def test_subsettings():
     assert not fresh.test.truth
 
     with pytest.raises(ValueError, match=f".*{randomSection}"):
-        fresh.updateAll({"hydep": {}, f"hydep.{randomSection}": {"key": "value"}})
+        fresh.updateAll({f"hydep.{randomSection}": {"key": "value"}})
 
     with pytest.raises(ValueError, match=".*test"):
 
