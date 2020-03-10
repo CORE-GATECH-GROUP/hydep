@@ -28,7 +28,7 @@ def test_settings():
 
     assert h.archiveOnSuccess
     assert h.depletionSolver == "cram48"
-    assert h.boundaryConditions == ["reflective", "reflective", "vacuum"]
+    assert h.boundaryConditions == ("reflective", "reflective", "vacuum")
     assert h.fittingOrder == 2
     assert h.numFittingPoints == 4
     assert not h.unboundedFitting
@@ -45,7 +45,7 @@ def test_settings():
         }
     )
     assert not h.archiveOnSuccess
-    assert h.boundaryConditions == ["vacuum"] * 3
+    assert h.boundaryConditions == ("vacuum", ) * 3
     assert h.fittingOrder == 1
     assert h.numFittingPoints is None
     assert h.unboundedFitting
@@ -56,7 +56,7 @@ def test_settings():
 
     with pytest.raises(ValueError, match=".*[B|b]oundary"):
         HydepSettings().update({BC: ["reflective", "very strange", "vacuum"]})
-    assert h.boundaryConditions == ["vacuum"] * 3
+    assert h.boundaryConditions == ("vacuum", ) * 3
 
     with pytest.raises(TypeError):
         h.archiveOnSuccess = 1
@@ -69,7 +69,7 @@ def test_settings():
         depletionSolver="testSolver",
         boundaryConditions="reflective",
     )
-    assert fresh.boundaryConditions == ["reflective"] * 3
+    assert fresh.boundaryConditions == ("reflective", ) * 3
     assert fresh.archiveOnSuccess
     assert fresh.depletionSolver == "testSolver"
 

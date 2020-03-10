@@ -272,7 +272,7 @@ class HydepSettings:
         success
     depletionSolver : str
         String indicating which depletion solver to use.
-    boundaryConditions : iterable of string
+    boundaryConditions : tuple of string
         Three valued list or iterable indicating X, Y, and Z
         boundary conditions
     fittingOrder : int
@@ -394,6 +394,8 @@ class HydepSettings:
             raise ValueError(
                 f"Number of boundary conditions must be 1 or 3, not {len(bc)}"
             )
+
+        bc = tuple(bc)
 
         for b in bc:
             if b not in self._ALLOWED_BC:
