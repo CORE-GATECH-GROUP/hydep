@@ -93,7 +93,7 @@ class Problem(object):
             ntransport=sum(self.dep.substeps) + 1,
             ngroups=1,
             isotopes=tuple(self.dep.chain),
-            burnableIndexes=[(i, m) for i, m in enumerate(self.dep.burnable)],
+            burnableIndexes=[(m.id, m.name) for m in self.dep.burnable],
         )
 
     def solve(self, initialDays=0):
