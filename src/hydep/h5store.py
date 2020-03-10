@@ -10,7 +10,7 @@ Format
 
 .. note::
 
-    The current version of this file is ``0.0``
+    The current version of this file is ``0.1``
 
 ----------
 Attributes
@@ -18,34 +18,27 @@ Attributes
 
 The following attributes are written as root level attributes
 
-* ``coarse steps`` ``int`` - Number of coarse time steps
+* ``coarseSteps`` ``int`` - Number of coarse time steps
 
-* ``total steps`` ``int`` - Number of total times steps, including
+* ``totalSteps`` ``int`` - Number of total times steps, including
   substeps
 
 * ``isotopes`` ``int`` - Number of isotopes in the depletion chain
 
-* ``burnable materials`` ``int`` - Number of burnable materials in
+* ``burnableMaterials`` ``int`` - Number of burnable materials in
   the problem
 
-* ``energy groups`` ``int`` - Number of energy groups for flux and
+* ``energyGroups`` ``int`` - Number of energy groups for flux and
   cross sections
 
-* ``file version`` ``int`` ``(2, )`` - Major and minor version of the file
+* ``fileVersion`` ``int`` ``(2, )`` - Major and minor version of the file
 
-* ``hydep version`` ``int`` ``(3, )`` [optional] - Version of
-  ``hydep`` package
-
-* ``high fidelity solver`` ``str`` [optional] - Name of the high
-  fidelity transport solver
-
-* ``reduced order sovler`` ``str`` [optional] - Name of the reduced
-  order transport solver
+* ``hydepVersion`` ``int`` ``(3, )`` - Version of ``hydep`` package
 
 Datasets
 --------
 
-* ``/multiplication factor`` ``double`` ``(N_total, 2)`` - Array
+* ``/multiplicationFactor`` ``double`` ``(N_total, 2)`` - Array
   of multiplication factors and absolute uncertainties such that
   ``mf[0, j]`` is the multiplication factor for time point ``j``
   and ``mf[1, j]`` is the associated uncertainty
@@ -54,7 +47,7 @@ Datasets
   Array of fluxes [n/s] in each burnable material. Note: fluxes are
   normalized to a constant power but are not scaled by volume
 
-* ``/cpu times`` ``double`` ``(N_total, )`` - Array of cpu time [s]
+* ``/cpuTimes`` ``double`` ``(N_total, )`` - Array of cpu time [s]
   taken at each transport step, both high fidelity and reduced order
 
 * ``/compositions`` ``double`` ``(N_total, N_bumats, N_isotopes)`` -
@@ -66,7 +59,7 @@ Datasets
 Groups
 ------
 
-``/fission matrix`` group
+``/fissionMatrix`` group
 -------------------------
 
 If the fission matrix is present on at least one transport result,
@@ -82,7 +75,7 @@ structure may change from step to step.
 The fission matrix generated at step ``i`` will be written into a
 subgroup.
 
-``/fission matrix/<i>`` group
+``/fissionMatrix/<i>`` group
 -----------------------------
 
 The subgroup will have the following attributes:
@@ -110,9 +103,9 @@ and datasets:
 * ``/time/time`` ``double`` ``(N_total, )`` - Vector of points in
   calendar time [s]
 
-* ``/time/high fidelity`` ``int`` ``(N_total, )`` - Boolean vector
+* ``/time/highFidelity`` ``bool`` ``(N_total, )`` - Boolean vector
   describing if a specific point corresponds to a high fidelity
-  simulation (1) or a reduced order simulation (0)
+  simulation (True) or a reduced order simulation (False)
 
 ``/isotopes`` group
 -------------------
@@ -122,21 +115,20 @@ their indices in other data sets.
 
 * ``/isotopes/zais`` ``int`` ``(N_isotopes, )`` - Vector
   of isotope ZAI numbers, ordered consistent with the depletion
-  chain. More information on isotope ``zais[i]`` can be found
-  in the ``/isotopes/i/`` group
+  chain.
+* ``/isotopes/names`` ``S`` ``(N_isotopes,)`` - Vector with isotope
+   names, ordered consistent with the depletion chain
 
-``/isotopes/<i>`` group
-~~~~~~~~~~~~~~~~~~~~~~~
+``/materials`` group
+--------------------
 
-Contains information for the ``i``-th isotope. Has the following
-attributes:
+Group describing ordering of burnable materials and their names.
+Written to be a consistent ordering across fluxes and compositions
 
-* ``ZAI`` ``int`` - Isotope ``ZZAAAI`` identifier where ``ZZ`` is
- the number of protons, ``AAA`` is the number of protons and neutrons,
- and ``I`` is the metastable state.
-* ``name`` ``str`` - Name of this isotope following the Generalized
-  Nuclear Data (GND) format.
-
+* ``/materials/ids`` ``int`` ``(N_bumats, )`` - Vector with burnable
+  material ID
+* ``/materials/names`` ``S`` ``(N_bumats, )`` - Vector with material
+  names
 
 """
 import typing
@@ -145,6 +137,7 @@ import pathlib
 import numpy
 import h5py
 
+import hydep
 from .store import BaseStore
 
 
@@ -187,15 +180,15 @@ class HdfStore(BaseStore):
 
     """
 
-    _VERSION = (0, 0)
+    _VERSION = (0, 1)
     _fluxKey = "fluxes"
-    _kKey = "multiplication factor"
+    _kKey = "multiplicationFactor"
     _isotopeKey = "isotopes"
     _compKey = "compositions"
-    _cputimeKey = "cpu times"
+    _cputimeKey = "cpuTimes"
     _timeKey = "time"
     _matKey = "materials"
-    _fmtxKey = "fission matrix"
+    _fmtxKey = "fissionMatrix"
 
     def __init__(
         self,
@@ -221,7 +214,10 @@ class HdfStore(BaseStore):
                 )
 
         with h5py.File(fp, mode="w", libver=libver) as h5f:
-            h5f.attrs["file version"] = self.VERSION
+            h5f.attrs["fileVersion"] = self.VERSION
+            h5f.attrs["hydepVersion"] = tuple(
+                int(x) for x in hydep.__version__.split(".")[:3]
+            )
         self._fp = fp
 
     @property
@@ -246,17 +242,17 @@ class HdfStore(BaseStore):
         """
         with h5py.File(self._fp, "a") as h5f:
             for src, dest in (
-                (nhf, "coarse steps"),
-                (ntransport, "total steps"),
+                (nhf, "coarseSteps"),
+                (ntransport, "totalSteps"),
                 (len(isotopes), "isotopes"),
-                (len(burnableIndexes), "burnable materials"),
-                (ngroups, "energy groups"),
+                (len(burnableIndexes), "burnableMaterials"),
+                (ngroups, "energyGroups"),
             ):
                 h5f.attrs[dest] = src
 
             tgroup = h5f.create_group(self._timeKey)
             tgroup.create_dataset("time", (ntransport,))
-            tgroup.create_dataset("high fidelity", (ntransport,), dtype="i8")
+            tgroup.create_dataset("highFidelity", (ntransport,), dtype=bool)
 
             h5f.create_dataset(self._kKey, (ntransport, 2))
 
@@ -267,27 +263,31 @@ class HdfStore(BaseStore):
             )
 
             h5f.create_dataset(
-                self._compKey,
-                (ntransport, len(burnableIndexes), len(isotopes)),
+                self._compKey, (ntransport, len(burnableIndexes), len(isotopes)),
             )
 
             isogroup = h5f.create_group(self._isotopeKey)
             zai = numpy.empty(len(isotopes), dtype=int)
+            names = numpy.empty_like(zai, dtype=object)
 
             for ix, iso in enumerate(isotopes):
                 zai[ix] = iso.zai
-                group = isogroup.create_group(str(ix))
-                group.attrs["ZAI"] = iso.zai
-                group.attrs["name"] = iso.name
+                names[ix] = iso.name
 
             isogroup["zais"] = zai
+            isogroup["names"] = names.astype("S")
 
             materialgroup = h5f.create_group(self._matKey)
+            mids = materialgroup.create_dataset(
+                "ids", (len(burnableIndexes),), dtype=int
+            )
+            names = numpy.empty_like(mids, dtype=object)
 
             for ix, (matid, name) in enumerate(burnableIndexes):
-                group = materialgroup.create_group(str(ix))
-                group.attrs["id"] = matid
-                group.attrs["name"] = name
+                mids[ix] = matid
+                names[ix] = name
+
+            materialgroup["names"] = names.astype("S")
 
     def postTransport(self, timeStep, transportResult) -> None:
         """Store transport results
@@ -310,7 +310,7 @@ class HdfStore(BaseStore):
             timeindex = timeStep.total
             tgroup = h5f[self._timeKey]
             tgroup["time"][timeindex] = timeStep.currentTime
-            tgroup["high fidelity"][timeindex] = 0 if timeStep.substep else 1
+            tgroup["highFidelity"][timeindex] = not bool(timeStep.substep)
 
             h5f[self._kKey][timeindex] = transportResult.keff
 
