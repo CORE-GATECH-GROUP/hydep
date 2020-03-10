@@ -22,7 +22,28 @@ class HdfResultCompare(CompareBase):
         res = pathlib.Path(self.targetFile).resolve()
         assert res.is_file(), res
 
+        self._checkConsistency(problem, res)
+
         return super().main(res)
+
+    def _checkConsistency(self, problem, res):
+        with h5py.File(res, mode="r") as hf:
+            materialIDs = hf["materials/ids"]
+            names = hf["materials/names"]
+            for ix, mat in enumerate(problem.model.root.findBurnableMaterials()):
+                assert mat.id == materialIDs[ix], (mat.id, materialIDs[ix])
+                assert mat.name == names[ix].decode(), (mat.name, names[ix].decode())
+            assert hf.attrs["burnableMaterials"] == len(names)
+
+            assert hf.attrs["isotopes"] == len(problem.dep.chain)
+            zais = hf["isotopes/zais"]
+            names = hf["isotopes/names"]
+            for ix, iso in enumerate(problem.dep.chain):
+                assert iso.zai == zais[ix], (iso, zais[ix])
+                assert iso.name == names[ix].decode(), (iso, names[ix].decode())
+
+            assert hf.attrs["coarseSteps"] == len(problem.dep.timesteps) + 1
+            assert hf.attrs["totalSteps"] == sum(problem.dep.substeps) + 1
 
     def update(self, testF):
         shutil.move(str(testF), str(self.datadir / "results-reference.h5"))
@@ -32,8 +53,10 @@ class HdfResultCompare(CompareBase):
         fails = []
 
         with h5py.File(testF, mode="r") as test, h5py.File(reference, mode="r") as ref:
-            version = test.attrs.get("file version")
-            if version is None or tuple(version[:]) != self.expectsVersion:
+            version = test.attrs.get("fileVersion")
+            if version is None:
+                raise ValueError("HDF storage version not written")
+            elif tuple(version[:]) != self.expectsVersion:
                 raise ValueError(
                     "HDF storage have been updated beyond this test. Found "
                     f"{version[:]}, expected {self.expectsVersion}"
@@ -50,7 +73,9 @@ class HdfResultCompare(CompareBase):
         actualDS = test.get("multiplicationFactor")
         if actualDS is None:
             return False
-        refK = ref["multiplication factor"]
+        assert (actualDS[:] > 0).all()
+
+        refK = ref["multiplicationFactor"]
 
         if actualDS[:, 0] == pytest.approx(refK[:, 0]):
             return True
