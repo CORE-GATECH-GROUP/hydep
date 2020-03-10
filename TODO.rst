@@ -13,6 +13,7 @@ TODOs
   reconstruction
 * Use vectorized / subprocess-managed routines when projecting
   MicroXsVector on TemporalMicroXs
+* Provide a blessed HDF5 processor
 * Resolve how hydep.Pin objects are handled by numpy
 * Remove most assert statements in favor of actual checks
 * Find a way to add regression test file (setup, post-process) into
