@@ -90,8 +90,7 @@ class SfvSolver(ReducedOrderSolver):
     _INDEX_VOL_K_FIS = 4  # NOTE node volumes * kappa * sigma f
     _INDEX_NUBAR = 5
     _INDEX_PHI_0 = 6
-    _INDEX_PHI_1 = 7
-    _NUM_INDEXES = 8
+    _NUM_INDEXES = 7
     _NON_FISS_ABS_MT = frozenset(
         {REACTION_MTS.N_GAMMA, REACTION_MTS.N_2N, REACTION_MTS.N_3N}
     )
@@ -246,6 +245,14 @@ class SfvSolver(ReducedOrderSolver):
         self._macroData = numpy.empty((len(vols), self._NUM_INDEXES))
         self._processIsotopeFissionQ(manager.chain)
 
+    def _processIsotopeFissionQ(self, isotopes):
+        qvalues = defaultdict(float)
+        for isotope in isotopes:
+            for reaction in isotope.reactions:
+                if reaction.mt in FISSION_REACTIONS:
+                    qvalues[isotope.zai] += reaction.Q
+        self._isotopeFissionQs = qvalues
+
     def processBOS(self, txresult, timestep, power):
         """Process data from the beginning of step high fidelity solution
 
@@ -308,8 +315,8 @@ class SfvSolver(ReducedOrderSolver):
             flux[:, 0] * self._totalvolume / (flux[:, 0] * self._volumes).sum()
         )
 
-    def substepUpdate(self, timestep, compositions, microxs):
-        """Prepare the solver for the execution stage
+    def substepSolve(self, timestep, compositions, microxs):
+        """Apply the SFV method and predict the substep flux
 
         Parameters
         ----------
@@ -320,17 +327,41 @@ class SfvSolver(ReducedOrderSolver):
         microxs : iterable of hydep.internal.MicroXsVector
             Updated microscopic cross sections for this timestep
 
+        Returns
+        -------
+        hydep.internal.TransportResult
+            Transport result with the flux prediction and a (currently)
+            meaningless multiplication factor
+
         """
         self._updateMacroFromMicroXs(compositions, microxs)
         self._macroData[:, self._INDEX_NUBAR] = self._nubar(timestep.currentTime)
 
-    def _processIsotopeFissionQ(self, isotopes):
-        qvalues = defaultdict(float)
-        for isotope in isotopes:
-            for reaction in isotope.reactions:
-                if reaction.mt in FISSION_REACTIONS:
-                    qvalues[isotope.zai] += reaction.Q
-        self._isotopeFissionQs = qvalues
+        start = time.time()
+        data = self._macroData
+
+        normPrediction = applySFV(
+            data[:, self._INDEX_XS_ABS_0],
+            data[:, self._INDEX_XS_ABS_1],
+            data[:, self._INDEX_XS_NSF_0],
+            data[:, self._INDEX_XS_FIS_1] * data[:, self._INDEX_NUBAR],
+            self._keff0,
+            self._adjointMoments,
+            self._forwardMoments,
+            self._eigenvalues,
+            data[:, self._INDEX_PHI_0],
+            overwrite=False,
+        )
+
+        substepFlux = (
+            normPrediction
+            * self._currentPower
+            / (normPrediction * self._macroData[:, self._INDEX_VOL_K_FIS]).sum()
+        )
+
+        end = time.time()
+
+        return TransportResult(substepFlux, [numpy.nan, numpy.nan], runTime=end - start)
 
     def _updateMacroFromMicroXs(self, compositions, microxs):
         assert len(microxs) == self._macroData.shape[0]
@@ -370,45 +401,4 @@ class SfvSolver(ReducedOrderSolver):
 
         self._macroData[:, self._INDEX_VOL_K_FIS] *= numpy.multiply(
             BARN_PER_CM2, self._volumes
-        )
-
-    def execute(self) -> float:
-        """Perform the prediction and store the new flux internally
-
-        Returns
-        -------
-        float
-            Time required to perform the prediction and re-normalize
-            fluxes to appropriate levels
-
-        """
-        start = time.time()
-        data = self._macroData
-
-        normPrediction = applySFV(
-            data[:, self._INDEX_XS_ABS_0],
-            data[:, self._INDEX_XS_ABS_1],
-            data[:, self._INDEX_XS_NSF_0],
-            data[:, self._INDEX_XS_FIS_1] * data[:, self._INDEX_NUBAR],
-            self._keff0,
-            self._adjointMoments,
-            self._forwardMoments,
-            self._eigenvalues,
-            data[:, self._INDEX_PHI_0],
-            overwrite=False,
-        )
-
-        data[:, self._INDEX_PHI_1] = (
-            normPrediction
-            * self._currentPower
-            / (normPrediction * self._macroData[:, self._INDEX_VOL_K_FIS]).sum()
-        )
-
-        return time.time() - start
-
-    def processResults(self) -> TransportResult:
-        """Process the new fluxes"""
-        # TODO Maybe have execute do **everything**?
-        return TransportResult(
-            self._macroData[:, self._INDEX_PHI_1].copy(), [numpy.nan, numpy.nan]
         )

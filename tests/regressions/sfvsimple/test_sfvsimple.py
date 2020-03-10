@@ -29,9 +29,8 @@ def test_sfvsimple(simpleSfvProblem, sfvMacroData, sfvMicroXS, sfvNewComps):
 
     timestep += 50 * SECONDS_PER_DAY
 
-    solver.substepUpdate(timestep, sfvNewComps, sfvMicroXS)
-    solver.execute()
-    flux = solver.processResults().flux[:, 0]
+    res = solver.substepSolve(timestep, sfvNewComps, sfvMicroXS)
+    flux = res.flux[:, 0]
 
     comparator = SfvComparator(pathlib.Path(__file__).parent, sfvMacroData)
 

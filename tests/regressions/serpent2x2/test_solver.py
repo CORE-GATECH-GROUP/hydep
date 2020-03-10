@@ -54,13 +54,7 @@ def regressionSettings():
     return settings
 
 
-@pytest.fixture
-def serpentSolver(runInTempDir, regressionSettings, serpent2x2Problem):
-    regressionSettings.rundir = runInTempDir
-
-    serpentDir = runInTempDir / "serpent"
-    assert not serpentDir.exists()
-
+def test_serpentSolver(runInTempDir, regressionSettings, serpent2x2Problem):
     # Set hooks for slightly realistic problem
     XS_KEYS = {"abs", "fiss"}
     hooks = hdfeat.FeatureCollection(
@@ -76,7 +70,6 @@ def serpentSolver(runInTempDir, regressionSettings, serpent2x2Problem):
     solver.beforeMain(
         serpent2x2Problem.model, serpent2x2Problem.manager, regressionSettings
     )
-    assert serpentDir.is_dir()
 
     timeStep = hydep.internal.TimeStep(0, 0, 0, 0)
 
@@ -88,16 +81,7 @@ def serpentSolver(runInTempDir, regressionSettings, serpent2x2Problem):
 
     POWER = 6e6
 
-    solver.bosUpdate(concentrations, timeStep, POWER)
-    yield solver
-    solver.finalize(True)
-
-@pytest.mark.serpent
-def test_serpentSolver(serpentSolver):
-
-    serpentSolver.execute()
-
-    res = serpentSolver.processResults()
+    res = solver.bosSolve(concentrations, timeStep, POWER)
 
     tester = ResultComparator(pathlib.Path(__file__).parent)
     tester.main(res)

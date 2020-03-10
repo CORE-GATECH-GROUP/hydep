@@ -14,6 +14,7 @@ from .lib import ReducedOrderSolver
 
 class SimpleROSolver(ReducedOrderSolver):
     """The simplest reduced order flux solution where nothing happens"""
+
     needs = FeatureCollection()
 
     def __init__(self):
@@ -23,23 +24,12 @@ class SimpleROSolver(ReducedOrderSolver):
         """Store flux from a high fidelity transport solution"""
         self._flux = txResult.flux
 
-    @staticmethod
-    def substepUpdate(*args):
-        """Nothing to do, nothing to update"""
-        pass
-
-    @staticmethod
-    def execute() -> float:
-        """Provided to fulfill the interface, but nothing is done
+    def substepSolve(self, *args, **kwargs):
+        """Return the beginning-of-step flux with no modifications
 
         Returns
         -------
-        float
-            Time required by this "solver"
-
+        hydep.internal.TransportResult
+            Transport result with the flux provided in :meth:`processBOS`
         """
-        return 0.0
-
-    def processResults(self) -> TransportResult:
-        """Return back the flux from :meth:`processBOS`"""
-        return TransportResult(self._flux, [numpy.nan, numpy.nan])
+        return TransportResult(self._flux, [numpy.nan, numpy.nan], runTime=numpy.nan)

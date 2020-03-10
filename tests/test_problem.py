@@ -23,15 +23,7 @@ class MockHFSolver(HighFidelitySolver):
     features = None
 
     @staticmethod
-    def execute():
-        return
-
-    @staticmethod
-    def processResults():
-        return
-
-    @staticmethod
-    def bosUpdate(*args, **kwargs):
+    def bosSolve(*args, **kwargs):
         pass
 
     @staticmethod
@@ -47,15 +39,7 @@ class MockROMSolver(ReducedOrderSolver):
     needs = None
 
     @staticmethod
-    def execute():
-        return
-
-    @staticmethod
-    def processResults():
-        return
-
-    @staticmethod
-    def substepUpdate(*args, **kwargs):
+    def substepSolve(*args, **kwargs):
         pass
 
 
