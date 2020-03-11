@@ -131,13 +131,17 @@ Written to be a consistent ordering across fluxes and compositions
   names
 
 """
+import numbers
 import typing
 import pathlib
+from collections.abc import Mapping
+import bisect
 
 import numpy
 import h5py
 
 import hydep
+from hydep.constants import SECONDS_PER_DAY
 from .store import BaseStore
 
 
@@ -351,3 +355,91 @@ class HdfStore(BaseStore):
         """
         with h5py.File(self._fp, mode="a") as h5f:
             h5f[self._compKey][timeStep.total] = compBundle.densities
+
+
+class HdfProcessor(Mapping):
+    _EXPECTS = (0, 1)
+
+    def __init__(
+        self, fpOrGroup: typing.Union[str, pathlib.Path, h5py.File, h5py.Group]
+    ):
+        if isinstance(fpOrGroup, (str, pathlib.Path)):
+            self._root = h5py.File(fpOrGroup, mode="r")
+        elif isinstance(fpOrGroup, (h5py.File, h5py.Group)):
+            self._root = fpOrGroup
+
+        version = self._root.attrs.get("fileVersion")
+        if version is None:
+            raise KeyError(f"Could not find file version in {self._root}")
+        elif tuple(version[:]) != self._EXPECTS:
+            raise ValueError(
+                f"Found {version[:]} in {self._root}, expected {self._EXPECTS}"
+            )
+
+        self.days = numpy.divide(self._root["time/time"], SECONDS_PER_DAY)
+
+    def __len__(self) -> int:
+        return len(self._root)
+
+    def __getitem__(self, key) -> typing.Any:
+        return self._root[key]
+
+    def __iter__(self):
+        return iter(self._root)
+
+    def __contains__(self, key):
+        return key in self._root
+
+    def get(self, key, default=None) -> typing.Optional[typing.Any]:
+        return self._root.get(key, default)
+
+    def keys(self):
+        return self._root.keys()
+
+    def values(self):
+        return self._root.values()
+
+    def items(self):
+        return self._root.items()
+
+    @property
+    def zais(self) -> numpy.ndarray:
+        return self._root["isotopes/zais"][:]
+
+    @property
+    def keff(self) -> numpy.ndarray:
+        return self._root["multiplicationFactor"][:]
+
+    @property
+    def hfFlags(self) -> numpy.ndarray:
+        return self._root["time/highFidelity"][:]
+
+    @property
+    def fluxes(self) -> numpy.ndarray:
+        return self._root["fluxes"][:]
+
+    def sliceKeff(self, hfOnly=True) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
+        slicer = self.hfFlags if hfOnly else slice(None)
+        return self.days[slicer], self.keff[slicer, :]
+
+    def sliceFluxes(self, days=None) -> numpy.ndarray:
+
+        if days is None:
+            dayslice = slice(None)
+        elif isinstance(days, numbers.Real):
+            dayslice = bisect.bisect_left(self.days, days)
+            if dayslice == len(self.days) or days != self.days[dayslice]:
+                raise IndexError(f"Day {days} not found")
+        else:
+            # Let numpy handle to searching
+            reqs = numpy.asarray(days)
+            if len(reqs.shape) != 1:
+                raise ValueError("Days can only be 1D")
+            if (reqs[:-1] - reqs[1:] > 0).any():
+                raise ValueError("Days must be in increasing order, for now")
+            dayslice = numpy.searchsorted(self.days, reqs)
+            for ix, d in zip(dayslice, reqs):
+                if ix == len(self.days) or self.days[ix] != d:
+                    raise IndexError(f"Day {d} not found")
+        # TODO Add group, material slicing
+        return self["fluxes"][dayslice, :, 0]
