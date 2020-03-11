@@ -130,6 +130,15 @@ def test_managerSubsteps(simpleChain):
     divset = {safeargs.divisions * x for x in range(1, ntimesteps + 1)}
     assert len(divset) == ntimesteps
 
+    # Test that numpy arrays are good
+    arraySubs = hydep.Manager(
+        safeargs.chain,
+        safeargs.timesteps,
+        safeargs.power,
+        numpy.arange(1, ntimesteps + 1),
+    )
+    assert arraySubs.substeps == tuple(range(1, ntimesteps + 1))
+
     with pytest.raises(TypeError):
         hydep.Manager(safeargs.chain, safeargs.timesteps, safeargs.power, divset)
 

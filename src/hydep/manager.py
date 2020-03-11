@@ -155,7 +155,7 @@ class Manager:
             if divisions <= 0:
                 raise ValueError(f"Divisions must be positive integer, not {divisions}")
             return FakeSequence(divisions, maxallowed)
-        if isinstance(divisions, Sequence):
+        if isinstance(divisions, (numpy.ndarray, Sequence)):
             if len(divisions) != maxallowed:
                 raise ValueError(
                     "Number of divisions {} not equal to number of time "
