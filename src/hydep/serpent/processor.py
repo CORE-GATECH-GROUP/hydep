@@ -259,15 +259,10 @@ class SerpentProcessor:
             source = getattr(universe, xsLeader + "Exp")
             allFluxes.append(source[xsLeader + "Flx"])
             for reqKey in reqXS:
-                # TODO Cache the map or avoid this call in twice nested loop?
-                xsdata[reqKey] = source[self._mapMacroXS(xsLeader, reqKey)]
+                xsdata[reqKey] = source[xsLeader + reqKey.capitalize()]
             allXS.append(xsdata)
 
         return TransportResult(allFluxes, keff, macroXS=allXS)
-
-    @staticmethod
-    def _mapMacroXS(leader, name):
-        return leader + name.capitalize()
 
     @requireBurnable
     def processFmtx(self, fmtxfile):
@@ -532,7 +527,7 @@ class FissionYieldFetcher:
                 [
                     f"dr {r} fy{zai}"
                     for r in self.COMPONENT_FISSIONS.get(
-                        zai, {REACTION_MTS.TOTAL_FISSION,}
+                        zai, {REACTION_MTS.TOTAL_FISSION}
                     )
                 ]
             )
