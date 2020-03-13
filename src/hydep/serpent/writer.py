@@ -535,12 +535,11 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
 
     def _writehooks(self, stream):
         self.commentblock(stream, "BEGIN HOOKS")
+        self._writeFluxDetectors(stream)
         if hdfeat.FISSION_MATRIX in self.hooks:
             self._writefmtx(stream)
         if hdfeat.HOMOG_LOCAL in self.hooks:
             self._writelocalgcu(stream)
-        else:
-            self._writeFluxDetectors(stream)
         if hdfeat.MICRO_REACTION_XS in self.hooks:
             self._writeMdep(stream)
 

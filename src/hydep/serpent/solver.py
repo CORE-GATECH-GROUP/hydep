@@ -138,21 +138,21 @@ class BaseSolver(HighFidelitySolver):
         return self._processor
 
     def _process(self, basefile, index=0):
+        fluxes = self.processor.processDetectorFluxes(
+            basefile + f"_det{index}.m",
+            "flux",
+        ) / self._volumes
+
         if self.hooks is not None and self.hooks.macroXS:
-            res = self.processor.processResult(
+            resbundle = self.processor.processResult(
                 basefile + "_res.m",
                 self.hooks.macroXS,
                 index=index,
             )
+            res = TransportResult(fluxes, resbundle.keff, macroXS=resbundle.macroXS)
         else:
             keff = self.processor.getKeff(basefile + "_res.m", index=index)
-            fluxes = self.processor.processDetectorFluxes(
-                basefile + f"_det{index}.m",
-                "flux",
-            )
             res = TransportResult(fluxes, keff)
-
-        res.flux = res.flux / self._volumes
 
         if not self.hooks:
             return res

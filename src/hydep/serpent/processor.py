@@ -6,16 +6,33 @@ import copy
 from functools import wraps
 import textwrap
 import math
+import collections
+import typing
 
 import numpy
 import serpentTools
 
-from hydep.internal import TransportResult, MicroXsVector
+from hydep.internal import MicroXsVector
 from hydep.constants import CM2_PER_BARN, REACTION_MTS
 from .fmtx import parseFmtx
 
 
 __all__ = ["SerpentProcessor", "FissionYieldFetcher"]
+
+
+ResTuple = collections.namedtuple("ResTuple", "keff macroXS")
+ResTuple.__doc__ = """Small bundle for result file data
+
+Parameters
+----------
+keff : numpy.ndarray
+    Array with multiplication factor and absolute uncertainty
+macroXS : list of dict or None
+    Macroscopic cross sections in every burnable region.
+    Able to be passed directly to
+    :attr:`hydep.internal.TransportResult.macroXS`
+
+"""
 
 
 def requireBurnable(m):
@@ -168,7 +185,7 @@ class SerpentProcessor:
 
         return serpentFile
 
-    def getKeff(self, resultfile, index=0):
+    def getKeff(self, resultfile, index=0) -> typing.Tuple[float, float]:
         """Pull just the multiplication factor from a result file
 
         Parameters
@@ -193,15 +210,13 @@ class SerpentProcessor:
         return keff
 
     @requireBurnable
-    def processResult(self, resultfile, reqXS, index=0):
-        """Scrape fluxes, multiplication factor, and xs
+    def processResult(self, resultfile, reqXS, index=0) -> ResTuple:
+        """Scrape multiplication factor and xs
 
         Expects all the universes to have been selected for
-        homogenization with the ``set gcu`` card. Will pull both
-        fluxes and macroscopic cross sections from the file.
-        If this is not the case, there will be errors. Examine
-        some of the smaller methods that are used here to pull
-        a single quantity
+        homogenization with the ``set gcu`` card. If this is not the
+        case, there will be errors. Examine some of the smaller methods
+        that are used here to pull a single quantity
 
         Parameters
         ----------
@@ -218,10 +233,7 @@ class SerpentProcessor:
 
         Returns
         -------
-        hydep.internal.TransportResult
-            Bundling of multiplication factor and associated
-            uncertainty, fluxes in burnable regions, and homogenized
-            macroscopic cross sections in burnable regions.
+        ResTuple
 
         Raises
         ------
@@ -234,8 +246,7 @@ class SerpentProcessor:
         * :meth:`getKeff` - Just pull the multiplication factor and
            uncertainty
         * :meth:`processDetectorFluxes` - Pull fluxes in each burnable
-          region from a detector file, rather than relying on
-          homogenization
+          region from a detector file
 
         """
 
@@ -247,22 +258,17 @@ class SerpentProcessor:
         keff[1] *= keff[0]
 
         xsLeader = "inf" if self.options["results"]["xs.getInfXS"] else "b1"
-
-        allFluxes = []
         allXS = []
-
-        # Take fluxes and cross sections from first step
 
         for univKey in self.burnable:
             xsdata = {}
             universe = results.getUniv(univKey, index=index)
             source = getattr(universe, xsLeader + "Exp")
-            allFluxes.append(source[xsLeader + "Flx"])
             for reqKey in reqXS:
                 xsdata[reqKey] = source[xsLeader + reqKey.capitalize()]
             allXS.append(xsdata)
 
-        return TransportResult(allFluxes, keff, macroXS=allXS)
+        return ResTuple(keff, allXS)
 
     @requireBurnable
     def processFmtx(self, fmtxfile):
@@ -361,7 +367,8 @@ class SerpentProcessor:
             Expected value of flux in each burnable universe
 
         """
-
+        # Would like to share the reading with the processFissionYields
+        # method in the future
         detector = self.read(detectorfile, "det")[name]
         tallies = detector.tallies
 
