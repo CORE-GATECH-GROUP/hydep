@@ -139,6 +139,7 @@ import bisect
 
 import numpy
 import h5py
+from scipy.sparse import csr_matrix
 
 import hydep
 from hydep.constants import SECONDS_PER_DAY
@@ -418,12 +419,15 @@ class HdfProcessor(Mapping):
     def fluxes(self) -> numpy.ndarray:
         return self._root["fluxes"][:]
 
-    def sliceKeff(self, hfOnly=True) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
+    def sliceKeff(
+        self, hfOnly: bool = True
+    ) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
         slicer = self.hfFlags if hfOnly else slice(None)
         return self.days[slicer], self.keff[slicer, :]
 
-    def sliceFluxes(self, days=None) -> numpy.ndarray:
-
+    def sliceFluxes(
+        self, days: typing.Optional[typing.Union[float, typing.Iterable[float]]] = None
+    ) -> numpy.ndarray:
         if days is None:
             dayslice = slice(None)
         elif isinstance(days, numbers.Real):
@@ -443,3 +447,16 @@ class HdfProcessor(Mapping):
                     raise IndexError(f"Day {d} not found")
         # TODO Add group, material slicing
         return self["fluxes"][dayslice, :, 0]
+
+    def getFissionMatrix(self, day: float) -> csr_matrix:
+        ix = bisect.bisect_left(self.days, day)
+        if ix == len(self.days) or self.days[ix] != day:
+            raise IndexError(f"Day {day} not found")
+
+        structure = self["fissionMatrix"].attrs.get("structure")
+        if structure != "csr":
+            raise ValueError("Expected csr matrix structure, not {structure}")
+
+        group = self[f"fissionMatrix/{ix}"]
+
+        return csr_matrix((group["data"], group["indices"], group["indptr"]))
