@@ -382,7 +382,8 @@ class HdfProcessor(Mapping):
     def __len__(self) -> int:
         return len(self._root)
 
-    def __getitem__(self, key) -> typing.Any:
+    def __getitem__(self, key: str) -> typing.Union[h5py.Group, h5py.Dataset]:
+        """Fetch a group or dataset directly from the file"""
         return self._root[key]
 
     def __iter__(self):
@@ -391,7 +392,23 @@ class HdfProcessor(Mapping):
     def __contains__(self, key):
         return key in self._root
 
-    def get(self, key, default=None) -> typing.Optional[typing.Any]:
+    def get(self, key: str, default: typing.Optional = None) -> typing.Optional[typing.Any]:
+        """Fetch a group or dataset from the file
+
+        Parameters
+        ----------
+        key : str
+            Name of the dataset or group of interest. Can contain
+            multiple levels, e.g. ``"time/time"``
+        default : object, optional
+            Item to return if ``key`` is not found. Defaults to ``None``
+
+        Returns
+        -------
+        object
+            If ``key`` is found, will be either a :class:`h5py.Group`
+            or :class:`h5py.Dataset`. Otherwise ``default`` is returned
+        """
         return self._root.get(key, default)
 
     def keys(self):
