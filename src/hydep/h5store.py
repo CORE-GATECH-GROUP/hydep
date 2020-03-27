@@ -436,9 +436,26 @@ class HdfProcessor(Mapping):
     def fluxes(self) -> numpy.ndarray:
         return self._root["fluxes"][:]
 
-    def sliceKeff(
-        self, hfOnly: bool = True
+    def getKeff(
+        self, hfOnly: typing.Optional[bool] = True
     ) -> typing.Tuple[numpy.ndarray, numpy.ndarray]:
+        """Fetch the multiplication factor paired with the time in days
+
+        Parameters
+        ----------
+        hfOnly : bool, optional
+            Return the days and :math:`k` from high-fidelity solutions only [default]. Useful
+            if the reduced order code does not compute / return :math:`k`.
+
+        Returns
+        -------
+        days : numpy.ndarray
+            Points in time [d] where :math:`k` has been evaluated
+        keff : numpy.ndarray
+            2D array with multiplication factor in the first column,
+            absolute uncertainties in the second column
+
+        """
         slicer = self.hfFlags if hfOnly else slice(None)
         return self.days[slicer], self.keff[slicer, :]
 
