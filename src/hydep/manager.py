@@ -364,4 +364,8 @@ class Manager:
 
         densities = numpy.asarray(out)
 
+        negativeIndex = densities < 0
+        if negativeIndex.any():
+            densities[negativeIndex] = 0.0
+
         return CompBundle(concentrations.isotopes, densities)
