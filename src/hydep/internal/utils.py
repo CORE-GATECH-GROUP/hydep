@@ -53,8 +53,8 @@ Parameters
 ----------
 isotope : Iterable[hydep.internal.Isotope]
     Ordering of isotopics
-densities : Iterable[Iterable[float]]
-    Iterable of material compositions such that ``densities[i][j]``
+densities : numpy.ndarray
+    Array of material compositions such that ``densities[i, j]``
     is the atom density [#/b-cm] of isotope ``isotope[j]`` for burnable
     material ``i``
 
@@ -62,8 +62,8 @@ Attributes
 ----------
 isotope : Iterable[hydep.internal.Isotope]
     Ordering of isotopics
-densities : Iterable[Iterable[float]]
-    Iterable of material compositions such that ``densities[i][j]``
+densities : numpy.ndarray
+    Array of material compositions such that ``densities[i, j]``
     is the atom density [#/b-cm] of isotope ``isotope[j]`` for burnable
     material ``i``
 

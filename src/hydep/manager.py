@@ -362,4 +362,6 @@ class Manager:
         with multiprocessing.Pool() as p:
             out = p.starmap(self._depsolver, inputs)
 
-        return CompBundle(concentrations.isotopes, out)
+        densities = numpy.asarray(out)
+
+        return CompBundle(concentrations.isotopes, densities)
