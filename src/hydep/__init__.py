@@ -1,4 +1,9 @@
-from .exceptions import IncompatibityError, GeometryError, FailedSolverError
+from .exceptions import (
+    IncompatibityError,
+    GeometryError,
+    FailedSolverError,
+    NegativeDensityWarning,
+)
 from .materials import Material, BurnableMaterial
 from .universe import InfiniteMaterial
 from .pin import Pin

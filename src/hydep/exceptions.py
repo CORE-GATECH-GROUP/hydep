@@ -8,3 +8,7 @@ class IncompatibityError(Exception):
 
 class FailedSolverError(Exception):
     """Indicate that a solver has failed"""
+
+
+class NegativeDensityWarning(RuntimeWarning):
+    """Warning that negative densities were found"""

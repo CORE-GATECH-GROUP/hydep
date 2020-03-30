@@ -4,6 +4,7 @@ Depletion manager
 Control time-steps, material divisions, depletion, etc
 """
 
+import warnings
 import numbers
 from collections.abc import Sequence, Callable
 from itertools import repeat, starmap
@@ -11,7 +12,7 @@ import multiprocessing
 
 import numpy
 
-from hydep import BurnableMaterial, DepletionChain
+from hydep import BurnableMaterial, DepletionChain, NegativeDensityWarning
 from hydep.constants import SECONDS_PER_DAY
 from hydep.typed import TypedAttr, IterableOf
 from hydep.internal import Cram16Solver, Cram48Solver, CompBundle
@@ -366,6 +367,14 @@ class Manager:
 
         negativeIndex = densities < 0
         if negativeIndex.any():
+            numMats = negativeIndex.any(axis=1).sum()
+            sumReplace = -densities[negativeIndex].sum()
+            warnings.warn(
+                f"Replacing negative densities in {numMats} of "
+                f"{densities.shape[0]} materials. Sum of negative "
+                f"densities: {sumReplace:9.5E} [atoms/b-cm]",
+                NegativeDensityWarning,
+            )
             densities[negativeIndex] = 0.0
 
         return CompBundle(concentrations.isotopes, densities)
