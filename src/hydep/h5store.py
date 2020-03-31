@@ -136,6 +136,7 @@ import typing
 import pathlib
 from collections.abc import Mapping
 import bisect
+from enum import Enum
 
 import numpy
 import h5py
@@ -144,6 +145,56 @@ from scipy.sparse import csr_matrix
 import hydep
 from hydep.constants import SECONDS_PER_DAY
 from .store import BaseStore
+
+
+class HdfEnumKeys(Enum):
+    """Enumeration that provides string encoding
+
+    This allows using the instances directly, rather
+    than having to make calls to their string values.
+    """
+
+    def encode(self, *args, **kwargs):
+        """Return a encoded version of the enumeration value
+
+        All arguments are passed directly to :meth:`str.encode`"""
+        return self.value.encode(*args, **kwargs)
+
+
+class HdfStrings(HdfEnumKeys):
+    """Strings for root datasets or groups"""
+
+    FLUXES = "fluxes"
+    KEFF = "multiplicationFactor"
+    ISOTOPES = "isotopes"
+    COMPOSITIONS = "compositions"
+    CPU_TIMES = "cpuTimes"
+    MATERIALS = "materials"
+    FISSION_MATRIX = "fissionMatrix"
+    CALENDAR = "time"
+
+
+class HdfSubStrings(HdfEnumKeys):
+    """Strings for datasets or groups beyond the base group"""
+
+    MAT_IDS = "ids"
+    MAT_NAMES = "names"
+    CALENDAR_TIME = "time"
+    CALENDAR_HF = "highFidelity"
+    ISO_ZAI = "zais"
+    ISO_NAMES = "names"
+
+
+class HdfAttrs(HdfEnumKeys):
+    """Strings for populating the attributes dictionary"""
+
+    N_COARSE = "coarseSteps"
+    N_TOTAL = "totalSteps"
+    N_ISOTOPES = "isotopes"
+    N_BMATS = "burnableMaterials"
+    N_ENE_GROUPS = "energyGroups"
+    V_FORMAT = "fileVersion"
+    V_HYDEP = "hydepVersion"
 
 
 class HdfStore(BaseStore):
@@ -186,14 +237,6 @@ class HdfStore(BaseStore):
     """
 
     _VERSION = (0, 1)
-    _fluxKey = "fluxes"
-    _kKey = "multiplicationFactor"
-    _isotopeKey = "isotopes"
-    _compKey = "compositions"
-    _cputimeKey = "cpuTimes"
-    _timeKey = "time"
-    _matKey = "materials"
-    _fmtxKey = "fissionMatrix"
 
     def __init__(
         self,
@@ -219,8 +262,8 @@ class HdfStore(BaseStore):
                 )
 
         with h5py.File(fp, mode="w", libver=libver) as h5f:
-            h5f.attrs["fileVersion"] = self.VERSION
-            h5f.attrs["hydepVersion"] = tuple(
+            h5f.attrs[HdfAttrs.V_FORMAT] = self.VERSION
+            h5f.attrs[HdfAttrs.V_HYDEP] = tuple(
                 int(x) for x in hydep.__version__.split(".")[:3]
             )
         self._fp = fp
@@ -247,31 +290,32 @@ class HdfStore(BaseStore):
         """
         with h5py.File(self._fp, "a") as h5f:
             for src, dest in (
-                (nhf, "coarseSteps"),
-                (ntransport, "totalSteps"),
-                (len(isotopes), "isotopes"),
-                (len(burnableIndexes), "burnableMaterials"),
-                (ngroups, "energyGroups"),
+                (nhf, HdfAttrs.N_COARSE),
+                (ntransport, HdfAttrs.N_TOTAL),
+                (len(isotopes), HdfAttrs.N_ISOTOPES),
+                (len(burnableIndexes), HdfAttrs.N_BMATS),
+                (ngroups, HdfAttrs.N_ENE_GROUPS),
             ):
                 h5f.attrs[dest] = src
 
-            tgroup = h5f.create_group(self._timeKey)
-            tgroup.create_dataset("time", (ntransport,))
-            tgroup.create_dataset("highFidelity", (ntransport,), dtype=bool)
+            tgroup = h5f.create_group(HdfStrings.CALENDAR)
+            tgroup.create_dataset(HdfSubStrings.CALENDAR_TIME, (ntransport,))
+            tgroup.create_dataset(HdfSubStrings.CALENDAR_HF, (ntransport,), dtype=bool)
 
-            h5f.create_dataset(self._kKey, (ntransport, 2))
+            h5f.create_dataset(HdfStrings.KEFF, (ntransport, 2))
 
-            h5f.create_dataset(self._cputimeKey, (ntransport,))
+            h5f.create_dataset(HdfStrings.CPU_TIMES, (ntransport,))
 
             h5f.create_dataset(
-                self._fluxKey, (ntransport, len(burnableIndexes), ngroups)
+                HdfStrings.FLUXES, (ntransport, len(burnableIndexes), ngroups)
             )
 
             h5f.create_dataset(
-                self._compKey, (ntransport, len(burnableIndexes), len(isotopes)),
+                HdfStrings.COMPOSITIONS,
+                (ntransport, len(burnableIndexes), len(isotopes)),
             )
 
-            isogroup = h5f.create_group(self._isotopeKey)
+            isogroup = h5f.create_group(HdfStrings.ISOTOPES)
             zai = numpy.empty(len(isotopes), dtype=int)
             names = numpy.empty_like(zai, dtype=object)
 
@@ -279,12 +323,12 @@ class HdfStore(BaseStore):
                 zai[ix] = iso.zai
                 names[ix] = iso.name
 
-            isogroup["zais"] = zai
-            isogroup["names"] = names.astype("S")
+            isogroup[HdfSubStrings.ISO_ZAI] = zai
+            isogroup[HdfSubStrings.ISO_NAMES] = names.astype("S")
 
-            materialgroup = h5f.create_group(self._matKey)
+            materialgroup = h5f.create_group(HdfStrings.MATERIALS)
             mids = materialgroup.create_dataset(
-                "ids", (len(burnableIndexes),), dtype=int
+                HdfSubStrings.MAT_IDS, (len(burnableIndexes),), dtype=int
             )
             names = numpy.empty_like(mids, dtype=object)
 
@@ -292,7 +336,7 @@ class HdfStore(BaseStore):
                 mids[ix] = matid
                 names[ix] = name
 
-            materialgroup["names"] = names.astype("S")
+            materialgroup[HdfSubStrings.MAT_NAMES] = names.astype("S")
 
     def postTransport(self, timeStep, transportResult) -> None:
         """Store transport results
@@ -313,24 +357,24 @@ class HdfStore(BaseStore):
         """
         with h5py.File(self._fp, mode="a") as h5f:
             timeindex = timeStep.total
-            tgroup = h5f[self._timeKey]
-            tgroup["time"][timeindex] = timeStep.currentTime
-            tgroup["highFidelity"][timeindex] = not bool(timeStep.substep)
+            tgroup = h5f[HdfStrings.CALENDAR]
+            tgroup[HdfSubStrings.CALENDAR_TIME][timeindex] = timeStep.currentTime
+            tgroup[HdfSubStrings.CALENDAR_HF][timeindex] = not bool(timeStep.substep)
 
-            h5f[self._kKey][timeindex] = transportResult.keff
+            h5f[HdfStrings.KEFF][timeindex] = transportResult.keff
 
-            h5f[self._fluxKey][timeindex] = transportResult.flux
+            h5f[HdfStrings.FLUXES][timeindex] = transportResult.flux
 
             cputime = transportResult.runTime
             if cputime is None:
                 cputime = numpy.nan
-            h5f[self._cputimeKey][timeindex] = cputime
+            h5f[HdfStrings.CPU_TIMES][timeindex] = cputime
 
             fmtx = transportResult.fmtx
             if fmtx is not None:
-                fGroup = h5f.get(self._fmtxKey)
+                fGroup = h5f.get(HdfStrings.FISSION_MATRIX)
                 if fGroup is None:
-                    fGroup = h5f.create_group(self._fmtxKey)
+                    fGroup = h5f.create_group(HdfStrings.FISSION_MATRIX)
                     fGroup.attrs["structure"] = "csr"
                     fGroup.attrs["shape"] = fmtx.shape
                 thisG = fGroup.create_group(str(timeindex))
@@ -355,7 +399,7 @@ class HdfStore(BaseStore):
 
         """
         with h5py.File(self._fp, mode="a") as h5f:
-            h5f[self._compKey][timeStep.total] = compBundle.densities
+            h5f[HdfStrings.COMPOSITIONS][timeStep.total] = compBundle.densities
 
 
 class HdfProcessor(Mapping):
