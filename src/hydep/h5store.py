@@ -503,9 +503,10 @@ class HdfProcessor(Mapping):
         slicer = self.hfFlags if hfOnly else slice(None)
         return self.days[slicer], self.keff[slicer, :]
 
-    def sliceFluxes(
+    def getFluxes(
         self, days: typing.Optional[typing.Union[float, typing.Iterable[float]]] = None
     ) -> numpy.ndarray:
+        # TODO Add group, material slicing
         if days is None:
             dayslice = slice(None)
         elif isinstance(days, numbers.Real):
@@ -523,7 +524,6 @@ class HdfProcessor(Mapping):
             for ix, d in zip(dayslice, reqs):
                 if ix == len(self.days) or self.days[ix] != d:
                     raise IndexError(f"Day {d} not found")
-        # TODO Add group, material slicing
         return self["fluxes"][dayslice, :, 0]
 
     def getFissionMatrix(self, day: float) -> csr_matrix:
