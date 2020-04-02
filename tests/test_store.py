@@ -120,3 +120,61 @@ def test_hdfStore(result, simpleChain, h5Destination, compositions):
 
     with pytest.raises(OSError):
         hydep.h5store.HdfStore(filename=h5Destination, existOkay=False)
+
+
+def test_hdfProcessor(result, simpleChain, compositions, h5Destination):
+
+    processor = hydep.h5store.HdfProcessor(h5Destination)
+
+    assert processor.days[START.total] == pytest.approx(
+        START.currentTime / hydep.constants.SECONDS_PER_DAY
+    )
+    assert processor.days[END.total] == pytest.approx(
+        END.currentTime / hydep.constants.SECONDS_PER_DAY
+    )
+
+    assert processor.keff.shape == (processor.days.size, 2)
+    assert processor.keff[START.total] == pytest.approx(result.keff)
+    assert processor.keff[END.total] == pytest.approx(result.keff)
+    hfDays, hfKeff = processor.getKeff(hfOnly=True)
+    assert hfDays == processor.days[processor.hfFlags]
+    assert hfKeff == pytest.approx(processor.keff[processor.hfFlags, :])
+
+    fullDays, fullKeff = processor.getKeff(hfOnly=False)
+    assert fullDays == pytest.approx(processor.days)
+    assert fullKeff == pytest.approx(processor.keff[:])
+
+    assert processor.compositions.shape == (processor.days.size, N_BU_MATS, len(simpleChain))
+    assert processor.compositions[END.total] == pytest.approx(compositions.densities)
+
+    assert processor.fluxes.shape == (processor.days.size, N_BU_MATS, N_GROUPS)
+    assert processor.fluxes[START.total] == pytest.approx(result.flux)
+    assert processor.fluxes[END.total] == pytest.approx(result.flux)
+    assert processor.getFluxes(processor.days[START.total]) == pytest.approx(result.flux)
+
+    fluxes = processor.getFluxes(processor.days[processor.hfFlags])
+    assert fluxes == pytest.approx(processor.fluxes[processor.hfFlags, :])
+    assert processor.getFluxes() == pytest.approx(processor.fluxes[:])
+
+    assert len(processor.names) == len(simpleChain)
+    assert len(processor.zais) == len(simpleChain)
+    for iso, name, zai in zip(simpleChain, processor.names, processor.zais):
+        assert name == iso.name
+        assert zai == iso.zai
+
+    for time in [START, END]:
+        fmtx = processor.getFissionMatrix(processor.days[time.total])
+        assert fmtx.data == pytest.approx(result.fmtx.data)
+        assert fmtx.indices == pytest.approx(result.fmtx.indices)
+        assert fmtx.indptr == pytest.approx(result.fmtx.indptr)
+
+    # Compare group and dataset references
+    for key, item in processor.items():
+        assert key in processor
+        assert processor[key].id == item.id
+        assert processor.get(key).id == item.id
+
+    assert "fake key" not in processor
+    with pytest.raises(KeyError):
+        processor["fake key"]
+    assert processor.get("fake key") is None
