@@ -433,10 +433,13 @@ class HdfProcessor(Mapping):
     def __iter__(self):
         return iter(self._root)
 
-    def __contains__(self, key):
+    def __contains__(self, key: str) -> bool:
+        """Dictionary-like membership testing of ``key``"""
         return key in self._root
 
-    def get(self, key: str, default: typing.Optional = None) -> typing.Optional[typing.Any]:
+    def get(
+        self, key: str, default: typing.Optional = None
+    ) -> typing.Optional[typing.Any]:
         """Fetch a group or dataset from the file
 
         Parameters
@@ -488,8 +491,9 @@ class HdfProcessor(Mapping):
         Parameters
         ----------
         hfOnly : bool, optional
-            Return the days and :math:`k` from high-fidelity solutions only [default]. Useful
-            if the reduced order code does not compute / return :math:`k`.
+            Return the days and :math:`k` from high-fidelity solutions
+            only [default]. Useful if the reduced order code does not
+            compute / return :math:`k`.
 
         Returns
         -------
@@ -506,6 +510,28 @@ class HdfProcessor(Mapping):
     def getFluxes(
         self, days: typing.Optional[typing.Union[float, typing.Iterable[float]]] = None
     ) -> numpy.ndarray:
+        """Retrieve the flux at some or all time points
+
+        Parameters
+        ----------
+        days : float or iterable of float, optional
+            Specific day or days to obtain the flux. If multiple days
+            are given, they must be in an increasing order
+
+        Returns
+        -------
+        numpy.ndarray
+            Fluxes at specified days. If ``day`` is a float, shape will
+            be ``(nBurnable, nGroups)``. Otherwise, it will be
+            ``(nDays, nBurnable, nGroups)`` where ``len(days) == nDays``
+
+        Raises
+        ------
+        IndexError
+            If ``days`` or an element of ``days`` was not found in
+            :attr:`days`
+
+        """
         # TODO Add group, material slicing
         if days is None:
             dayslice = slice(None)
@@ -524,17 +550,43 @@ class HdfProcessor(Mapping):
             for ix, d in zip(dayslice, reqs):
                 if ix == len(self.days) or self.days[ix] != d:
                     raise IndexError(f"Day {d} not found")
-        return self["fluxes"][dayslice, :, 0]
+        return self.fluxes[dayslice]
 
     def getFissionMatrix(self, day: float) -> csr_matrix:
+        """Retrieve the fission matrix for a given day
+
+        Parameters
+        ----------
+        day : float
+            Time in days that the matrix is requested
+
+        Returns
+        -------
+        scipy.sparse.csr_matrix
+            Fission matrix at time ``day``. Rows and columns correspond
+            to unique burnable materials
+
+        Raises
+        ------
+        KeyError
+            If the fission matrix group is not defined
+        IndexError
+            If ``day`` was not found in :attr:`days`
+
+        """
+        fmtxGroup = self.get(HdfStrings.FISSION_MATRIX)
+        if fmtxGroup is None:
+            raise KeyError(
+                "fissionMatrix group not found. Likely not included in simulation"
+            )
+        structure = fmtxGroup.attrs.get("structure")
+        if structure != "csr":
+            raise ValueError("Expected csr matrix structure, not {structure}")
+
         ix = bisect.bisect_left(self.days, day)
         if ix == len(self.days) or self.days[ix] != day:
             raise IndexError(f"Day {day} not found")
 
-        structure = self["fissionMatrix"].attrs.get("structure")
-        if structure != "csr":
-            raise ValueError("Expected csr matrix structure, not {structure}")
-
-        group = self[f"fissionMatrix/{ix}"]
+        group = fmtxGroup[str(ix)]
 
         return csr_matrix((group["data"], group["indices"], group["indptr"]))
