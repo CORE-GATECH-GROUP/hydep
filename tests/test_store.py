@@ -1,11 +1,10 @@
 import numpy
-import h5py
-import scipy.sparse
 import pytest
+h5py = pytest.importorskip("h5py")
+import scipy.sparse
 import hydep
 from hydep.internal import TimeStep, TransportResult, CompBundle
-
-h5store = pytest.importorskip("hydep.h5store")
+import hydep.h5store
 
 N_GROUPS = 2
 N_BU_MATS = 2
@@ -42,7 +41,7 @@ def compositions(simpleChain):
 def h5Destination(tmp_path, result, compositions, simpleChain):
     dest = (tmp_path / __file__).with_suffix(".h5")
 
-    store = h5store.HdfStore(filename=dest)
+    store = hydep.h5store.HdfStore(filename=dest)
     assert store.fp.samefile(dest)
     assert store.fp.is_absolute()
 
@@ -121,4 +120,4 @@ def test_hdfStore(result, simpleChain, h5Destination, compositions):
     # existing files
 
     with pytest.raises(OSError):
-        h5store.HdfStore(filename=h5Destination, existOkay=False)
+        hydep.h5store.HdfStore(filename=h5Destination, existOkay=False)
