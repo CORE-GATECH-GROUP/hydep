@@ -468,20 +468,43 @@ class HdfProcessor(Mapping):
         return self._root.items()
 
     @property
-    def zais(self) -> numpy.ndarray:
-        return self._root["isotopes/zais"][:]
+    def zais(self) -> h5py.Dataset:
+        """Ordered isotopic ZAI identifiers"""
+        return self._root[HdfStrings.ISOTOPES][HdfSubStrings.ISO_ZAI]
 
     @property
-    def keff(self) -> numpy.ndarray:
-        return self._root["multiplicationFactor"][:]
+    @property
+    def keff(self) -> h5py.Dataset:
+        """Nx2 array with multiplication factor and absolute uncertainty
+
+        Values will be provided for all transport solutions, even reduced
+        order simulations that may not compute :math:`k_{eff}`. To obtain
+        values at the high-fidelity points, see :meth:`getKeff`
+        """
+        return self._root[HdfStrings.KEFF]
 
     @property
-    def hfFlags(self) -> numpy.ndarray:
-        return self._root["time/highFidelity"][:]
+    def hfFlags(self) -> h5py.Dataset:
+        """Boolean vector indicating high fidelity (True) or reduced order solutions"""
+        return self._root[HdfStrings.CALENDAR][HdfSubStrings.CALENDAR_HF][:]
 
     @property
-    def fluxes(self) -> numpy.ndarray:
-        return self._root["fluxes"][:]
+    def fluxes(self) -> h5py.Dataset:
+        """NxMxG array with fluxes in each burnable region
+
+        Will be of shape ``(nTransport, nBurnable, nGroups)``
+
+        """
+        return self._root[HdfStrings.FLUXES]
+
+    @property
+    def compositions(self) -> h5py.Dataset:
+        """NxMxI array with isotopic compositions
+
+        Will be of shape ``(nTransport, nBurnable, nGroups)``
+
+        """
+        return self._root[HdfStrings.COMPOSITIONS]
 
     def getKeff(
         self, hfOnly: typing.Optional[bool] = True
