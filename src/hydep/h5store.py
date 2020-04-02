@@ -403,6 +403,26 @@ class HdfStore(BaseStore):
 
 
 class HdfProcessor(Mapping):
+    """Dictionary-like interface for HDF result files
+
+    Properties like :attr:`zais` are generated at each
+    call.
+
+    Parameters
+    ----------
+    fpOrGroup : str or pathlib.Path or h5py.File or h5py.Group
+        Either the name of the result file, an already opened
+        HDF file or a group inside an opened HDF file
+
+    Attributes
+    ----------
+    days : numpy.ndarray
+        Points in calendar time for all provided values
+    names : numpy.ndarray of str
+        Isotope names ordered consistent with :attr:`zai`.
+
+    """
+
     _EXPECTS = (0, 1)
 
     def __init__(
@@ -412,6 +432,8 @@ class HdfProcessor(Mapping):
             self._root = h5py.File(fpOrGroup, mode="r")
         elif isinstance(fpOrGroup, (h5py.File, h5py.Group)):
             self._root = fpOrGroup
+        else:
+            raise TypeError(f"Type {type(fpOrGroup)} not supported")
 
         version = self._root.attrs.get("fileVersion")
         if version is None:
@@ -422,6 +444,7 @@ class HdfProcessor(Mapping):
             )
 
         self.days = numpy.divide(self._root["time/time"], SECONDS_PER_DAY)
+        self._names = None
 
     def __len__(self) -> int:
         return len(self._root)
@@ -473,6 +496,15 @@ class HdfProcessor(Mapping):
         return self._root[HdfStrings.ISOTOPES][HdfSubStrings.ISO_ZAI]
 
     @property
+    def names(self) -> numpy.ndarray:
+        # Stored on the processor to avoid decoding at every call
+        if self._names is None:
+            ds = self._root[HdfStrings.ISOTOPES][HdfSubStrings.ISO_NAMES]
+            self._names = numpy.fromiter(
+                map(bytes.decode, ds), dtype=f"<U{ds.dtype.str[2:]}", count=ds.size
+            )
+        return self._names
+
     @property
     def keff(self) -> h5py.Dataset:
         """Nx2 array with multiplication factor and absolute uncertainty
