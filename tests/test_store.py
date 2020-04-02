@@ -12,7 +12,7 @@ BU_INDEXES = [[x, f"mat {x}"] for x in range(N_BU_MATS)]
 
 # Emulate some depletion time
 START = TimeStep(0, 0, 0, 0)
-END = TimeStep(2, 1, 4, 10)
+END = TimeStep(2, 1, 4, 10 * hydep.constants.SECONDS_PER_DAY)
 
 
 @pytest.fixture(scope="module")
@@ -22,9 +22,8 @@ def result() -> TransportResult:
     # Emulate multi-group data
     flux = numpy.arange(N_GROUPS * N_BU_MATS).reshape(N_BU_MATS, N_GROUPS)
 
-    fmtx = scipy.sparse.rand(
-        N_BU_MATS, N_BU_MATS, density=0.1, format="csr", random_state=123456
-    )
+    fmtx = scipy.sparse.eye(N_BU_MATS, N_BU_MATS, format="csr")
+    assert fmtx.nnz
 
     runtime = 10.1
 
