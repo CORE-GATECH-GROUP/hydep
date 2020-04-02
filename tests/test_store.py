@@ -7,12 +7,18 @@ from hydep.internal import TimeStep, TransportResult, CompBundle
 
 h5store = pytest.importorskip("hydep.h5store")
 
+N_GROUPS = 2
+N_BU_MATS = 2
+BU_INDEXES = [[x, f"mat {x}"] for x in range(N_BU_MATS)]
 
-@pytest.fixture
+# Emulate some depletion time
+START = TimeStep(0, 0, 0, 0)
+END = TimeStep(2, 1, 4, 10)
+
+
+@pytest.fixture(scope="module")
 def result() -> TransportResult:
     """Return a TransportResult with arbitrary data"""
-    N_GROUPS = 2
-    N_BU_MATS = 8
     keff = [1.0, 1e-5]
     # Emulate multi-group data
     flux = numpy.arange(N_GROUPS * N_BU_MATS).reshape(N_BU_MATS, N_GROUPS)
@@ -26,9 +32,31 @@ def result() -> TransportResult:
     return TransportResult(flux, keff, runtime, fmtx=fmtx)
 
 
+@pytest.fixture(scope="module")
+def compositions(simpleChain):
+    rng = numpy.random.default_rng(seed=123456)
+    return CompBundle(tuple(simpleChain), rng.random((N_BU_MATS, len(simpleChain))))
+
+
 @pytest.fixture
-def h5Destination(tmp_path):
+def h5Destination(tmp_path, result, compositions, simpleChain):
     dest = (tmp_path / __file__).with_suffix(".h5")
+
+    store = h5store.HdfStore(filename=dest)
+    assert store.fp.samefile(dest)
+    assert store.fp.is_absolute()
+
+    assert store.VERSION[0] == 0, "Test not updated for current file version"
+
+    # Need to add an additional step to account for zeroth time step
+    store.beforeMain(
+        END.coarse + 1, END.total + 1, N_GROUPS, tuple(simpleChain), BU_INDEXES,
+    )
+    store.postTransport(START, result)
+
+    store.writeCompositions(END, compositions)
+
+    store.postTransport(END, result)
     yield dest
     dest.unlink()
 
@@ -60,36 +88,11 @@ def compareHdfStore(result, timestep, h5file):
             assert actual == pytest.approx(ref), attr
 
 
-def test_hdfStore(result, simpleChain, h5Destination):
+def test_hdfStore(result, simpleChain, h5Destination, compositions):
     """Test that what goes in is what is written"""
-    N_BU_MATS, N_GROUPS = result.flux.shape
-    BU_INDEXES = [[x, f"mat {x}"] for x in range(N_BU_MATS)]
-
-    # Emulate some depletion time
-    START = TimeStep(0, 0, 0, 0)
-    END = TimeStep(2, 1, 4, 10)
-
-    store = h5store.HdfStore(filename=h5Destination,)
-    assert store.fp.samefile(h5Destination)
-    assert store.fp.is_absolute()
-
-    assert store.VERSION[0] == 0, "Test not updated for current file version"
-
-    # Need to add an additional step to account for zeroth time step
-    store.beforeMain(
-        END.coarse + 1, END.total + 1, N_GROUPS, tuple(simpleChain), BU_INDEXES,
-    )
-
-    store.postTransport(START, result)
-
-    rng = numpy.random.default_rng(seed=123456)
-    newDensities = [rng.random(len(simpleChain)) for _ in range(N_BU_MATS)]
-    store.writeCompositions(END, CompBundle(tuple(simpleChain), newDensities))
-
-    store.postTransport(END, result)
 
     with h5py.File(h5Destination, "r") as h5:
-        assert tuple(h5.attrs["fileVersion"][:]) == store.VERSION
+        assert tuple(h5.attrs["fileVersion"][:]) == (0, 1)
         assert tuple(h5.attrs["hydepVersion"][:]) == tuple(
             int(x) for x in hydep.__version__.split(".")[:3]
         )
@@ -111,7 +114,7 @@ def test_hdfStore(result, simpleChain, h5Destination):
 
         comps = h5["compositions"][END.total]
 
-        for rx, rowDens in enumerate(newDensities):
+        for rx, rowDens in enumerate(compositions.densities):
             assert comps[rx] == pytest.approx(rowDens)
 
     # Test errors and warnings when creating a Store that may overwrite
