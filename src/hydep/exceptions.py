@@ -10,5 +10,9 @@ class FailedSolverError(Exception):
     """Indicate that a solver has failed"""
 
 
+class NegativeDensityError(RuntimeError):
+    """Indicate that sufficiently negative densities were obtained"""
+
+
 class NegativeDensityWarning(RuntimeWarning):
-    """Warning that negative densities were found"""
+    """Warning that sufficiently negative densities were obtained"""

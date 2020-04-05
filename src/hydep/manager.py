@@ -12,7 +12,12 @@ import multiprocessing
 
 import numpy
 
-from hydep import BurnableMaterial, DepletionChain, NegativeDensityWarning
+from hydep import (
+    BurnableMaterial,
+    DepletionChain,
+    NegativeDensityWarning,
+    NegativeDensityError,
+)
 from hydep.constants import SECONDS_PER_DAY
 from hydep.typed import TypedAttr, IterableOf
 from hydep.internal import Cram16Solver, Cram48Solver, CompBundle
@@ -51,6 +56,13 @@ class Manager:
     depletionSolver : string or int or callable, optional
         Value to use in configuring the depletion solver. Passed to
         :meth:`setDepletionSolver`
+    negativeDensityWarnPercent: float, optional
+        Threshold for warning about negative densities. Treated
+        as a percentage of positive densities, range [0, 1]. Defaults
+        to zero.
+    negativeDensityErrorPercent : float, optional
+        Threshold for raising an error on negative densities. Treated
+        as a percentage of positive densities, range [0, 1]. Defaults to 1.
 
     Attributes
     ----------
@@ -76,6 +88,13 @@ class Manager:
     substeps : sequence of int
         Number of transport solutions, high fidelity and reduced order,
         per coarse depletion step. Not writable.
+    negativeDensityWarnPercent : float
+        Percentage threshold for warning about negative densities,
+        range [0, 1]. Must be less than :attr:`negativeDensityErrorPercent`
+    negativeDensityErrorPercent : float
+        Percentage threshold for raising and error on negative
+        densities, range [0, 1]. Must be greater than
+        :attr:`negativeDensityWarnPercent`
 
     """
 
@@ -90,6 +109,8 @@ class Manager:
         substepDivision,
         numPreliminary=0,
         depletionSolver=None,
+        negativeDensityWarnPercent=0,
+        negativeDensityErrorPercent=1,
     ):
         self.chain = chain
 
@@ -119,6 +140,11 @@ class Manager:
         self._substeps = self._validateSubsteps(substepDivision)
 
         self.setDepletionSolver(depletionSolver)
+
+        self._negativeDensityWarn = 0
+        self._negativeDensityError = 1
+        self.negativeDensityWarnPercent = negativeDensityWarnPercent
+        self.negativeDensityErrorPercent = negativeDensityErrorPercent
 
     def _validatePowers(self, power):
         if isinstance(power, numbers.Real):
@@ -256,6 +282,42 @@ class Manager:
     def substeps(self):
         return self._substeps
 
+    @property
+    def negativeDensityWarnPercent(self):
+        return self._negativeDensityWarn
+
+    @negativeDensityWarnPercent.setter
+    def negativeDensityWarnPercent(self, value):
+        if not isinstance(value, numbers.Real):
+            raise TypeError(
+                f"Negative density threshold must be real, not {type(value)}"
+            )
+        if not 0 <= value <= self._negativeDensityError:
+            raise ValueError(
+                "Negative density warning must be between 0 (inclusive) and "
+                f"{self._negativeDensityError:.5f} [error threshold] "
+                f"not {value}"
+            )
+        self._negativeDensityWarn = value
+
+    @property
+    def negativeDensityErrorPercent(self):
+        return self._negativeDensityError
+
+    @negativeDensityErrorPercent.setter
+    def negativeDensityErrorPercent(self, value):
+        if not isinstance(value, numbers.Real):
+            raise TypeError(
+                f"Negative density threshold must be real, not {type(value)}"
+            )
+        if not self.negativeDensityWarnPercent <= value <= 1:
+            raise ValueError(
+                "Negative density warning must be between "
+                f"{self.negativeDensityWarnPercent:.5f} [warning threshold] "
+                f"(inclusive) and 1 (inclusive), not {value}"
+            )
+        self._negativeDensityError = value
+
     def preliminarySteps(self):
         """Iterate over preliminary time steps and powers
 
@@ -338,7 +400,20 @@ class Manager:
         -------
         hydep.internal.CompBundle
             New compositions for each burnable material and the isotope
-            ordering
+            ordering. Densities will be non-negative
+
+        Raises
+        ------
+        hydep.NegativeDensityError
+            If the sum of any and all negative densites computed exceeded
+            the :attr:`negativeDensityErrorPercent`
+
+        Warns
+        -----
+        hydep.NegativeDensityWarning
+            If the sum of any and all negative densities computed
+            were between :attr:`negativeDensityWarnPercent` (inclusive)
+            and :attre:`negativeDensityErrorPercent` (exclusive)
 
         """
         nr = len(reactionRates)
@@ -365,16 +440,31 @@ class Manager:
 
         densities = numpy.asarray(out)
 
-        negativeIndex = densities < 0
-        if negativeIndex.any():
-            numMats = negativeIndex.any(axis=1).sum()
-            sumReplace = -densities[negativeIndex].sum()
-            warnings.warn(
-                f"Replacing negative densities in {numMats} of "
-                f"{densities.shape[0]} materials. Sum of negative "
-                f"densities: {sumReplace:9.5E} [atoms/b-cm]",
-                NegativeDensityWarning,
-            )
-            densities[negativeIndex] = 0.0
+        self._checkFixNegativeDensities(densities)
 
         return CompBundle(concentrations.isotopes, densities)
+
+    def _checkFixNegativeDensities(self, densities):
+        """Replace negatives in-place, warning or erroring as appropriate"""
+        negativeIndex = densities < 0
+        if not negativeIndex.any():
+            return
+
+        sumNeg = -densities[negativeIndex].sum()
+        negFrac = sumNeg / densities[~negativeIndex].sum()
+
+        if (self._negativeDensityWarn
+                < negFrac
+                < self._negativeDensityError):
+            warnings.warn(
+                (f"Replacing negative densities {sumNeg:9.5E} [atoms/b/cm] "
+                 f"({negFrac*100:.2f} %)"),
+                NegativeDensityWarning,
+            )
+        elif negFrac >= self._negativeDensityError:
+            raise NegativeDensityError(
+                f"Sum of negative densities {sumNeg:9.5E} ({negFrac*100:.2f} %) "
+                f"exceeded tolerance of {self.negativeDensityErrorPercent*100:.5f} %"
+            )
+
+        densities[negativeIndex] = 0.0

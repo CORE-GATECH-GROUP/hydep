@@ -3,6 +3,7 @@ from .exceptions import (
     GeometryError,
     FailedSolverError,
     NegativeDensityWarning,
+    NegativeDensityError,
 )
 from .materials import Material, BurnableMaterial
 from .universe import InfiniteMaterial
