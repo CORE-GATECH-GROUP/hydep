@@ -169,6 +169,77 @@ def manager(simpleChain):
     return manager
 
 
+def test_negativeDensityAttrs(safeargs):
+    man = hydep.Manager(
+        *safeargs,
+        negativeDensityWarnPercent=0.1,
+        negativeDensityErrorPercent=0.5
+    )
+    assert man.negativeDensityWarnPercent == 0.1
+    assert man.negativeDensityErrorPercent == 0.5
+    man.negativeDensityWarnPercent = 0
+    man.negativeDensityErrorPercent = 1
+    assert man.negativeDensityWarnPercent == 0
+    assert man.negativeDensityErrorPercent == 1
+
+    man.negativeDensityWarnPercent = 0.1
+
+    with pytest.raises(ValueError):
+        man.negativeDensityErrorPercent = 0.05
+
+    man.negativeDensityErrorPercent = 0.8
+
+    with pytest.raises(ValueError):
+        man.negativeDensityWarnPercent = 0.85
+
+    with pytest.raises(ValueError):
+        man.negativeDensityWarnPercent = -0.1
+
+    with pytest.raises(ValueError):
+        man.negativeDensityErrorPercent = 1.2
+
+    # Test that values are not changed due to previous errors
+    assert man.negativeDensityWarnPercent == 0.1
+    assert man.negativeDensityErrorPercent == 0.8
+
+    # Test that values can be identical low or high
+    man.negativeDensityWarnPercent = 0
+    man.negativeDensityErrorPercent = 0
+    assert man.negativeDensityErrorPercent == 0.0
+
+    man.negativeDensityErrorPercent = 1
+    man.negativeDensityWarnPercent = 1
+    assert man.negativeDensityWarnPercent == 1
+
+
+def test_negativeDensityFix(safeargs):
+    manager = hydep.Manager(*safeargs)
+    vec = numpy.ones((10, 1), dtype=int)
+
+    N_NEGS = 2
+    vec[:N_NEGS] = -1
+    threshold = N_NEGS / (10 - N_NEGS)
+
+    with pytest.warns(hydep.NegativeDensityWarning):
+        manager._checkFixNegativeDensities(vec)
+    assert (vec >= 0).all()
+
+    vec[:N_NEGS] = -1
+    manager.negativeDensityWarnPercent = 2 * threshold
+
+    with pytest.warns(None) as record:
+        manager._checkFixNegativeDensities(vec)
+    assert (vec >= 0).all()
+    assert len(record) == 0
+
+    vec[:N_NEGS] = -1
+    manager.negativeDensityWarnPercent = 0
+    manager.negativeDensityErrorPercent = 0.95 * threshold
+
+    with pytest.raises(hydep.NegativeDensityError):
+        manager._checkFixNegativeDensities(vec)
+
+
 def test_manager(toy2x2lattice, manager):
 
     for ix, (sec, power) in enumerate(manager.preliminarySteps()):
