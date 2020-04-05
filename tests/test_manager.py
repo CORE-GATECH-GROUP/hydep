@@ -15,10 +15,13 @@ SafeManagerArgs = collections.namedtuple(
 )
 
 
-def test_managerConstruct(simpleChain):
-    """Test manager construction"""
+@pytest.fixture
+def safeargs(simpleChain):
+    return SafeManagerArgs(simpleChain, (1, 1), 6e6, 1)
 
-    safeargs = SafeManagerArgs(simpleChain, (1, 1), 6e6, 1)
+
+def test_managerConstruct(safeargs):
+    """Test manager construction"""
 
     # Test that chain must be provided
     with pytest.raises(TypeError):
