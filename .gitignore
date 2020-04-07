@@ -3,3 +3,5 @@
 *egg-info/
 /htmlcov/
 .coverage
+docs/**/generated/
+docs/_build/
