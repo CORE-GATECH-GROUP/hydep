@@ -4,7 +4,7 @@ h5py = pytest.importorskip("h5py")
 import scipy.sparse
 import hydep
 from hydep.internal import TimeStep, TransportResult, CompBundle
-import hydep.h5store
+import hydep.hdfstore
 
 N_GROUPS = 2
 N_BU_MATS = 2
@@ -40,7 +40,7 @@ def compositions(simpleChain):
 def h5Destination(tmp_path, result, compositions, simpleChain):
     dest = (tmp_path / __file__).with_suffix(".h5")
 
-    store = hydep.h5store.HdfStore(filename=dest)
+    store = hydep.hdfstore.HdfStore(filename=dest)
     assert store.fp.samefile(dest)
     assert store.fp.is_absolute()
 
@@ -119,12 +119,12 @@ def test_hdfStore(result, simpleChain, h5Destination, compositions):
     # existing files
 
     with pytest.raises(OSError):
-        hydep.h5store.HdfStore(filename=h5Destination, existOkay=False)
+        hydep.hdfstore.HdfStore(filename=h5Destination, existOkay=False)
 
 
 def test_hdfProcessor(result, simpleChain, compositions, h5Destination):
 
-    processor = hydep.h5store.HdfProcessor(h5Destination)
+    processor = hydep.hdfstore.HdfProcessor(h5Destination)
 
     assert processor.days[START.total] == pytest.approx(
         START.currentTime / hydep.constants.SECONDS_PER_DAY

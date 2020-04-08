@@ -81,7 +81,7 @@ class Problem(object):
         self.rom.beforeMain(self.model, self.dep, self.settings)
 
         if self.store is None:
-            from .h5store import HdfStore
+            from .hdfstore import HdfStore
 
             filename = self.settings.basedir / "hydep-results.h5"
             __logger__.debug(f"Storing result in {filename}")
