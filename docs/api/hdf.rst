@@ -1,4 +1,4 @@
-.. currentmodule:: hydep.h5store
+.. currentmodule:: hydep.hdfstore
 
 .. _api-hdf:
 
@@ -6,12 +6,33 @@
 HDF Interface
 =============
 
+This is the primary way to store transport and depletion results generated
+through the simulation. It requires the
+`h5py module <https://docs.h5py.org/>`_ module.
+
 .. autosummary::
     :toctree: generated
     :nosignatures:
     :template: myclass.rst
 
     HdfStore
+    HdfProcessor
+
+The following :class:`~enum.Enum` classes are provided to provide a more consistent
+and programmatic way to index directly in to the HDF files. It is recommended to
+use the :class:`HdfProcessor`, as it provides additional convenience methods on top
+of acting like an HDF file anyway.
+
+.. autosummary::
+    :toctree: generated
+    :nosignatures:
+    :template: myclass.rst
+
+    HdfStrings
+    HdfSubStrings
+    HdfAttrs
+
+.. _hdf-format:
 
 Format
 ======
@@ -29,15 +50,15 @@ The following attributes are written as root level attributes
 * ``coarseSteps`` ``int`` - Number of coarse time steps
 
 * ``totalSteps`` ``int`` - Number of total times steps, including
-  substeps
+  substeps. Denoted as ``N_total`` through this document.
 
 * ``isotopes`` ``int`` - Number of isotopes in the depletion chain
 
 * ``burnableMaterials`` ``int`` - Number of burnable materials in
-  the problem
+  the problem. Denoted as ``N_bumats`` through this document.
 
 * ``energyGroups`` ``int`` - Number of energy groups for flux and
-  cross sections
+  cross sections. Denoted as ``N_groups`` through this document.
 
 * ``fileVersion`` ``int`` ``(2, )`` - Major and minor version of the file
 
@@ -48,12 +69,12 @@ Datasets
 
 * ``/multiplicationFactor`` ``double`` ``(N_total, 2)`` - Array
   of multiplication factors and absolute uncertainties such that
-  ``mf[0, j]`` is the multiplication factor for time point ``j``
-  and ``mf[1, j]`` is the associated uncertainty
+  ``mf[j, 0]`` is the multiplication factor for time point ``j``
+  and ``mf[j, 1]`` is the associated uncertainty
 
 * ``/fluxes`` ``double`` ``(N_total, N_bumats, N_groups)`` -
-  Array of fluxes [n/s] in each burnable material. Note: fluxes are
-  normalized to a constant power but are not scaled by volume
+  Array of fluxes [n/cm3/s] in each burnable material. Note: fluxes are
+  normalized to the power for the given depletion step
 
 * ``/cpuTimes`` ``double`` ``(N_total, )`` - Array of cpu time [s]
   taken at each transport step, both high fidelity and reduced order
