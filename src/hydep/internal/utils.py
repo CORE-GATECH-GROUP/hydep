@@ -26,15 +26,6 @@ y : iterable of float or None
 z : iterable of float or None
     Lower and upper boundaries in the z direction.
 
-Attributes
-----------
-x : iterable of float or None
-    Lower and upper boundaries in the x direction.
-y : iterable of float or None
-    Lower and upper boundaries in the y direction.
-z : iterable of float or None
-    Lower and upper boundaries in the z direction.
-
 Examples
 --------
 >>> b = Boundaries((-10.21, 10.21), (-10.21, 10.21), None)
@@ -50,15 +41,6 @@ CompBundle = namedtuple("CompBundle", "isotopes densities")
 CompBundle.__doc__ = """Updated compositions following a depletion event
 
 Parameters
-----------
-isotope : Iterable[hydep.internal.Isotope]
-    Ordering of isotopics
-densities : numpy.ndarray
-    Array of material compositions such that ``densities[i, j]``
-    is the atom density [#/b-cm] of isotope ``isotope[j]`` for burnable
-    material ``i``
-
-Attributes
 ----------
 isotope : Iterable[hydep.internal.Isotope]
     Ordering of isotopics

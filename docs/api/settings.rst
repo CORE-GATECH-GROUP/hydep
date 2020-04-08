@@ -13,3 +13,4 @@ Settings
     HydepSettings
     SerpentSettings
     SfvSettings
+    SubSetting

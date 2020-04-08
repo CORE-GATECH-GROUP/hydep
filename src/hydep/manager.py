@@ -214,7 +214,7 @@ class Manager:
         should fulfill the following requirements:
 
         1. Be importable / pickle-able in order to be dispatched via
-           :meth:`multiprocessing.Pool.starmap`
+           :meth:`multiprocessing.pool.Pool.starmap`
         2. Have a call signature ``solver(A, N0, dt)`` where ``A`` is
            the :class:`scipy.sparse.csr_matrix` sparse representation
            of the depletion matrix with shape ``N x N``, ``N0`` is a
@@ -413,7 +413,7 @@ class Manager:
         hydep.NegativeDensityWarning
             If the sum of any and all negative densities computed
             were between :attr:`negativeDensityWarnPercent` (inclusive)
-            and :attre:`negativeDensityErrorPercent` (exclusive)
+            and :attr:`negativeDensityErrorPercent` (exclusive)
 
         """
         nr = len(reactionRates)

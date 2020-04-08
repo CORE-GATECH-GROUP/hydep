@@ -66,7 +66,7 @@ autosummary_generate = True
 autodoc_default_options = {
     'members': True,
     'special-members': True,
-    'exclude-members': '__init__,__weakref__',
+    'exclude-members': '__init__,__weakref__,__repr__',
 }
 
 # -- Links to external documentation

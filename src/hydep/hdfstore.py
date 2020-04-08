@@ -682,8 +682,8 @@ class HdfProcessor(Mapping):
     def getDensities(self, names=None, zais=None, days=None) -> numpy.ndarray:
         """Return atom densities for specific isotopes at specific times
 
-        Paramters
-        ---------
+        Parameters
+        ----------
         names : str or iterable of str, optional
             Isotope name(s) e.g. ``"U235"``
         zais : int or iterable of int, optional

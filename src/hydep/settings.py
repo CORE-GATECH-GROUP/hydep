@@ -220,20 +220,22 @@ class Settings:
     Intended to be passed to various solvers in the framework. Solver
     specific settings may be included in :class:`SubSetting` instances
     that may not exist at construction, but will be dynamically
-    created and assigned. For example::
+    created and assigned. For example
 
-    >>> h = Settings()
-    >>> hasattr(h, "example")
-    False
+    .. code::
 
-    >>> class ExampleSubsection(SubSetting, sectionName="example"):
-    ...    def __init__(self):
-    ...        self.value = 5
-    ...    def update(self, *args, **kwargs):
-    ...        pass   # noop
+        >>> h = Settings()
+        >>> hasattr(h, "example")
+        False
 
-    >>> h.example.value
-    5
+        >>> class ExampleSubsection(SubSetting, sectionName="example"):
+        ...    def __init__(self):
+        ...        self.value = 5
+        ...    def update(self, *args, **kwargs):
+        ...        pass   # noop
+
+        >>> h.example.value
+        5
 
     Types are enforced so that downstream solvers can assume some
     constancy.
@@ -323,7 +325,8 @@ class Settings:
 
     See Also
     --------
-    *. :meth:`validate` - Performs some checks on current settings
+    * :meth:`validate` - Performs some checks on current settings
+    * :meth:`fromFile` - Create an instance from a config file
 
     """
 
@@ -481,7 +484,7 @@ class Settings:
 
         See Also
         --------
-        *. :attr:`update` - Updating rules for just this class
+        * :attr:`update` - Updating rules for just this class
 
         """
         mainkeys = options.get(self.name)
@@ -518,17 +521,17 @@ class Settings:
 
         Allowed keys and value types
 
-        *. ``"depletion solver"`` : string - update
-           :attr:`depletionSolver`
-        *. ``"boundary conditions"`` : string or iterable of string
-           - update :attr:`boundaryConditions`
-        *. ``"fitting order"`` : int - update :attr:`fittingOrder`
-        *. ``"fitting points"`` : int - update :attr:`numFittingPoints`
-        *. ``"unbounded fitting"`` : boolean - update
-           :attr:`unboundedFitting`
-        *. ``"basedir"`` : path-like - update :attr:`basedir`
-        *. ``"rundir"`` : path-like - update :attr:`rundir`
-        *. ``"use temp dir"`` : boolean - update :attr:`useTempDir`
+        * ``"depletion solver"`` : string - update
+          :attr:`depletionSolver`
+        * ``"boundary conditions"`` : string or iterable of string
+          - update :attr:`boundaryConditions`
+        * ``"fitting order"`` : int - update :attr:`fittingOrder`
+        * ``"fitting points"`` : int - update :attr:`numFittingPoints`
+        * ``"unbounded fitting"`` : boolean - update
+          :attr:`unboundedFitting`
+        * ``"basedir"`` : path-like - update :attr:`basedir`
+        * ``"rundir"`` : path-like - update :attr:`rundir`
+        * ``"use temp dir"`` : boolean - update :attr:`useTempDir`
 
         Parameters
         ----------
@@ -633,8 +636,8 @@ class Settings:
 
         See Also
         --------
-        *. :meth:`updateAll` - Update directly in memory
-        *. :meth:`validate` - Validation of settings
+        * :meth:`updateAll` - Update directly in memory
+        * :meth:`validate` - Validation of settings
 
         """
         settings = cls()
@@ -939,8 +942,8 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         All values map directly to attributes, with the following
         exceptions:
 
-        *. ``"generations per batch"`` -> :attr:`generationsPerBatch`
-        *. ``"thermal scattering"`` -> :attr:`sab`
+        * ``"generations per batch"`` -> :attr:`generationsPerBatch`
+        * ``"thermal scattering"`` -> :attr:`sab`
 
         Parameters
         ----------
@@ -1116,10 +1119,10 @@ class SfvSettings(SubSetting, sectionName="sfv"):
 
         The following keys map directly to attributes, if provided
 
-        *. ``"modes"`` - :attr:`modes` (positive integer or none-like)
-        *. ``"mode fraction"`` - :attr:`modeFraction` (float)
-        *. ``"density cutoff"`` - :attr:`densityCutoff` (non-negative
-           float)
+        * ``"modes"`` - :attr:`modes` (positive integer or none-like)
+        * ``"mode fraction"`` - :attr:`modeFraction` (float)
+        * ``"density cutoff"`` - :attr:`densityCutoff` (non-negative
+          float)
 
         Parameters
         ----------

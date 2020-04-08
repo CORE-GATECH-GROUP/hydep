@@ -29,7 +29,7 @@ class TransportResult:
     keff : Iterable[float]
         Multiplication factor and possible absolute uncertainty.
         Presented as ``[k, unc]``. If no uncertainty is computed,
-        use :type:`numpy.nan`
+        use :data:`numpy.nan`
     runTime : Optional[float]
         If given, pass to :attr:`runTime`
     macroXS : Optional[Sequence]

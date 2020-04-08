@@ -32,9 +32,9 @@ class LatticeStack(Universe):
         Boundaries for each layer, so must have :attr:`nLayers` + 1 entries. Must
         all be increasing
     items : iterable of hydep.lib.Universe, optional
-        Iterable of universes that fill each layer.
-        Must have :attr:`nLayers` elements.
-        Ordered such that ``items[i]`` occupies the space between ``heights
+        Iterable of universes that fill each layer. Must have
+        ``nLayers`` elements. Ordered such that ``items[i]`` occupies
+        the space between ``heights``
     name : str, optional
         Name of this stack
     outer : hydep.Material, optional

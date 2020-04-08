@@ -24,8 +24,8 @@ __logger__ = logging.getLogger("hydep.sfv")
 class SfvSolver(ReducedOrderSolver):
     r"""Spatial flux variation (SFV) reduced order solver
 
-    Requirements
-    ------------
+    The solver has the following requirements:
+
     1. Fission matrix, with nodes in each burnable material
     2. Microscopic reaction cross sections, specifically absorption
         and fission cross sections

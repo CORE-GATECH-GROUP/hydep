@@ -25,8 +25,8 @@ class Universe(ABC):
     on sub-universes. More information is provided in the abstract
     methods
 
-    Paramters
-    ---------
+    Parameters
+    ----------
     name : str, optional
         Name of this universe. Can be ``None``, and not required
         to be unique
@@ -56,7 +56,6 @@ class Universe(ABC):
 
     @property
     def id(self):
-        """Unique positive identifier for this instance"""
         return self._id
 
     def __del__(self):

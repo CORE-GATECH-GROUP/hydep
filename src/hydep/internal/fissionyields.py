@@ -35,7 +35,9 @@ class FissionYieldDistribution(Mapping):
     """Energy-dependent fission product yields for a single nuclide
 
     Can be used as a dictionary mapping energies and products to fission
-    yields::
+    yields
+
+    .. code::
 
         >>> fydist = FissionYieldDistribution(
         ...     {0.0253: {541350: 0.021}})
@@ -117,8 +119,6 @@ class FissionYieldDistribution(Mapping):
         ----------
         index : int
             Index in :attr:`energies` to pull fission yields from.
-            index : int
-                Index in :attr:`energies` to pull fission yields from.
 
         Returns
         -------
