@@ -26,8 +26,7 @@ Serpent
 -------
 
 * Improved parsing of error at output
-* Share a lot of code between SerpentSolver and CoupledSerpentSolver
-* Pull and check model.bounds, not model.root.bounds
+* Support for writing outer materials for lattice stack
 
 Caveats
 =======

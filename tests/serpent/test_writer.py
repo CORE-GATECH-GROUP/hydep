@@ -4,7 +4,7 @@ import pathlib
 import numpy
 import pytest
 import hydep
-from hydep.internal import CompBundle, TimeStep, compBundleFromMaterials
+from hydep.internal import CompBundle, TimeStep, compBundleFromMaterials, Boundaries
 import hydep.serpent
 
 from tests import strcompare, filecompare
@@ -207,3 +207,29 @@ def test_filteredMaterials(tmp_path, fakeXsDataStream):
     strcompare("\n".join(explines), stream.getvalue())
 
     xsdataf.unlink()
+
+
+@pytest.mark.serpent
+def test_unbounded(tmp_path, beavrsFuelPin, serpentcfg):
+    writer = hydep.serpent.SerpentWriter()
+    writer.burnable = tuple(beavrsFuelPin.findBurnableMaterials())
+    writer.model = hydep.Model(beavrsFuelPin)
+
+    assert writer.model.bounds is None
+    assert writer.model.root.bounds is None
+
+    with pytest.raises(hydep.GeometryError, match=".* unbounded.*"):
+        writer.writeMainFile(tmp_path / "unbounded", serpentcfg)
+
+    # Check that identical files will be written if bounds are placed
+    # on root or on model
+    bounds = Boundaries((-0.63, 0.63), (-0.63, 0.63), None)
+
+    writer.model.bounds = bounds
+    boundedModel = writer.writeMainFile(tmp_path / "bounded_model", serpentcfg)
+
+    writer.model.bounds = None
+    writer.model.root.bounds = bounds
+    boundedRoot = writer.writeMainFile(tmp_path / "bounded_root", serpentcfg)
+
+    assert filecompare(boundedModel, boundedRoot)

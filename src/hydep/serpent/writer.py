@@ -352,8 +352,19 @@ set nfg {self._eneGridName}
     def _writegeometry(self, stream):
         self.commentblock(stream, "BEGIN GEOMETRY BLOCK")
         rootid = self.writeUniverse(stream, self.model.root, {})
-        # TODO Pull bounds from model if given
-        self._writecellbounds(stream, self.model.root, rootid, 0)
+
+        bounds = self.model.bounds
+        if bounds is None:
+            bounds = self.model.root.bounds
+
+        self._writeCellAndBoundSurf(
+            stream,
+            self.model.root.id,
+            0,
+            rootid,
+            bounds,
+            outer="outside",
+        )
 
     def writeUniverse(self, stream, u, memo):
         """Write the geometry definition for this material
@@ -450,16 +461,27 @@ set nfg {self._eneGridName}
         while univrows:
             stream.write(" ".join(map(str, univrows.pop())) + "\n")
 
-        if lat.outer is None:
-            return outermost
-
-        self._writecellbounds(stream, lat, innermost, outermost, lat.outer.id)
+        if lat.outer is not None:
+            self._writeCellAndBoundSurf(
+                stream,
+                lat.id,
+                outermost,
+                innermost,
+                lat.outer.id,
+                lat.bounds,
+            )
 
         return outermost
 
     @staticmethod
-    def _writecellbounds(stream, universe, filler, universenumber, outer="outside"):
-        bounds = universe.bounds
+    def _writeCellAndBoundSurf(
+        stream,
+        universeID,
+        universeNumber,
+        filler,
+        bounds,
+        outer="outside",
+    ):
         xybounds = " ".join(
             map("{:.5f}".format, (bounds.x[0], bounds.x[1], bounds.y[0], bounds.y[1]),)
         )
@@ -469,9 +491,9 @@ set nfg {self._eneGridName}
             surf = f"cuboid {xybounds} {bounds.z[0]:.5f} {bounds.z[1]:.5f}"
         stream.write(
             f"""
-surf {universe.id}_x {surf}
-cell {universe.id}_1 {universenumber} fill {filler} -{universe.id}_x
-cell {universe.id}_2 {universenumber} {outer} {universe.id}_x
+surf {universeID}_x {surf}
+cell {universeID}_1 {universeNumber} fill {filler} -{universeID}_x
+cell {universeID}_2 {universeNumber} {outer} {universeID}_x
 """
         )
 
@@ -498,6 +520,8 @@ cell {universe.id}_2 {universenumber} {outer} {universe.id}_x
         stream.write(f"lat {writeas} 9 0.0 0.0 {lstack.nLayers}\n")
         for lower, sub in zip(lstack.heights[:-1], subids):
             stream.write(f"{lower:.5f} {sub}\n")
+
+        # TODO Support for outer material
 
         return writeas
 
