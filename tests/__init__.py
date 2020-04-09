@@ -19,11 +19,14 @@ def strcompare(reference, written):
     return False
 
 
-def filecompare(rpath, apath, failpath):
+def filecompare(rpath, apath, failpath=None):
     if filecmp.cmp(rpath, apath):
         return True
 
-    apath.rename(failpath)
+    if failpath is None:
+        failpath = apath
+    else:
+        apath.rename(failpath)
 
     showStringDiff(
         rpath.read_text(),
