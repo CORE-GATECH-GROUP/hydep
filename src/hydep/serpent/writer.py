@@ -603,19 +603,25 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
         settings : hydep.settings.HydepSettings
             Various configuration settings
 
-        Raises
-        ------
-        IOError
-            If the path indicated exists and is not a file
-
         Returns
         -------
         pathlib.Path
             Absolute path to the file that has been written
 
+        Raises
+        ------
+        hydep.GeometryError
+            If :attr:`model` is unbounded
+        OSError
+            If the path indicated exists and is not a file
+
         """
         if self.model is None:
             raise AttributeError(f"Geometry not passed to {self}")
+        if not self.model.isBounded():
+            raise hydep.GeometryError(
+                f"Model is unbounded with boundaries {self.model.bounds}"
+            )
         if self.burnable is None or not len(self.burnable):
             raise AttributeError(f"No burnable materials found on {self}")
 
