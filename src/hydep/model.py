@@ -1,5 +1,8 @@
 import numbers
-from collections.abc import Sequence, Iterable
+from collections.abc import Iterable
+import typing
+
+import numpy
 
 from .universe import Universe
 from .typed import TypedAttr
@@ -117,15 +120,73 @@ class Model:
     def _checkBounds(b, dim):
         if b is None:
             return b
-        fmt = dim + " dimension must be None, or Tuple[Real, Real], not {}"
-        if not isinstance(b, Sequence):
-            raise TypeError(fmt.format(dim.upper(), type(b)))
+        fmt = dim + " dimension must be None, or (real, real), not {}"
+        if not isinstance(b, Iterable):
+            raise TypeError(fmt.format(type(b)))
         elif not len(b) == 2:
-            raise ValueError(fmt.format(dim.upper(), b))
+            raise ValueError(fmt.format(b))
         elif not all(isinstance(o, numbers.Real) for o in b):
-            raise ValueError(fmt.format(dim.upper(), b))
+            raise ValueError(fmt.format(b))
         elif b[0] >= b[1]:
             raise ValueError(
                 "Lower bound {} greater than upper bound {}".format(b[0], b[1])
             )
         return b
+
+    def isBounded(self, dim: typing.Optional[str]=None) -> bool:
+        """Check if the problem is bounded in all or one direction
+
+        When checking all dimensions, the Z-axis is allowed to
+        be unbounded to support 2D models. If :attr:`bounds` is None,
+        then the boundaries of :attr:`root` are checked.
+
+        Parameters
+        ----------
+        dim : {"all", "x", "y", "z"}, optional
+            Dimension to check, case insensitive. If not provided,
+            all dimensions will be checked
+
+        Returns
+        -------
+        bool
+            Single flag indicating if the requested dimension(s) are
+            sufficiently bounded
+
+        """
+        if dim is None:
+            dim = "all"
+        elif not isinstance(dim, str):
+            raise TypeError(f"Dimension must be string, not {dim}")
+
+        bounds = self.root.bounds if self.bounds is None else self.bounds
+        if bounds is None:
+            return False
+
+        if dim.lower() == "x" or dim == "all":
+            x = self._isDimensionBounded(bounds.x)
+            if dim != "all":
+                return x
+            elif not x:
+                return False
+
+        if dim.lower() == "y" or dim == "all":
+            y = self._isDimensionBounded(bounds.y)
+            if dim != "all":
+                return y
+            elif not y:
+                return False
+
+        # Made it here, so either only checking z direction
+        # or checking all directions with x and y being bounded
+        # Z-direction doesn't need to be bounded for 2D analysis
+
+        if dim == "all":
+            return True
+
+        return self._isDimensionBounded(bounds.z)
+
+    @staticmethod
+    def _isDimensionBounded(bounds):
+        if bounds is None or None in bounds:
+            return False
+        return not numpy.isinf(bounds).any()
