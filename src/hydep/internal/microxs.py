@@ -9,7 +9,7 @@ import typing
 import numpy
 from numpy.polynomial.polynomial import polyfit, polyval
 
-from .timetravel import CachedTimeTraveller
+from .timetravel import CachedTimeTraveler
 
 # TODO Is the sparse structure worth it? Most isotopes have a few reactions
 # TODO of interest, with some having no more than 10
@@ -240,7 +240,7 @@ class MicroXsVector:
 ArrayOrMicroXsVector = typing.Union[numpy.ndarray, MicroXsVector]
 
 
-class TemporalMicroXs(CachedTimeTraveller):
+class TemporalMicroXs(CachedTimeTraveler):
     """Microscopic cross sections over time
 
     Uses a similar sparse structure as :class:`MicroXsVector`.
@@ -296,7 +296,7 @@ class TemporalMicroXs(CachedTimeTraveller):
 
     # TODO Hide / control access to attributes that shouldn't be touched
 
-    __slots__ = CachedTimeTraveller.__slots__ + (
+    __slots__ = CachedTimeTraveler.__slots__ + (
         "zai",
         "zptr",
         "rxns",

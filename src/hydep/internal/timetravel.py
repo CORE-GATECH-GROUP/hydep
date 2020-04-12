@@ -9,7 +9,7 @@ from collections import deque
 import typing
 
 
-class TimeTraveller(ABC):
+class TimeTraveler(ABC):
     """Base class for fitting time dependent data
 
     Can be subclassed to perform arbitrary fitting given
@@ -285,14 +285,14 @@ class TimeTraveller(ABC):
         """
 
 
-class CachedTimeTraveller(TimeTraveller):
+class CachedTimeTraveler(TimeTraveler):
     """Subclass that retains a reference to previously computed values
 
     All input arguments are forwarded directly to the
-    :class:`TimeTraveller` init method.
+    :class:`TimeTraveler` init method.
     """
 
-    __slots__ = TimeTraveller.__slots__ + ("_cacheTime", "_cacheVal")
+    __slots__ = TimeTraveler.__slots__ + ("_cacheTime", "_cacheVal")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

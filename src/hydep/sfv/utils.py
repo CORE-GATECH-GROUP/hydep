@@ -4,10 +4,10 @@ from collections import deque
 import numpy
 from numpy.polynomial.polynomial import polyfit, polyval
 
-from hydep.internal.timetravel import TimeTraveller
+from hydep.internal.timetravel import TimeTraveler
 
 
-class NubarPolyFit(TimeTraveller):
+class NubarPolyFit(TimeTraveler):
     """Class for performing polynomial extrapolation on nubar
 
     .. note::
@@ -32,7 +32,7 @@ class NubarPolyFit(TimeTraveller):
 
     """
 
-    __slots__ = TimeTraveller.__slots__ + ("_order", "_nubar", "_coeffs")
+    __slots__ = TimeTraveler.__slots__ + ("_order", "_nubar", "_coeffs")
 
     def __init__(self, maxlen=3, order=1):
         assert isinstance(order, numbers.Integral) and order >= 0
