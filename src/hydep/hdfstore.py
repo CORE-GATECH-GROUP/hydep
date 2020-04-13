@@ -605,6 +605,74 @@ class HdfProcessor(Mapping):
                     raise IndexError(f"Day {d} not found")
         return self.fluxes[dayslice]
 
+    def getIsotopeIndexes(
+        self,
+        names: typing.Optional[typing.Union[str, typing.Iterable[str]]] = None,
+        zais: typing.Optional[typing.Union[int, typing.Iterable[int]]] = None,
+    ) -> typing.Union[int, numpy.ndarray]:
+        """Return indices for specific isotopes
+
+        Return type will match the input type. If a string or integer
+        is passed, a single integer will be returned. If an iterable
+        is passed, then a :class:`numpy.ndarray` will be returned.
+
+        Parameters
+        ----------
+        names : str or iterable of str, optional
+            Name or names to find in :attr:`names`
+        zais : int or iterable of int, optional
+            ZAI identifier(s) to find in :attr:`zais`
+
+        Returns
+        -------
+        int or numpy.ndarray of int
+            Indexes in :attr:`names` or :attr:`zais` that correspond
+            to the input isotopes
+
+        Raises
+        ------
+        ValueError
+            If both ``names`` and ``zais`` are passed, or neither.
+            Also raised in a name or zai not found
+
+        """
+        if names is not None:
+            if zais is not None:
+                raise ValueError("Need either names or zai, not both")
+            if isinstance(names, str):
+                try:
+                    return self.names.index(names)
+                except ValueError:
+                    raise ValueError(f"Isotope {names} not found")
+            return self._searchNames(names)
+
+        if zais is not None:
+            if isinstance(zais, numbers.Integral):
+                ix = bisect.bisect_left(self.zais, zais)
+                if ix == len(self.zais) or self.zais[ix] != zais:
+                    raise ValueError(f"ZAI {zais} not found")
+                return ix
+
+            indices = numpy.searchsorted(self.zais, zais)
+            for ix, z in zip(indices, zais):
+                if ix == len(self.zais) or self.zais[ix] != z:
+                    raise ValueError(f"ZAI {z} not found")
+            return indices
+
+        raise ValueError("Need either names or zai, not both")
+
+    def _searchNames(self, names):
+        indices = numpy.empty_like(names, dtype=int)
+
+        for outindex, name in enumerate(names):
+            try:
+                ix = self.names.index(name)
+            except ValueError:
+                raise ValueError(f"Isotope {name} not found")
+            indices[outindex] = ix
+
+        return indices
+
     def getFissionMatrix(self, day: float) -> csr_matrix:
         """Retrieve the fission matrix for a given day
 
