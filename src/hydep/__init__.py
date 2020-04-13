@@ -14,5 +14,6 @@ from .model import Model
 from .chain import DepletionChain
 from .manager import Manager
 from .problem import Problem
+from .settings import Settings, SerpentSettings, SfvSettings
 
 __version__ = "0.0.0"
