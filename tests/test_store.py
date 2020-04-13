@@ -1,3 +1,5 @@
+import random
+
 import numpy
 import pytest
 h5py = pytest.importorskip("h5py")
@@ -161,6 +163,60 @@ def test_hdfProcessor(result, simpleChain, compositions, h5Destination):
     for iso, name, zai in zip(simpleChain, processor.names, processor.zais):
         assert name == iso.name
         assert zai == iso.zai
+        nix = processor.getIsotopeIndexes(names=name)
+        zix = processor.getIsotopeIndexes(zais=zai)
+        assert processor.names[nix] == name
+        assert processor.zais[zix] == zai
+        assert nix == zix
+
+    randomNames = random.sample(processor.names, k=10)
+    indices = processor.getIsotopeIndexes(names=randomNames)
+    assert len(indices) == 10
+    for ix, name in zip(indices, randomNames):
+        assert processor.names[ix] == name
+
+    randomDens = processor.getDensities(names=randomNames)
+    assert randomDens == pytest.approx(processor.compositions[:][..., indices])
+    assert processor.getDensities(names=randomNames[0]) == pytest.approx(
+            processor.compositions[..., indices[0]])
+
+    with pytest.raises(ValueError, match=".*bad name"):
+        processor.getIsotopeIndexes(names="bad name")
+
+    with pytest.raises(ValueError, match=".*bad name"):
+        processor.getIsotopeIndexes(names=randomNames + ["bad name"])
+
+    # Numpy arrays and h5py datasets are not sequences
+    # Need to convert to list to obtain a random sample
+    randomZais = random.sample(list(processor.zais), k=10)
+    indices = processor.getIsotopeIndexes(zais=randomZais)
+    assert len(indices) == 10
+    for ix, zai in zip(indices, randomZais):
+        assert processor.zais[ix] == zai
+
+    randomDens = processor.getDensities(zais=randomZais)
+    assert randomDens == pytest.approx(processor.compositions[:][..., indices])
+    assert processor.getDensities(zais=randomZais[0]) == pytest.approx(
+            processor.compositions[..., indices[0]])
+
+    assert processor.getDensities() == pytest.approx(processor.compositions[:])
+    assert processor.getDensities(
+        days=processor.days[0], names=processor.names[0]) == pytest.approx(
+            processor.compositions[0, :, 0][:])
+    assert processor.getDensities(
+        days=[processor.days[0], processor.days[-1]], names=processor.names[:5]) == pytest.approx(
+            processor.compositions[(0, END.total), :, :5])
+
+    with pytest.raises(ValueError, match=".*0"):
+        processor.getIsotopeIndexes(zais=0)
+
+    with pytest.raises(ValueError, match=".*0"):
+        processor.getIsotopeIndexes(zais=randomZais + [0])
+
+    with pytest.raises(ValueError):
+        processor.getIsotopeIndexes()
+    with pytest.raises(ValueError):
+        processor.getIsotopeIndexes(names=randomNames, zais=randomZais)
 
     for time in [START, END]:
         fmtx = processor.getFissionMatrix(processor.days[time.total])
