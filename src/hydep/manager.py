@@ -59,7 +59,7 @@ class Manager:
     negativeDensityWarnPercent: float, optional
         Threshold for warning about negative densities. Treated
         as a percentage of positive densities, range [0, 1]. Defaults
-        to zero.
+        to 0.01 %
     negativeDensityErrorPercent : float, optional
         Threshold for raising an error on negative densities. Treated
         as a percentage of positive densities, range [0, 1]. Defaults to 1.
@@ -109,7 +109,7 @@ class Manager:
         substepDivision,
         numPreliminary=0,
         depletionSolver=None,
-        negativeDensityWarnPercent=0,
+        negativeDensityWarnPercent=1E-4,
         negativeDensityErrorPercent=1,
     ):
         self.chain = chain
