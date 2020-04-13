@@ -679,6 +679,36 @@ class HdfProcessor(Mapping):
 
         return indices
 
+    def getDensities(self, names=None, zais=None, days=None) -> numpy.ndarray:
+        """Return atom densities for specific isotopes at specific times
+
+        Paramters
+        ---------
+        names : str or iterable of str, optional
+            Isotope name(s) e.g. ``"U235"``
+        zais : int or iterable of int, optional
+            Isotope ZAI identifier(s), e.g. ``922350``
+        days : float or iterable of float, optional
+            Retrieve densities for these points in time
+
+        Returns
+        -------
+        numpy.ndarray
+            Density in all materials at the requested times for the requested
+            isotopes
+
+        """
+        if days is None:
+            dayslice = slice(None)
+        else:
+            dayslice = self._getDaySlice(days)
+
+        if names is None and zais is None:
+            return self.compositions[dayslice]
+
+        isoIndex = self.getIsotopeIndexes(names, zais)
+        return self.compositions[dayslice][..., isoIndex]
+
     def getFissionMatrix(self, day: float) -> csr_matrix:
         """Retrieve the fission matrix for a given day
 
