@@ -418,7 +418,7 @@ class HdfProcessor(Mapping):
     ----------
     days : numpy.ndarray
         Points in calendar time for all provided values
-    names : numpy.ndarray of str
+    names : tuple of str
         Isotope names ordered consistent with :attr:`zai`.
 
     """
@@ -496,13 +496,11 @@ class HdfProcessor(Mapping):
         return self._root[HdfStrings.ISOTOPES][HdfSubStrings.ISO_ZAI]
 
     @property
-    def names(self) -> numpy.ndarray:
+    def names(self) -> typing.Tuple[str, ...]:
         # Stored on the processor to avoid decoding at every call
         if self._names is None:
             ds = self._root[HdfStrings.ISOTOPES][HdfSubStrings.ISO_NAMES]
-            self._names = numpy.fromiter(
-                map(bytes.decode, ds), dtype=f"<U{ds.dtype.str[2:]}", count=ds.size
-            )
+            self._names = tuple((n.decode() for n in ds))
         return self._names
 
     @property
