@@ -232,6 +232,24 @@ def test_cartesianLattice(materials, pins, pinArray):
     for l, a in zip(lat.flat, lat.array.flat):
         assert l is a
 
+    lat.center = (-1, 1)
+    assert lat.center == (-1, 1)
+
+    with pytest.raises(TypeError, match="X|x"):
+        lat.center = ("1", 1)
+    assert lat.center == (-1, 1)
+
+    with pytest.raises(TypeError, match="Y|y"):
+        lat.center = (1, "1.2")
+    assert lat.center == (-1, 1)
+
+    lat.center = (4.5, -100.0)
+
+    with pytest.raises(TypeError, match="Center"):
+        lat.center = (0.0, 0.0, 0.0)
+
+    assert lat.center == (4.5, -100)
+
 
 def test_diffBuLattice(materials, pins, pinArray):
     lattice = hydep.CartesianLattice(

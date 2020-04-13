@@ -34,6 +34,9 @@ class CartesianLattice(Universe):
         Name of this lattice. No need for uniquness
     outer : hydep.Material, optional
         Material that resides outside this lattice
+    center : iterable of float, optional
+        Geometric center point (x, y) of this lattice.
+        By default, all universes will be centered around (0, 0)
 
     Attributes
     ----------
@@ -61,6 +64,8 @@ class CartesianLattice(Universe):
     flat : numpy.flatiter
         Iterator / accessor / setter that allows for single
         integer indexing.
+    center : tuple (float, float)
+        X and Y center of this lattice
 
     Examples
     --------
@@ -86,7 +91,7 @@ class CartesianLattice(Universe):
     _ny = BoundedTyped("ny", numbers.Integral, gt=0)
     outer = TypedAttr("outer", Material, allowNone=True)
 
-    def __init__(self, nx, ny, pitch, array=None, name=None, outer=None):
+    def __init__(self, nx, ny, pitch, array=None, name=None, outer=None, center=None):
         super().__init__(name)
         self._nx = nx
         self._ny = ny
@@ -95,6 +100,7 @@ class CartesianLattice(Universe):
         if array is not None:
             self.array = array
         self.outer = outer
+        self.center = (0, 0) if center is None else center
 
     @classmethod
     def fromMask(cls, pitch, maskarray, fillmap, **kwargs):
@@ -216,6 +222,23 @@ class CartesianLattice(Universe):
         if self._array is None:
             raise AttributeError("Array not set for {}".format(self))
         return self._array.flat
+
+    @property
+    def center(self):
+        return self._center
+
+    @center.setter
+    def center(self, point):
+        try:
+            x, y = point
+        except Exception as ee:
+            raise TypeError(
+                f"Center must be (x, y) tuple, not {type(point)}") from ee
+        if not isinstance(x, numbers.Real):
+            raise TypeError(f"X-coordinate must be real, not {type(x)}")
+        if not isinstance(y, numbers.Real):
+            raise TypeError(f"Y-coordinate must be real, not {type(y)}")
+        self._center = x, y
 
     def allocate(self):
         """Create and overwrite the existing array"""
