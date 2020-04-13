@@ -1,6 +1,6 @@
 """Unit tests for SFV interface, not module"""
 import pytest
-from hydep.settings import SfvSettings, HydepSettings
+from hydep.settings import SfvSettings, Settings
 
 
 @pytest.mark.sfv
@@ -67,7 +67,7 @@ def test_config():
 
 def test_fromSettings():
     """Test the integration into the dynamic settings framework"""
-    hsettings = HydepSettings()
+    hsettings = Settings()
 
     hsettings.updateAll(
         {

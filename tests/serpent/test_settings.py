@@ -2,7 +2,7 @@ from unittest.mock import patch
 import pathlib
 
 import pytest
-from hydep.settings import HydepSettings
+from hydep.settings import Settings
 
 from hydep.settings import SerpentSettings
 hdserpent = pytest.importorskip("hydep.serpent")
@@ -135,7 +135,7 @@ def test_update(cleanEnviron, mockSerpentData, useDataDir, allStrings, onHydep):
 
     if onHydep:
         SETTINGS = {"hydep": {}, "hydep.serpent": SETTINGS}
-        hset = HydepSettings()
+        hset = Settings()
         hset.updateAll(SETTINGS)
         serpent = hset.serpent
     else:

@@ -173,7 +173,7 @@ class SfvSolver(ReducedOrderSolver):
             the interface.
         manager : hydep.Manager
             Depletion interface
-        settings : hydep.settings.HydepSettings
+        settings : hydep.settings.Settings
             Settings prescribed by the user. Will overwrite any
             currently stored values.
 

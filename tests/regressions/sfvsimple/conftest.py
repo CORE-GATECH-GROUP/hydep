@@ -74,7 +74,7 @@ def simpleSfvProblem(endfChain):
     problem.dep.burnable = tuple(model.root.findBurnableMaterials())
     problem.dep.chain = endfChain
 
-    settings = hydep.settings.HydepSettings(fittingOrder=1, numFittingPoints=2)
+    settings = hydep.settings.Settings(fittingOrder=1, numFittingPoints=2)
     settings.sfv.densityCutoff = 0.0
     settings.sfv.modes = len(problem.dep.burnable)
     problem.settings = settings

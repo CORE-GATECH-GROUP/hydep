@@ -194,7 +194,7 @@ def serpentcfg(mockSerpentData):
         inactive=2,
         executable="sss2",
     )
-    settings = hydep.settings.HydepSettings(boundaryConditions="reflective")
+    settings = hydep.settings.Settings(boundaryConditions="reflective")
 
     settings.serpent = serpent
     return settings

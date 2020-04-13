@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 import hydep
-from hydep.settings import HydepSettings
+from hydep.settings import Settings
 import hydep.internal
 import hydep.serpent
 import hydep.internal.features as hdfeat
@@ -49,7 +49,7 @@ def regressionSettings():
             "datadir": datadir,
         },
     }
-    settings = HydepSettings()
+    settings = Settings()
     settings.updateAll(options)
     return settings
 

@@ -624,7 +624,7 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
         path : str or pathlib.Path
             Path of file to be written. If it is an existing file
             it will be overwritten
-        settings : hydep.settings.HydepSettings
+        settings : hydep.settings.Settings
             Various configuration settings
 
         Returns

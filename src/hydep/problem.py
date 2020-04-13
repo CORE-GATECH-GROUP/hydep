@@ -16,7 +16,7 @@ import numpy
 from .constants import SECONDS_PER_DAY
 from hydep.lib import HighFidelitySolver, ReducedOrderSolver, BaseStore
 from hydep import Model, Manager
-from .settings import HydepSettings
+from .settings import Settings
 from hydep.typed import TypedAttr
 from hydep.internal import (
     TimeStep,
@@ -43,7 +43,7 @@ class Problem(object):
         self.rom = rom
         self.dep = dep
         self.store = store
-        self.settings = HydepSettings()
+        self.settings = Settings()
 
     @property
     def store(self):
@@ -67,8 +67,8 @@ class Problem(object):
         Called during :meth:`solve`.
 
         Will create directories specified by
-        :attr:`hydep.settings.HydepSettings.basedir` and
-        :attr:`hydep.settings.HydepSettings.rundir` using
+        :attr:`hydep.settings.Settings.basedir` and
+        :attr:`hydep.settings.Settings.rundir` using
         :meth:`pathlib.Path.mkdir`, making parent directories as
         necessary. If ``rundir`` is ``None``, it will be assigned
         as the base directory.

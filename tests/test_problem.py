@@ -6,7 +6,7 @@ import configparser
 import pytest
 import hydep
 from hydep.lib import HighFidelitySolver, ReducedOrderSolver, BaseStore
-from hydep.settings import SubSetting, HydepSettings
+from hydep.settings import SubSetting, Settings
 
 
 class MockHFSettings(SubSetting, sectionName="mockHF"):
@@ -90,7 +90,7 @@ def settings():
 
 
 def _testSettings(settings):
-    assert isinstance(settings, HydepSettings)
+    assert isinstance(settings, Settings)
     assert settings.archiveOnSuccess
     assert settings.depletionSolver == "cram48"
     assert tuple(settings.boundaryConditions) == ("reflective", "reflective", "vacuum")

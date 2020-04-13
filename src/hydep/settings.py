@@ -184,11 +184,11 @@ def makeAbsPath(p: typing.Union[pathlib.Path, str, typing.Any]) -> pathlib.Path:
 class SubSetting(metaclass=ABCMeta):
     """Abstract base class for creating solver-specific settings
 
-    Denoted as a sub-setting, because these are used by :class:`HydepSettings`
+    Denoted as a sub-setting, because these are used by :class:`Settings`
     when a subsection is encountered. Subclasses should provide a unique
     ``sectionName`` and also implement all abstract methods, as the
     first subclass with ``sectionName`` will be found during
-    :meth:`HydepSettings.updateAll`. Section names must be valid python
+    :meth:`Settings.updateAll`. Section names must be valid python
     expressions, and not contain any periods.
 
     """
@@ -214,7 +214,7 @@ class SubSetting(metaclass=ABCMeta):
         """Update given user-provided options"""
 
 
-class HydepSettings:
+class Settings:
     """Main setting configuration with validation and dynamic lookup
 
     Intended to be passed to various solvers in the framework. Solver
@@ -222,7 +222,7 @@ class HydepSettings:
     that may not exist at construction, but will be dynamically
     created and assigned. For example::
 
-    >>> h = HydepSettings()
+    >>> h = Settings()
     >>> hasattr(h, "example")
     False
 
@@ -306,7 +306,7 @@ class HydepSettings:
     >>> import pathlib
     >>> import os.path
     >>> pwd = pathlib.Path.cwd()
-    >>> settings = HydepSettings()
+    >>> settings = Settings()
     >>> settings.basedir == pwd
     True
     >>> newbase = (pwd / "base").name
@@ -643,7 +643,7 @@ class HydepSettings:
 
         Returns
         -------
-        HydepSettings
+        Settings
 
         See Also
         --------

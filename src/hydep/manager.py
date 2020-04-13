@@ -355,7 +355,7 @@ class Manager:
         model : hydep.Model
             Problem to be solved. Must contain at least one
             :class:`hydep.BurnableMaterial`
-        settings : hydep.settings.HydepSettings, optional
+        settings : hydep.settings.Settings, optional
             Settings for the framework. Use to configure depletion
             solver.
 

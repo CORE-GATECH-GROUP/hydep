@@ -4,7 +4,7 @@ import pathlib
 from unittest.mock import patch
 
 import pytest
-from hydep.settings import HydepSettings, SubSetting, asBool
+from hydep.settings import Settings, SubSetting, asBool
 
 
 def test_settings():
@@ -15,7 +15,7 @@ def test_settings():
     N_FIT_POINTS = "fitting points"
     UNBOUND_FIT = "unbounded fitting"
 
-    h = HydepSettings()
+    h = Settings()
     h.update(
         {
             ARCHIVE: "true",
@@ -56,7 +56,7 @@ def test_settings():
     assert not h.archiveOnSuccess
 
     with pytest.raises(ValueError, match=".*[B|b]oundary"):
-        HydepSettings().update({BC: ["reflective", "very strange", "vacuum"]})
+        Settings().update({BC: ["reflective", "very strange", "vacuum"]})
     assert h.boundaryConditions == ("vacuum", ) * 3
 
     with pytest.raises(TypeError):
@@ -65,7 +65,7 @@ def test_settings():
     with pytest.raises(TypeError):
         h.unboundedFitting = 1
 
-    fresh = HydepSettings(
+    fresh = Settings(
         archiveOnSuccess=True,
         depletionSolver="testSolver",
         boundaryConditions="reflective",
@@ -77,18 +77,18 @@ def test_settings():
 
 def test_validate():
     with pytest.raises(ValueError):
-        HydepSettings(fittingOrder=2, numFittingPoints=1).validate()
+        Settings(fittingOrder=2, numFittingPoints=1).validate()
 
     with pytest.raises(ValueError):
-        HydepSettings(numFittingPoints=1, unboundedFitting=True).validate()
+        Settings(numFittingPoints=1, unboundedFitting=True).validate()
 
     # Only enforce if number of previous points is definitely given
-    HydepSettings(numFittingPoints=None, unboundedFitting=True).validate()
+    Settings(numFittingPoints=None, unboundedFitting=True).validate()
 
 
 def test_subsettings():
     randomSection = "".join(random.sample(string.ascii_letters, 10))
-    settings = HydepSettings()
+    settings = Settings()
     assert not hasattr(settings, "test")
     assert not hasattr(settings, randomSection)
 
@@ -115,7 +115,7 @@ def test_subsettings():
     settings.updateAll({"hydep.test": {"truth": "0"}})
     assert not t.truth
 
-    fresh = HydepSettings()
+    fresh = Settings()
     fresh.updateAll(
         {"hydep": {"depletion solver": "cram48"}, "hydep.test": {"truth": "n"}}
     )
@@ -145,7 +145,7 @@ def test_directories(tmpdir):
     PWD = pathlib.Path.cwd()
     FAKE_DIR = pathlib.Path(tmpdir)
 
-    settings = HydepSettings(basedir=FAKE_DIR, rundir=None)
+    settings = Settings(basedir=FAKE_DIR, rundir=None)
 
     assert settings.basedir.is_absolute()
     assert settings.basedir == FAKE_DIR
@@ -163,7 +163,7 @@ def test_directories(tmpdir):
     assert settings.basedir == FAKE_DIR
 
     # Check defaulting to CWD
-    fresh = HydepSettings(basedir=None)
+    fresh = Settings(basedir=None)
     assert fresh.basedir.is_absolute()
     assert fresh.basedir == pathlib.Path.cwd()
 
@@ -218,7 +218,7 @@ def test_exampleConfig(serpentdata):
     cfg = pathlib.Path(__file__).parents[1] / "hydep.cfg.example"
     assert cfg.is_file(), cfg
 
-    settings = HydepSettings.fromFile(cfg)
+    settings = Settings.fromFile(cfg)
 
     assert settings.boundaryConditions == ("reflective", "vacuum", "reflective")
     assert settings.basedir == pathlib.Path("example/base").resolve()
@@ -260,7 +260,7 @@ def test_emptyconfig(tmpdir):
     cfg.write("[DEFAULT]\nkey = value\n")
 
     with pytest.raises(KeyError):
-        HydepSettings.fromFile(cfg, strict=True)
+        Settings.fromFile(cfg, strict=True)
 
     with pytest.warns(UserWarning):
-        HydepSettings.fromFile(cfg, strict=False)
+        Settings.fromFile(cfg, strict=False)

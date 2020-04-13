@@ -57,7 +57,7 @@ class TransportSolver(ABC):
         manager : hydep.Manager
             Depletion interface containing information on time steps,
             powers, depletion chain, and substeps
-        settings : hydep.settings.HydepSettings
+        settings : hydep.settings.Settings
             Settings for the entire interface
 
         """
