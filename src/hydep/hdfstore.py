@@ -588,22 +588,28 @@ class HdfProcessor(Mapping):
         # TODO Add group, material slicing
         if days is None:
             dayslice = slice(None)
-        elif isinstance(days, numbers.Real):
+        else:
+            dayslice = self._getDaySlice(days)
+        return self.fluxes[dayslice]
+
+    def _getDaySlice(self, days: typing.Union[float, typing.Iterable[float]]):
+        if isinstance(days, numbers.Real):
             dayslice = bisect.bisect_left(self.days, days)
             if dayslice == len(self.days) or days != self.days[dayslice]:
                 raise IndexError(f"Day {days} not found")
-        else:
-            # Let numpy handle to searching
-            reqs = numpy.asarray(days)
-            if len(reqs.shape) != 1:
-                raise ValueError("Days can only be 1D")
-            if (reqs[:-1] - reqs[1:] > 0).any():
-                raise ValueError("Days must be in increasing order, for now")
-            dayslice = numpy.searchsorted(self.days, reqs)
-            for ix, d in zip(dayslice, reqs):
-                if ix == len(self.days) or self.days[ix] != d:
-                    raise IndexError(f"Day {d} not found")
-        return self.fluxes[dayslice]
+            return dayslice
+
+        # Let numpy handle to searching
+        reqs = numpy.asarray(days)
+        if len(reqs.shape) != 1:
+            raise ValueError("Days can only be 1D")
+        if (reqs[:-1] - reqs[1:] > 0).any():
+            raise ValueError("Days must be in increasing order, for now")
+        dayslice = numpy.searchsorted(self.days, reqs)
+        for ix, d in zip(dayslice, reqs):
+            if ix == len(self.days) or self.days[ix] != d:
+                raise IndexError(f"Day {d} not found")
+        return dayslice
 
     def getIsotopeIndexes(
         self,
