@@ -22,10 +22,6 @@
 # The main section that must occur
 [hydep]
 # Values here are intended to be used by some or all solvers
-## archive on success
-# Boolean switch instructing solvers to save auxiliary files
-# even in the simulation succeeds
-# Currently not fully implemented
 
 ## boundary condition
 # Allowable values:

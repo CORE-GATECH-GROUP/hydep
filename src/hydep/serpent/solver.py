@@ -79,8 +79,8 @@ class BaseSolver(HighFidelitySolver):
         Collection of physics and cross sections needed by other
         aspects of the framework
     basedir : pathlib.Path or None
-        Path where results will be saved and / or archived. Configured
-        in :meth:`self.beforeMain`
+        Path where results will be saved and auxillary files may be saved.
+        Configured in :meth:`self.beforeMain`
 
     """
 
@@ -255,7 +255,6 @@ class SerpentSolver(BaseSolver):
         self._curfile = None
         self._tmpdir = None
         self._tmpFile = None
-        self._archiveOnSuccess = False
 
     def bosSolve(self, compositions, timestep, power):
         """Create and solve the BOS problem with updated compositions

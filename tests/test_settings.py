@@ -8,7 +8,6 @@ from hydep.settings import Settings, SubSetting, asBool
 
 
 def test_settings():
-    ARCHIVE = "archive on success"
     DEP_SOLVER = "depletion solver"
     BC = "boundary conditions"
     FIT_ORDER = "fitting order"
@@ -18,7 +17,6 @@ def test_settings():
     h = Settings()
     h.update(
         {
-            ARCHIVE: "true",
             DEP_SOLVER: "cram48",
             BC: "reflective reflective vacuum",
             FIT_ORDER: 2,
@@ -27,7 +25,6 @@ def test_settings():
         }
     )
 
-    assert h.archiveOnSuccess
     assert h.depletionSolver == "cram48"
     assert h.boundaryConditions == ("reflective", "reflective", "vacuum")
     assert h.fittingOrder == 2
@@ -38,40 +35,36 @@ def test_settings():
 
     h.update(
         {
-            ARCHIVE: "0",
             BC: "vacuum",
             FIT_ORDER: "1",
             N_FIT_POINTS: "none",
             UNBOUND_FIT: "y",
         }
     )
-    assert not h.archiveOnSuccess
     assert h.boundaryConditions == ("vacuum", ) * 3
     assert h.fittingOrder == 1
     assert h.numFittingPoints is None
     assert h.unboundedFitting
 
-    with pytest.raises(TypeError, match=".*archive.*bool"):
-        h.update({ARCHIVE: "positive"})
-    assert not h.archiveOnSuccess
+    with pytest.raises(TypeError, match=".*unbounded fitting.*bool"):
+        h.update({UNBOUND_FIT: "negative"})
+    assert h.unboundedFitting
 
     with pytest.raises(ValueError, match=".*[B|b]oundary"):
         Settings().update({BC: ["reflective", "very strange", "vacuum"]})
     assert h.boundaryConditions == ("vacuum", ) * 3
 
     with pytest.raises(TypeError):
-        h.archiveOnSuccess = 1
+        h.fittingOrder = "1"
 
     with pytest.raises(TypeError):
         h.unboundedFitting = 1
 
     fresh = Settings(
-        archiveOnSuccess=True,
         depletionSolver="testSolver",
         boundaryConditions="reflective",
     )
     assert fresh.boundaryConditions == ("reflective", ) * 3
-    assert fresh.archiveOnSuccess
     assert fresh.depletionSolver == "testSolver"
 
 

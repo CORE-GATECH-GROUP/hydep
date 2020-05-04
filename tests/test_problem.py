@@ -80,7 +80,7 @@ def mockProblem():
 def settings():
     return {
         "hydep": {
-            "archive on success": True,
+            "fitting order": 1,
             "depletion solver": "cram48",
             "boundary conditions": ("reflective", "reflective", "vacuum"),
         },
@@ -91,7 +91,7 @@ def settings():
 
 def _testSettings(settings):
     assert isinstance(settings, Settings)
-    assert settings.archiveOnSuccess
+    assert settings.fittingOrder == 1
     assert settings.depletionSolver == "cram48"
     assert tuple(settings.boundaryConditions) == ("reflective", "reflective", "vacuum")
     assert settings.mockHF.foo == "foo"

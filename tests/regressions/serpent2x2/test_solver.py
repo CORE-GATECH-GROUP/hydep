@@ -35,7 +35,7 @@ def regressionSettings():
     if not datadir:
         pytest.skip("Need SERPENT_DATA environment variable")
     options = {
-        "hydep": {"archive on success": True, "boundary conditions": "reflective"},
+        "hydep": {"boundary conditions": "reflective"},
         "hydep.serpent": {
             "seed": 12345678910,
             "particles": 100,

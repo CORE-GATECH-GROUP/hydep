@@ -318,7 +318,7 @@ class Problem(object):
 
             {
                 "hydep": {
-                    "archive on success": True,
+                    "fitting order": 1,
                     ...,
                 },
                 "hydep.serpent": {
@@ -332,7 +332,7 @@ class Problem(object):
         .. code:: INI
 
             [hydep]
-            archive on success = 1
+            fitting order = 1
 
             [hydep.serpent]
             executable  = sss2

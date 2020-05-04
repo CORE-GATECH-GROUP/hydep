@@ -240,8 +240,6 @@ class Settings:
 
     Parameters
     ----------
-    archiveOnSuccess : bool, optional
-        Intial value for :attr:`archiveOnSuccess`. Default: ``False``
     depletionSolver : str, optional
         Initial value for :attr:`depletionSolver`.
     boundaryConditions : str or iterable of str, optional
@@ -269,9 +267,6 @@ class Settings:
 
     Attributes
     ----------
-    archiveOnSuccess : bool
-        True if solvers should retain any temporary files even during
-        success
     depletionSolver : str
         String indicating which depletion solver to use.
     boundaryConditions : tuple of string
@@ -333,14 +328,12 @@ class Settings:
     """
 
     _name = "hydep"
-    archiveOnSuccess = TypedAttr("_archiveOnSuccess", bool)
     _ALLOWED_BC = frozenset({"reflective", "periodic", "vacuum"})
     unboundedFitting = TypedAttr("_unboundedFitting", bool)
     useTempDir = TypedAttr("_useTempDir", bool)
 
     def __init__(
         self,
-        archiveOnSuccess: bool = False,
         depletionSolver: typing.Optional[typing.Any] = None,
         boundaryConditions: typing.Optional[typing.Sequence[str]] = None,
         fittingOrder: int = 1,
@@ -350,7 +343,6 @@ class Settings:
         rundir: OptFile = None,
         useTempDir: typing.Optional[bool] = False,
     ):
-        self.archiveOnSuccess = archiveOnSuccess
         self.depletionSolver = depletionSolver
         if boundaryConditions is None:
             self._boundaryConditions = ("vacuum",) * 3
@@ -485,8 +477,7 @@ class Settings:
             the pattern ``hydep\\..*``, e.g. ``hydep.serpent`` is good,
             but ``hydep_serpent`` is not``
         AttributeError
-            If a subsection would collide with a non-subsection
-            attribute, e.g. :attr:`archiveOnSuccess`.
+            If a subsection would collide with a non-subsection attribute
 
         See Also
         --------
@@ -527,8 +518,6 @@ class Settings:
 
         Allowed keys and value types
 
-        *. ``"archive on success"`` : boolean - update
-           :attr:`archiveOnSuccess``
         *. ``"depletion solver"`` : string - update
            :attr:`depletionSolver`
         *. ``"boundary conditions"`` : string or iterable of string
@@ -554,7 +543,6 @@ class Settings:
             If any options do not have a corresponding attribute
 
         """
-        archive = options.pop("archive on success", None)
         depsolver = options.pop("depletion solver", None)
         bc = options.pop("boundary conditions", None)
 
@@ -574,8 +562,6 @@ class Settings:
                 f"have a corresponding setting: {', '.join(options)}"
             )
 
-        if archive is not None:
-            self.archiveOnSuccess = asBool("archive on success", archive)
         if depsolver is not None:
             self.depletionSolver = depsolver
         if bc is not None:
