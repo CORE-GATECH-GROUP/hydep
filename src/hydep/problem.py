@@ -28,6 +28,40 @@ __logger__ = logging.getLogger("hydep")
 
 
 class Problem(object):
+    """Main linkage between geometry, depletion, and transport
+
+    Parameters
+    ----------
+    model : hydep.Model
+        Full representation of the geometry
+    hf : hydep.lib.HighFidelitySolver
+        High fidelity transport solver
+    rom : hydep.lib.ReducedOrderSolver
+        Reduced order solver of choice
+    dep : hydep.Manager
+        Depletion interface
+    store : hydep.lib.BaseStore, optional
+        Object responsible for data storage
+
+    Attributes
+    ----------
+    model : hydep.Model
+        Geometry interface
+    hf : hydep.lib.HighFidelitySolver
+        High fidelity transport solver
+    rom : hydep.lib.ReducedOrderSolver
+        Reduced order solver of choice
+    dep : hydep.Manager
+        Depletion interface
+    store : hydep.lib.BaseStore or None
+        Object responsible for data storage. If ``None`` by
+        the time :meth:`problem` is started, then
+        :class:`hydep.HdfStore` will be created and assigned
+        here
+    settings : hydep.Settings
+        Settings interface
+
+    """
 
     model = TypedAttr("model", Model)
     hf = TypedAttr("hf", HighFidelitySolver)
@@ -102,8 +136,25 @@ class Problem(object):
         Parameters
         ----------
         initialDays : float, optional
-            Non-negative number indicating the starting day. Defaults to zero.
-            Useful for jumping into the middle of a schedule.
+            Non-negative number indicating the starting day. Defaults
+            to zero.  Useful for jumping into the middle of a schedule.
+            Primarily for cosmetic changes (e.g. logging, storing in
+            :attr:`store`)
+
+        Raises
+        ------
+        hydep.FailedSolverError
+            If one of the transport solutions obtains a negative flux.
+            Flux will be stored prior to failure
+        hydep.GeometryError
+            If the geometry is not well configured, e.g. unbounded in
+            more than one dimension
+        hydep.NegativeDensityError
+            If substantially negative densities are obtained from
+            :attr:`hydep.Manager.deplete`
+        hydep.IncompatibilityError
+            If :attr:`hf` is not compatible with :attr:`dep` or
+            :attr:`rom`
 
         """
         if not isinstance(initialDays, numbers.Real):
