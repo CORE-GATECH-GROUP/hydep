@@ -898,7 +898,7 @@ set ppid {os.getpid()}
             )
             for sec, powr in zip(timesteps, powers):
                 stream.write(
-                    f"dep daystep {sec / SECONDS_PER_DAY:.3E} set power {powr}\n"
+                    f"set power {powr} dep daystep {sec / SECONDS_PER_DAY:.3E}\n"
                 )
         return base
 
