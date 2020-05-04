@@ -254,11 +254,18 @@ class ExtDepRunner(BaseRunner):
         elif insig == signal.SIGTERM:
             self._state = STATE.TERM
 
-    def __del__(self):
+    def terminate(self):
+        """Terminate the Serpent process and any output pipes"""
         if self._proc is not None:
             self._proc.terminate()
+            self._proc = None
         if self._output is not None:
             self._output.close()
+            self._output = None
+
+    def __del__(self):
+        """Ensure the runner and connections are tidied up"""
+        self.terminate()
 
     def start(self, inputfile, output=None):
         """Start coupled Serpent and run the first transport step
