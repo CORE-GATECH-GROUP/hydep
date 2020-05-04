@@ -178,7 +178,7 @@ class BaseSolver(HighFidelitySolver):
             Geometry information to be written once
         manager : hydep.Manager
             Depletion information
-        settings : hydep.settings.Settings
+        settings : hydep.Settings
             Shared settings
 
         """

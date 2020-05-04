@@ -101,8 +101,8 @@ class Problem(object):
         Called during :meth:`solve`.
 
         Will create directories specified by
-        :attr:`hydep.settings.Settings.basedir` and
-        :attr:`hydep.settings.Settings.rundir` using
+        :attr:`hydep.Settings.basedir` and
+        :attr:`hydep.Settings.rundir` using
         :meth:`pathlib.Path.mkdir`, making parent directories as
         necessary. If ``rundir`` is ``None``, it will be assigned
         as the base directory.
