@@ -470,8 +470,8 @@ set nfg {self._eneGridName}
                 lat.id,
                 outermost,
                 innermost,
-                lat.outer.id,
                 lat.bounds,
+                lat.outer.id,
             )
 
         return outermost
