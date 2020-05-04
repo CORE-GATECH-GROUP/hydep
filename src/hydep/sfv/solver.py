@@ -208,7 +208,7 @@ class SfvSolver(ReducedOrderSolver):
             modes = math.ceil(nvols * modeFraction)
             __logger__.info("Solving with %d modes", modes)
             __logger__.debug(
-                "  Computed from %d unique burnable materials with mode fraction %f",
+                "Computed from %d unique burnable materials with mode fraction %f",
                 nvols,
                 modeFraction,
             )
