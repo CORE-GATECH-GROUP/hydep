@@ -133,6 +133,8 @@ class Problem(object):
 
         previousDir = pathlib.Path.cwd()
 
+        success = False
+
         try:
             os.chdir(self.settings.rundir)
             self.beforeMain()
@@ -140,7 +142,10 @@ class Problem(object):
             # Context manager?
             self._locked = True
             self._mainsequence(initialDays * SECONDS_PER_DAY)
+            success = True
         finally:
+            self.hf.finalize(success)
+            self.rom.finalize(success)
             self._locked = False
             os.chdir(previousDir)
             if tempdir is not None:
