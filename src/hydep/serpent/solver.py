@@ -443,3 +443,14 @@ class CoupledSerpentSolver(BaseSolver):
         res = self._process(str(self._fp), timestep.coarse)
         res.runTime = end - start
         return res
+
+    def finalize(self, _success):
+        """Close the connection to the Serpent solver
+
+        Parameters
+        ----------
+        _success : bool
+            Success flag. Not used
+
+        """
+        self._runner.terminate()
