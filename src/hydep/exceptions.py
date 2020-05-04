@@ -2,7 +2,7 @@ class GeometryError(Exception):
     """Raised indicating a failure in building geometry"""
 
 
-class IncompatibityError(Exception):
+class IncompatibilityError(Exception):
     """Error raised when two solvers cannot be coupled"""
 
 

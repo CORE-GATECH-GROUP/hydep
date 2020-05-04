@@ -1,5 +1,5 @@
 from .exceptions import (
-    IncompatibityError,
+    IncompatibilityError,
     GeometryError,
     FailedSolverError,
     NegativeDensityWarning,

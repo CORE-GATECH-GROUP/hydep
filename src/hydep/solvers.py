@@ -38,7 +38,7 @@ from abc import ABC, abstractmethod
 
 from hydep.internal import TransportResult
 from hydep.internal.features import FeatureCollection
-from hydep.exceptions import IncompatibityError
+from hydep.exceptions import IncompatibilityError
 
 
 class TransportSolver(ABC):
@@ -182,7 +182,7 @@ class HighFidelitySolver(TransportSolver):
 
         Raises
         ------
-        hydep.IncompatibityError
+        hydep.IncompatibilityError
             If the reduced order solver needs features this
             solver does not have
 
@@ -200,7 +200,7 @@ class HighFidelitySolver(TransportSolver):
                     f'{", ".join(sorted(difference.macroXS))}'
                 )
             msg = "\n".join(tails)
-            raise IncompatibityError(
+            raise IncompatibilityError(
                 f"Cannot couple {self.__class__} to {solver.__class__}."
                 f"\nDifference in features: {msg}"
             )
