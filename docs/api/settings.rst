@@ -10,7 +10,7 @@ Settings
     :nosignatures:
     :template: myclass.rst
 
-    HydepSettings
+    Settings
     SerpentSettings
     SfvSettings
     SubSetting

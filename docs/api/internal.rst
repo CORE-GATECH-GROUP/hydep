@@ -81,5 +81,5 @@ Time Traveler Bases
     :nosignatures:
     :template: myclass.rst
 
-    TimeTraveller
-    CachedTimeTraveller
+    TimeTraveler
+    CachedTimeTraveler
