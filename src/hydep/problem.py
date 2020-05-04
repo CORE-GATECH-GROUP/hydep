@@ -15,7 +15,7 @@ import numpy
 
 from .constants import SECONDS_PER_DAY
 from hydep.lib import HighFidelitySolver, ReducedOrderSolver, BaseStore
-from hydep import Model, Manager
+from hydep import Model, Manager, FailedSolverError
 from .settings import Settings
 from hydep.typed import TypedAttr
 from hydep.internal import (
@@ -165,8 +165,10 @@ class Problem(object):
         )
         result = self.hf.bosSolve(compositions, timestep, self.dep.powers[0])
         __logger__.info(f"   k =  {result.keff[0]:.6f} +/- {result.keff[1]:.6E}")
-        self.rom.processBOS(result, timestep, self.dep.powers[0])
         self.store.postTransport(timestep, result)
+        if numpy.less(result.flux, 0).any():
+            raise FailedSolverError(f"Negative fluxes obtained at {timestep}")
+        self.rom.processBOS(result, timestep, self.dep.powers[0])
 
         xsmanager = XsTimeMachine(
             self.settings.fittingOrder,
@@ -218,6 +220,8 @@ class Problem(object):
         result = self.hf.eolSolve(compositions, timestep, self.dep.powers[-1])
         __logger__.info(f"   k =  {result.keff[0]:.6f} +/- {result.keff[1]:.6E}")
         self.store.postTransport(timestep, result)
+        if numpy.less(result.flux, 0).any():
+            raise FailedSolverError(f"Negative fluxes obtained at {timestep}")
 
     def _marchSubstep(
         self, timestep, xsmachine, result, fissionYields, substepDT, compositions
@@ -276,6 +280,8 @@ class Problem(object):
                     f"   k =  {result.keff[0]:.6f} +/- {result.keff[1]:.6E}"
                 )
             self.store.postTransport(timestep, result)
+            if numpy.less(result.flux, 0).any():
+                raise FailedSolverError(f"Negative fluxes obtained at {timestep}")
 
         rxnRates = xsmachine.getReactionRatesAt(timestep.currentTime, result.flux)
         compositions = self.dep.deplete(
