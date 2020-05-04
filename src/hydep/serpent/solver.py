@@ -204,7 +204,7 @@ class BaseSolver(HighFidelitySolver):
             )
         self.writer.updateProblemIsotopes((iso.triplet for iso in manager.chain), acelib)
 
-        __logger__.debug("Writing base Serpent input file")
+        __logger__.info("Writing base Serpent input file")
         mainfile = self._writeMainFile(model, manager, settings)
 
         self.processor.burnable = matids
@@ -218,6 +218,8 @@ class BaseSolver(HighFidelitySolver):
                 with mainfile.open("a") as s:
                     s.write("\n".join(detlines))
             self.processor.fyHelper = fyproc
+
+        __logger__.info("Done.")
 
     @abstractmethod
     def _writeMainFile(self, model, manager) -> pathlib.Path:
