@@ -1,4 +1,4 @@
-.. currentmodule:: hydep.settings
+.. currentmodule:: hydep
 
 .. _api-settings:
 
@@ -13,4 +13,17 @@ Settings
     Settings
     SerpentSettings
     SfvSettings
+
+
+Helper
+------
+
+.. currentmodule:: hydep.settings
+
+.. autosummary::
+    :toctree: generated
+    :nosignatures:
+    :template: myclass.rst
+
     SubSetting
+
