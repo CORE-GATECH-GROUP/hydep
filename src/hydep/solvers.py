@@ -63,16 +63,17 @@ class TransportSolver(ABC):
         """
 
     def finalize(self, success) -> None:
-        """Perform any final actions before moving on or terminating
+        """All done, time to close up shop
 
-        This method will be called regardless if :meth:`execute`
-        or :meth:`processResults` succeeded. Subclasses can take
-        separate actions, or take no actions.
+        This method will be called at the end of the simulation
+        by :class:`hydep.Problem`, or in the event of early
+        termination
 
         Parameters
         ----------
         success : bool
             Flag indicating the success of the current solution
+
         """
 
 
