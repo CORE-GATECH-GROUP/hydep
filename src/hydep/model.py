@@ -1,6 +1,7 @@
 import numbers
 from collections.abc import Iterable
 import typing
+import logging
 
 import numpy
 
@@ -84,14 +85,21 @@ class Model:
             for a burnable material
 
         """
+        logger = logging.getLogger("hydep.model")
         if updateVolumes:
+            logger.debug("Counting and updating burnable material volumes")
             vols = self.root.countBurnableMaterials()
+
             for mat, counts in vols.values():
                 if mat.volume is None:
                     raise AttributeError("Volume not set for {}".format(mat))
                 mat.volume = mat.volume / counts
 
+            logger.debug("Done.")
+
+        logger.debug("Differentiating burnable materials")
         self.root.differentiateBurnableMaterials()
+        logger.debug("Done.")
 
     @property
     def bounds(self):
