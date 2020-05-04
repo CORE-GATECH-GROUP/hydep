@@ -18,3 +18,4 @@ Reference
     hdf
     abc
     internal
+    exceptions
