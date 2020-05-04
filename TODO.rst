@@ -6,14 +6,12 @@ Big open items
 TODOs
 =====
 
-* Ensure non-negativity of depletion results
 * Standardize microXS vs microXs
 * Guard against hooks that aren't supported by solvers
 * Using vectorized / subprocess-managed routines for SFV macroxs
   reconstruction
 * Use vectorized / subprocess-managed routines when projecting
   MicroXsVector on TemporalMicroXs
-* Provide a blessed HDF5 processor
 * Resolve how hydep.Pin objects are handled by numpy
 * Remove most assert statements in favor of actual checks
 * Find a way to add regression test file (setup, post-process) into
@@ -52,3 +50,7 @@ Wish list
   testing Serpent writer
 * Add other simple ReducedOrderSolvers that interpolate / extrapolate
   flux?
+* Improve isotope interface. Slapped an lru_cache on the getIsotope function.
+  For a 3x3 pin cell w/ Gad, got ~3800 hits, 17 billion (!!) misses
+* Isotopes hashable? They are mutable, in the sense their reactions change.
+  But they are hashed based on their hopefully unique and immutable ZAI tuple
