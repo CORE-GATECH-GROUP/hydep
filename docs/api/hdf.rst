@@ -158,3 +158,5 @@ Written to be a consistent ordering across fluxes and compositions
   material ID
 * ``/materials/names`` ``S`` ``(N_bumats, )`` - Vector with material
   names
+* ``/materials/volumes`` ``float`` ``(N_bumats, )`` - Vector with
+   material volumes

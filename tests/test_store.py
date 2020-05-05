@@ -10,7 +10,8 @@ import hydep.hdfstore
 
 N_GROUPS = 2
 N_BU_MATS = 2
-BU_INDEXES = [[x, f"mat {x}"] for x in range(N_BU_MATS)]
+VOLUME = 0.12345
+BU_INDEXES = [[x, f"mat {x}", VOLUME] for x in range(N_BU_MATS)]
 
 # Emulate some depletion time
 START = TimeStep(0, 0, 0, 0)
@@ -97,9 +98,10 @@ def test_hdfStore(result, simpleChain, h5Destination, compositions):
             int(x) for x in hydep.__version__.split(".")[:3]
         )
 
-        for ix, [matid, matname] in enumerate(BU_INDEXES):
+        for ix, [matid, matname, volume] in enumerate(BU_INDEXES):
             assert h5["/materials/ids"][ix] == matid
             assert h5["/materials/names"][ix].decode() == matname
+            assert h5["/materials/volumes"][ix] == volume
 
         zais = h5["isotopes/zais"]
         names = h5["isotopes/names"]

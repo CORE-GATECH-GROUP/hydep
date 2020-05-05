@@ -84,6 +84,8 @@ class HdfSubStrings(HdfEnumKeys):
         Key to material id dataset
     MAT_NAMES : enum member
         Key to material name dataset
+    MAT_VOLS : enum member
+        Key to material volume dataset
     CALENDAR_TIME : enum member
         Key to simulated time dataset
     CALENDAR_HF : enum member
@@ -97,6 +99,7 @@ class HdfSubStrings(HdfEnumKeys):
 
     MAT_IDS = "ids"
     MAT_NAMES = "names"
+    MAT_VOLS = "volumes"
     CALENDAR_TIME = "time"
     CALENDAR_HF = "highFidelity"
     ISO_ZAI = "zais"
@@ -222,8 +225,9 @@ class HdfStore(BaseStore):
         ----------
         isotopes : tuple of hydep.internal.Isotope
             Isotopes used in the depletion chain
-        burnableIndexes : iterable of [int, str]
-            Burnable material ids and names ordered how they
+        burnableIndexes : iterable of [int, str, float]
+            Each item is a 3-tuple of material id, name, and volume.
+            Entries are ordered consistent to how the material are ordered
             are used across the sequence
 
         """
@@ -270,10 +274,14 @@ class HdfStore(BaseStore):
                 HdfSubStrings.MAT_IDS, (len(burnableIndexes),), dtype=int
             )
             names = numpy.empty_like(mids, dtype=object)
+            volumes = materialgroup.create_dataset_like(
+                HdfSubStrings.MAT_VOLS, mids, dtype=numpy.float64
+            )
 
-            for ix, (matid, name) in enumerate(burnableIndexes):
+            for ix, (matid, name, volume) in enumerate(burnableIndexes):
                 mids[ix] = matid
                 names[ix] = name
+                volumes[ix] = volume
 
             materialgroup[HdfSubStrings.MAT_NAMES] = names.astype("S")
 

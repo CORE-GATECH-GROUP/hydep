@@ -31,8 +31,9 @@ class BaseStore(ABC):
             will contain
         isotopes : tuple of hydep.internal.Isotope
             Isotopes used in the depletion chain
-        burnableIndexes : iterable of [int, str]
-            Burnable material ids and names ordered how they
+        burnableIndexes : iterable of [int, str, float]
+            Each item is a 3-tuple of material id, name, and volume.
+            Entries are ordered consistent to how the material are ordered
             are used across the sequence
 
         """

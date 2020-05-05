@@ -127,7 +127,7 @@ class Problem(object):
             ntransport=sum(self.dep.substeps) + 1,
             ngroups=1,
             isotopes=tuple(self.dep.chain),
-            burnableIndexes=[(m.id, m.name) for m in self.dep.burnable],
+            burnableIndexes=[(m.id, m.name, m.volume) for m in self.dep.burnable],
         )
 
     def solve(self, initialDays=0):
