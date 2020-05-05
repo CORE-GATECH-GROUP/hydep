@@ -178,6 +178,9 @@ def test_hdfProcessor(result, simpleChain, compositions, h5Destination):
     for ix, name in zip(indices, randomNames):
         assert processor.names[ix] == name
 
+    assert processor.volumes.shape == (N_BU_MATS, )
+    assert numpy.allclose(processor.volumes, VOLUME)
+
     randomDens = processor.getDensities(names=randomNames)
     assert randomDens == pytest.approx(processor.compositions[:][..., indices])
     assert processor.getDensities(names=randomNames[0]) == pytest.approx(

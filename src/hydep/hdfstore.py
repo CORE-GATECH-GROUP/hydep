@@ -439,6 +439,8 @@ class HdfProcessor(Mapping):
     compositions : h5py.Dataset
         NxMxI dataset with isotopic compositions for all time steps
         and all materials
+    volumes : h5py.Dataset
+        Volumes for each material
 
     """
 
@@ -544,6 +546,10 @@ class HdfProcessor(Mapping):
     @property
     def compositions(self) -> h5py.Dataset:
         return self._root[HdfStrings.COMPOSITIONS]
+
+    @property
+    def volumes(self) -> h5py.Dataset:
+        return self._root[HdfStrings.MATERIALS / HdfSubStrings.MAT_VOLS]
 
     def getKeff(
         self, hfOnly: typing.Optional[bool] = True
