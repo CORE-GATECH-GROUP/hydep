@@ -778,7 +778,10 @@ class HdfProcessor(Mapping):
             )
         structure = fmtxGroup.attrs.get("structure")
         if structure != "csr":
-            raise ValueError("Expected csr matrix structure, not {structure}")
+            raise ValueError(f"Expected csr matrix structure, not {structure}")
+        shape = fmtxGroup.attrs.get("shape")
+        if shape is None:
+            shape = (self.nBurnableMats, ) * 2
 
         ix = bisect.bisect_left(self.days, day)
         if ix == len(self.days) or self.days[ix] != day:
@@ -786,4 +789,7 @@ class HdfProcessor(Mapping):
 
         group = fmtxGroup[str(ix)]
 
-        return csr_matrix((group["data"], group["indices"], group["indptr"]))
+        return csr_matrix(
+            (group["data"], group["indices"], group["indptr"]),
+            shape=shape,
+        )

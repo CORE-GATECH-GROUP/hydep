@@ -97,6 +97,7 @@ written to this group:
 
 * ``structure`` ``str`` - Sparsity structure of the fission matrices.
   Currently ``"csr"``, indicating a Compressed Sparse Row storage.
+* ``shape`` ``(int, int)`` - Shape of fission matrix
 
 All matrices will have shape ``(N_bumats, N_bumats)``, but their
 structure may change from step to step.
