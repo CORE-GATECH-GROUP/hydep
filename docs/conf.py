@@ -74,4 +74,5 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/3.5', None),
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+    'h5py': ('https://docs.h5py.org/en/latest', None),
 }
