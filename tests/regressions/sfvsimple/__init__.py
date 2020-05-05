@@ -171,7 +171,7 @@ class SfvComparator(CompareBase):
 
     """
 
-    floatFormat = "% .7E"
+    floatFormat = "% .16E"
 
     def __init__(self, datadir, harness):
         super().__init__(datadir)
@@ -225,7 +225,7 @@ class SfvComparator(CompareBase):
                 fails[qty] = expected
                 numpy.savetxt(
                     self.getPathFor(qty, "fail"),
-                    expected.T,
+                    actual.T,
                     fmt=self.floatFormat,
                     header="{} 2\nAbsolute Error, Relative Error %".format(len(value)),
                 )
