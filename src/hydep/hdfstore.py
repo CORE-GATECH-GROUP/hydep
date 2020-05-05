@@ -453,7 +453,10 @@ class HdfProcessor(Mapping):
                 f"Found {version[:]} in {self._root}, expected {self._EXPECTS}"
             )
 
-        self.days = numpy.divide(self._root["time/time"], SECONDS_PER_DAY)
+        self.days = numpy.divide(
+            self._root[HdfStrings.CALENDAR / HdfSubStrings.CALENDAR_TIME],
+            SECONDS_PER_DAY
+        )
         self._names = None
 
     def __len__(self) -> int:
@@ -503,13 +506,13 @@ class HdfProcessor(Mapping):
     @property
     def zais(self) -> h5py.Dataset:
         """Ordered isotopic ZAI identifiers"""
-        return self._root[HdfStrings.ISOTOPES][HdfSubStrings.ISO_ZAI]
+        return self._root[HdfStrings.ISOTOPES / HdfSubStrings.ISO_ZAI]
 
     @property
     def names(self) -> typing.Tuple[str, ...]:
         # Stored on the processor to avoid decoding at every call
         if self._names is None:
-            ds = self._root[HdfStrings.ISOTOPES][HdfSubStrings.ISO_NAMES]
+            ds = self._root[HdfStrings.ISOTOPES / HdfSubStrings.ISO_NAMES]
             self._names = tuple((n.decode() for n in ds))
         return self._names
 
@@ -526,7 +529,7 @@ class HdfProcessor(Mapping):
     @property
     def hfFlags(self) -> h5py.Dataset:
         """Boolean vector indicating high fidelity (True) or reduced order solutions"""
-        return self._root[HdfStrings.CALENDAR][HdfSubStrings.CALENDAR_HF][:]
+        return self._root[HdfStrings.CALENDAR / HdfSubStrings.CALENDAR_HF][:]
 
     @property
     def fluxes(self) -> h5py.Dataset:
