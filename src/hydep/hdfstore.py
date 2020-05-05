@@ -519,6 +519,31 @@ class HdfProcessor(Mapping):
         return self._root.items()
 
     @property
+    def nCoarseSteps(self) -> int:
+        """Number of coarse transport steps"""
+        return self._root.attrs[HdfAttrs.N_COARSE]
+
+    @property
+    def nTotalSteps(self) -> int:
+        """Number of transport steps, high-fidelity and reduced-order"""
+        return self._root.attrs[HdfAttrs.N_TOTAL]
+
+    @property
+    def nIsotopes(self) -> int:
+        """Number of isotopes tracked and stored in :attr:`compositions`"""
+        return self._root.attrs[HdfAttrs.N_ISOTOPES]
+
+    @property
+    def nBurnableMats(self) -> int:
+        """Number of burnable materials"""
+        return self._root.attrs[HdfAttrs.N_BMATS]
+
+    @property
+    def nEnergyGroups(self) -> int:
+        """Number of energy groups"""
+        return self._root.attrs[HdfAttrs.N_ENE_GROUPS]
+
+    @property
     def zais(self) -> h5py.Dataset:
         return self._root[HdfStrings.ISOTOPES / HdfSubStrings.ISO_ZAI]
 
