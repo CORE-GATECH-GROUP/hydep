@@ -74,6 +74,69 @@ class HdfStrings(HdfEnumKeys):
     FISSION_MATRIX = "fissionMatrix"
     CALENDAR = "time"
 
+    def __truediv__(self, other) -> str:
+        """Access subgroups with / separator
+
+        No checks for existence of the resulting group or
+        dataset are provided.
+
+        Parameters
+        ----------
+        other : enum.Enum or str
+            Name or path to a group or dataset that follows
+            the value for this member
+
+        Returns
+        -------
+        str
+            / separated path
+
+        Examples
+        --------
+        >>> HdfStrings.MATERIALS.value
+        'materials'
+        >>> HdfStrings.MATERIALS / "ids"
+        'materials/ids'
+        >>> HdfStrings.MATERIALS / HdfStrings.MATERIALS
+        'materials/materials'
+
+        """
+        if hasattr(other, "value"):
+            return "/".join([self.value, str(other.value)])
+        if isinstance(other, str):
+            return "/".join([self.value, other])
+        return NotImplemented
+
+    def dig(self, *others) -> str:
+        """Join this entry and others with /
+
+        Arguments can be strings, other enumerations like
+        :class:`HdfSubStrings`, or anything that can be converted
+        to a string
+
+        No checks for existence of the resulting group or
+        dataset are provided.
+
+        Returns
+        -------
+        str
+            / separated path of all elements
+
+        Examples
+        --------
+        >>> HdfStrings.MATERIALS.value
+        'materials'
+        >>> HdfStrings.MATERIALS.dig("ids", HdfStrings.MATERIALS)
+        'materials/ids/materials'
+
+        """
+        items = [self.value]
+        items.extend(
+            [str(o.value) if hasattr(o, "value") else str(o)
+                for o in others]
+        )
+        return "/".join(items)
+
 
 class HdfSubStrings(HdfEnumKeys):
     """Strings for datasets or groups beyond the base group

@@ -236,3 +236,18 @@ def test_hdfProcessor(result, simpleChain, compositions, h5Destination):
     with pytest.raises(KeyError):
         processor["fake key"]
     assert processor.get("fake key") is None
+
+
+def test_hdfenums():
+    RootNames = hydep.hdfstore.HdfStrings
+    SecondNames = hydep.hdfstore.HdfSubStrings
+
+    bypathop = RootNames.CALENDAR / SecondNames.CALENDAR_TIME
+    expected = "/".join([o.value for o in [RootNames.CALENDAR, SecondNames.CALENDAR_TIME]])
+    assert bypathop == expected
+
+    bydig = RootNames.CALENDAR.dig(SecondNames.CALENDAR_TIME)
+    assert bydig == expected
+
+    bydig = RootNames.CALENDAR.dig(SecondNames.CALENDAR_TIME, "foo")
+    assert bydig == expected + "/foo"
