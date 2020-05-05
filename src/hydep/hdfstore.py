@@ -415,9 +415,6 @@ class HdfStore(BaseStore):
 class HdfProcessor(Mapping):
     """Dictionary-like interface for HDF result files
 
-    Properties like :attr:`zais` are generated at each
-    call.
-
     Parameters
     ----------
     fpOrGroup : str or pathlib.Path or h5py.File or h5py.Group
@@ -430,6 +427,18 @@ class HdfProcessor(Mapping):
         Points in calendar time for all provided values
     names : tuple of str
         Isotope names ordered consistent with :attr:`zai`.
+    zais : h5py.Dataset
+        Ordered isotopic ZAI identifiers
+    keff : h5py.Dataset
+        Nx2 dataset with multiplication factor and absolute uncertainty.
+        Values will be provided for all transport solutions, even reduced
+        order simulations that may not compute :math:`k_{eff}`. To obtain
+        values at the high-fidelity points, see :meth:`getKeff`
+    fluxes : h5py.Dataset
+        NxMxG dataset with fluxes in each burnable region
+    compositions : h5py.Dataset
+        NxMxI dataset with isotopic compositions for all time steps
+        and all materials
 
     """
 
@@ -491,21 +500,24 @@ class HdfProcessor(Mapping):
         object
             If ``key`` is found, will be either a :class:`h5py.Group`
             or :class:`h5py.Dataset`. Otherwise ``default`` is returned
+
         """
         return self._root.get(key, default)
 
     def keys(self):
+        """Key-view into the underlying root group"""
         return self._root.keys()
 
     def values(self):
+        """Value-view into the underlying root group"""
         return self._root.values()
 
     def items(self):
+        """Items [k, v] view into the underlying root group"""
         return self._root.items()
 
     @property
     def zais(self) -> h5py.Dataset:
-        """Ordered isotopic ZAI identifiers"""
         return self._root[HdfStrings.ISOTOPES / HdfSubStrings.ISO_ZAI]
 
     @property
@@ -518,12 +530,6 @@ class HdfProcessor(Mapping):
 
     @property
     def keff(self) -> h5py.Dataset:
-        """Nx2 array with multiplication factor and absolute uncertainty
-
-        Values will be provided for all transport solutions, even reduced
-        order simulations that may not compute :math:`k_{eff}`. To obtain
-        values at the high-fidelity points, see :meth:`getKeff`
-        """
         return self._root[HdfStrings.KEFF]
 
     @property
@@ -533,20 +539,10 @@ class HdfProcessor(Mapping):
 
     @property
     def fluxes(self) -> h5py.Dataset:
-        """NxMxG array with fluxes in each burnable region
-
-        Will be of shape ``(nTransport, nBurnable, nGroups)``
-
-        """
         return self._root[HdfStrings.FLUXES]
 
     @property
     def compositions(self) -> h5py.Dataset:
-        """NxMxI array with isotopic compositions
-
-        Will be of shape ``(nTransport, nBurnable, nGroups)``
-
-        """
         return self._root[HdfStrings.COMPOSITIONS]
 
     def getKeff(
