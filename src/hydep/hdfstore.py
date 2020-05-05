@@ -529,7 +529,7 @@ class HdfProcessor(Mapping):
     @property
     def hfFlags(self) -> h5py.Dataset:
         """Boolean vector indicating high fidelity (True) or reduced order solutions"""
-        return self._root[HdfStrings.CALENDAR / HdfSubStrings.CALENDAR_HF][:]
+        return self._root[HdfStrings.CALENDAR / HdfSubStrings.CALENDAR_HF]
 
     @property
     def fluxes(self) -> h5py.Dataset:
@@ -570,7 +570,7 @@ class HdfProcessor(Mapping):
             absolute uncertainties in the second column
 
         """
-        slicer = self.hfFlags if hfOnly else slice(None)
+        slicer = self.hfFlags[:] if hfOnly else slice(None)
         return self.days[slicer], self.keff[slicer, :]
 
     def getFluxes(

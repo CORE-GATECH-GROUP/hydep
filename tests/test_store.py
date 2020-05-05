@@ -141,8 +141,9 @@ def test_hdfProcessor(result, simpleChain, compositions, h5Destination):
     assert processor.keff[START.total] == pytest.approx(result.keff)
     assert processor.keff[END.total] == pytest.approx(result.keff)
     hfDays, hfKeff = processor.getKeff(hfOnly=True)
-    assert hfDays == processor.days[processor.hfFlags]
-    assert hfKeff == pytest.approx(processor.keff[processor.hfFlags, :])
+    flags = processor.hfFlags[:]
+    assert hfDays == processor.days[flags]
+    assert hfKeff == pytest.approx(processor.keff[flags, :])
 
     fullDays, fullKeff = processor.getKeff(hfOnly=False)
     assert fullDays == pytest.approx(processor.days)
@@ -156,8 +157,8 @@ def test_hdfProcessor(result, simpleChain, compositions, h5Destination):
     assert processor.fluxes[END.total] == pytest.approx(result.flux)
     assert processor.getFluxes(processor.days[START.total]) == pytest.approx(result.flux)
 
-    fluxes = processor.getFluxes(processor.days[processor.hfFlags])
-    assert fluxes == pytest.approx(processor.fluxes[processor.hfFlags, :])
+    fluxes = processor.getFluxes(processor.days[flags])
+    assert fluxes == pytest.approx(processor.fluxes[flags, :])
     assert processor.getFluxes() == pytest.approx(processor.fluxes[:])
 
     assert len(processor.names) == len(simpleChain)
