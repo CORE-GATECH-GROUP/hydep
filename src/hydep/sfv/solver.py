@@ -12,7 +12,7 @@ from hydep.constants import BARN_PER_CM2, EV_PER_JOULE, REACTION_MTS, FISSION_RE
 from hydep.lib import ReducedOrderSolver
 from hydep.internal import TransportResult
 import hydep.internal.features as hdfeat
-from .lib import applySFV, getAdjFwdEig
+from .lib import predict_spatial_flux, getAdjFwdEig
 from .utils import NubarPolyFit
 
 __all__ = ["SfvSolver"]
@@ -295,8 +295,8 @@ class SfvSolver(ReducedOrderSolver):
             adj, fwd, eig = getAdjFwdEig(txresult.fmtx)
         except LinAlgError as le:
             raise FailedSolverError(f"{self!s} at {timestep}\n{le!s}") from le
-        self._adjointMoments = adj[:, : self.numModes]
-        self._forwardMoments = fwd[:, : self.numModes]
+        self._adjointMoments = adj[:, : self.numModes].copy(order="F")
+        self._forwardMoments = fwd[:, : self.numModes].copy(order="F")
         self._eigenvalues = eig[: self.numModes]
 
     def _bosProcessMacroXs(self, macroxs):
@@ -340,7 +340,7 @@ class SfvSolver(ReducedOrderSolver):
         start = time.time()
         data = self._macroData
 
-        normPrediction = applySFV(
+        normPrediction = predict_spatial_flux(
             data[:, self._INDEX_XS_ABS_0],
             data[:, self._INDEX_XS_ABS_1],
             data[:, self._INDEX_XS_NSF_0],
@@ -350,7 +350,7 @@ class SfvSolver(ReducedOrderSolver):
             self._forwardMoments,
             self._eigenvalues,
             data[:, self._INDEX_PHI_0],
-            overwrite=False,
+            overwrite_flux=False,
         )
 
         substepFlux = (

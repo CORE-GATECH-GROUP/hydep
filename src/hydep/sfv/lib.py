@@ -1,7 +1,7 @@
 from pkg_resources import parse_version
 
-minVersion = parse_version("0.3.1")
-upperNotEqual = parse_version("0.3.2")
+minVersion = parse_version("0.3.2")
+upperNotEqual = parse_version("0.3.3")
 
 try:
     import sfv
@@ -18,4 +18,5 @@ if not (minVersion <= parse_version(__version__) < upperNotEqual):
     )
 del minVersion, upperNotEqual, parse_version
 
-from sfv import applySFV, getAdjFwdEig  # noqa: F401 E402
+from sfv import getAdjFwdEig  # noqa: F401 E402
+from sfv.lib import predict_spatial_flux  # noqa: F401 E402
