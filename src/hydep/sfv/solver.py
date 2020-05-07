@@ -3,6 +3,7 @@ import logging
 import numbers
 from collections import defaultdict
 import time
+from enum import IntEnum, auto
 
 import numpy
 from numpy.linalg import LinAlgError
@@ -19,6 +20,16 @@ __all__ = ["SfvSolver"]
 
 
 __logger__ = logging.getLogger("hydep.sfv")
+
+
+class DataIndexes(IntEnum):
+    ABS_0 = 0
+    NSF_0 = auto()
+    ABS_1 = auto()
+    FIS_1 = auto()  # NOTE Not nu-sigma fission
+    VOL_K_FIS = auto()  # NOTE volumes * kappa * sigma f
+    NUBAR = auto()
+    PHI_0 = auto()
 
 
 class SfvSolver(ReducedOrderSolver):
@@ -83,14 +94,6 @@ class SfvSolver(ReducedOrderSolver):
     SFV : https://doi.org/10.1080/00295639.2019.1661171
 
     """
-    _INDEX_XS_ABS_0 = 0
-    _INDEX_XS_NSF_0 = 1
-    _INDEX_XS_ABS_1 = 2
-    _INDEX_XS_FIS_1 = 3  # NOTE Not nu-sigma fission
-    _INDEX_VOL_K_FIS = 4  # NOTE node volumes * kappa * sigma f
-    _INDEX_NUBAR = 5
-    _INDEX_PHI_0 = 6
-    _NUM_INDEXES = 7
     _NON_FISS_ABS_MT = frozenset(
         {REACTION_MTS.N_GAMMA, REACTION_MTS.N_2N, REACTION_MTS.N_3N}
     )
@@ -124,43 +127,43 @@ class SfvSolver(ReducedOrderSolver):
     def macroAbs0(self):
         if self._macroData is None:
             return None
-        return tuple(self._macroData[:, self._INDEX_XS_ABS_0])
+        return tuple(self._macroData[:, DataIndexes.ABS_0])
 
     @property
     def macroNsf0(self):
         if self._macroData is None:
             return None
-        return tuple(self._macroData[:, self._INDEX_XS_NSF_0])
+        return tuple(self._macroData[:, DataIndexes.NSF_0])
 
     @property
     def macroAbs1(self):
         if self._macroData is None:
             return None
-        return tuple(self._macroData[:, self._INDEX_XS_ABS_1])
+        return tuple(self._macroData[:, DataIndexes.ABS_1])
 
     @property
     def macroFis1(self):
         if self._macroData is None:
             return None
-        return tuple(self._macroData[:, self._INDEX_XS_FIS_1])
+        return tuple(self._macroData[:, DataIndexes.FIS_1])
 
     @property
     def extrapolatedNubar(self):
         if self._macroData is None:
             return None
-        return tuple(self._macroData[:, self._INDEX_NUBAR])
+        return tuple(self._macroData[:, DataIndexes.NUBAR])
 
     @property
     def normalizedPhi0(self):
         if self._macroData is None:
             return None
-        return tuple(self._macroData[:, self._INDEX_PHI_0])
+        return tuple(self._macroData[:, DataIndexes.PHI_0])
 
     @property
     def kappaSigf1(self):
         if self._macroData is None:
             return None
-        return tuple(self._macroData[:, self._INDEX_VOL_K_FIS] / self._volumes)
+        return tuple(self._macroData[:, DataIndexes.VOL_K_FIS] / self._volumes)
 
     def beforeMain(self, _model, manager, settings):
         """Prepare solver before main solution routines
@@ -242,7 +245,7 @@ class SfvSolver(ReducedOrderSolver):
 
         self._volumes = vols
         self._totalvolume = sum(vols)
-        self._macroData = numpy.empty((len(vols), self._NUM_INDEXES))
+        self._macroData = numpy.empty((len(vols), len(DataIndexes)))
         self._processIsotopeFissionQ(manager.chain)
 
     def _processIsotopeFissionQ(self, isotopes):
@@ -303,15 +306,15 @@ class SfvSolver(ReducedOrderSolver):
         assert len(macroxs) == len(self._volumes)
         # Only works with one-group
         for ix, matdata in enumerate(macroxs):
-            self._macroData[ix, self._INDEX_XS_ABS_0] = matdata["abs"][0]
-            self._macroData[ix, self._INDEX_XS_NSF_0] = matdata["nsf"][0]
+            self._macroData[ix, DataIndexes.ABS_0] = matdata["abs"][0]
+            self._macroData[ix, DataIndexes.NSF_0] = matdata["nsf"][0]
 
     def _bosProcessFlux(self, flux):
         assert len(flux) == len(self._volumes)
         assert len(flux.shape) == 2
         if flux.shape[1] != 1:
             raise NotImplementedError(f"Mutligroup flux not supported with {self!s}")
-        self._macroData[:, self._INDEX_PHI_0] = (
+        self._macroData[:, DataIndexes.PHI_0] = (
             flux[:, 0] * self._totalvolume / (flux[:, 0] * self._volumes).sum()
         )
 
@@ -335,28 +338,28 @@ class SfvSolver(ReducedOrderSolver):
 
         """
         self._updateMacroFromMicroXs(compositions, microxs)
-        self._macroData[:, self._INDEX_NUBAR] = self._nubar(timestep.currentTime)
+        self._macroData[:, DataIndexes.NUBAR] = self._nubar(timestep.currentTime)
 
         start = time.time()
         data = self._macroData
 
         normPrediction = predict_spatial_flux(
-            data[:, self._INDEX_XS_ABS_0],
-            data[:, self._INDEX_XS_ABS_1],
-            data[:, self._INDEX_XS_NSF_0],
-            data[:, self._INDEX_XS_FIS_1] * data[:, self._INDEX_NUBAR],
+            data[:, DataIndexes.ABS_0],
+            data[:, DataIndexes.ABS_1],
+            data[:, DataIndexes.NSF_0],
+            data[:, DataIndexes.FIS_1] * data[:, DataIndexes.NUBAR],
             self._keff0,
             self._adjointMoments,
             self._forwardMoments,
             self._eigenvalues,
-            data[:, self._INDEX_PHI_0],
+            data[:, DataIndexes.PHI_0],
             overwrite_flux=False,
         )
 
         substepFlux = (
             normPrediction
             * self._currentPower
-            / (normPrediction * self._macroData[:, self._INDEX_VOL_K_FIS]).sum()
+            / (normPrediction * self._macroData[:, DataIndexes.VOL_K_FIS]).sum()
         )
 
         end = time.time()
@@ -393,12 +396,12 @@ class SfvSolver(ReducedOrderSolver):
                     macroSigF += prod
                     qSigmaF += prod * self._isotopeFissionQs[z]
 
-            self._macroData[matix, self._INDEX_XS_ABS_1] = macroSigA
-            self._macroData[matix, self._INDEX_XS_FIS_1] = macroSigF
-            self._macroData[matix, self._INDEX_VOL_K_FIS] = qSigmaF
+            self._macroData[matix, DataIndexes.ABS_1] = macroSigA
+            self._macroData[matix, DataIndexes.FIS_1] = macroSigF
+            self._macroData[matix, DataIndexes.VOL_K_FIS] = qSigmaF
 
-        self._macroData[:, (self._INDEX_XS_ABS_1, self._INDEX_XS_FIS_1)] *= BARN_PER_CM2
+        self._macroData[:, (DataIndexes.ABS_1, DataIndexes.FIS_1)] *= BARN_PER_CM2
 
-        self._macroData[:, self._INDEX_VOL_K_FIS] *= numpy.multiply(
+        self._macroData[:, DataIndexes.VOL_K_FIS] *= numpy.multiply(
             BARN_PER_CM2, self._volumes
         )
