@@ -27,6 +27,7 @@ class DataIndexes(IntEnum):
     NSF_0 = auto()
     ABS_1 = auto()
     FIS_1 = auto()  # NOTE Not nu-sigma fission
+    VOLUMES = auto()
     VOL_K_FIS = auto()  # NOTE volumes * kappa * sigma f
     NUBAR = auto()
     PHI_0 = auto()
@@ -101,7 +102,6 @@ class SfvSolver(ReducedOrderSolver):
     def __init__(self):
         self._modes = None
         self._densityCutoff = None
-        self._volumes = None
         self._totalvolume = None
         self._forwardMoments = None
         self._adjointMoments = None
@@ -163,7 +163,10 @@ class SfvSolver(ReducedOrderSolver):
     def kappaSigf1(self):
         if self._macroData is None:
             return None
-        return tuple(self._macroData[:, DataIndexes.VOL_K_FIS] / self._volumes)
+        return tuple(
+            self._macroData[:, DataIndexes.VOL_K_FIS]
+            / self._macroData[:, DataIndexes.VOLUMES]
+        )
 
     def beforeMain(self, _model, manager, settings):
         """Prepare solver before main solution routines
@@ -243,9 +246,9 @@ class SfvSolver(ReducedOrderSolver):
                 order=fittingOrder, maxlen=settings.numFittingPoints
             )
 
-        self._volumes = vols
         self._totalvolume = sum(vols)
         self._macroData = numpy.empty((len(vols), len(DataIndexes)))
+        self._macroData[:, DataIndexes.VOLUMES] = vols
         self._processIsotopeFissionQ(manager.chain)
 
     def _processIsotopeFissionQ(self, isotopes):
@@ -303,19 +306,28 @@ class SfvSolver(ReducedOrderSolver):
         self._eigenvalues = eig[: self.numModes]
 
     def _bosProcessMacroXs(self, macroxs):
-        assert len(macroxs) == len(self._volumes)
+        if len(macroxs) != self._macroData.shape[0]:
+            raise ValueError(
+                f"Recieved data for {len(macroxs)} regions but expected "
+                "{self._macroData.shape[0]}"
+            )
         # Only works with one-group
         for ix, matdata in enumerate(macroxs):
             self._macroData[ix, DataIndexes.ABS_0] = matdata["abs"][0]
             self._macroData[ix, DataIndexes.NSF_0] = matdata["nsf"][0]
 
     def _bosProcessFlux(self, flux):
-        assert len(flux) == len(self._volumes)
-        assert len(flux.shape) == 2
+        if flux.shape[0] != self._macroData.shape[0]:
+            raise ValueError(
+                f"Recieved flux data for {flux.shape[0]} regions but expected "
+                "{self._macroData.shape[0]}"
+            )
         if flux.shape[1] != 1:
             raise NotImplementedError(f"Mutligroup flux not supported with {self!s}")
         self._macroData[:, DataIndexes.PHI_0] = (
-            flux[:, 0] * self._totalvolume / (flux[:, 0] * self._volumes).sum()
+                flux[:, 0] * self._totalvolume / (
+                    flux[:, 0].dot(self._macroData[:, DataIndexes.VOLUMES])
+                )
         )
 
     def substepSolve(self, timestep, compositions, microxs):
@@ -402,6 +414,5 @@ class SfvSolver(ReducedOrderSolver):
 
         self._macroData[:, (DataIndexes.ABS_1, DataIndexes.FIS_1)] *= BARN_PER_CM2
 
-        self._macroData[:, DataIndexes.VOL_K_FIS] *= numpy.multiply(
-            BARN_PER_CM2, self._volumes
-        )
+        self._macroData[:, DataIndexes.VOL_K_FIS] *= (
+            BARN_PER_CM2 * self._macroData[:, DataIndexes.VOLUMES])
