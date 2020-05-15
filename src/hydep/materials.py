@@ -183,6 +183,7 @@ class Material(dict):
                   for attr in ["adens", "mdens", "temperature", "volume"]}
         out = self.__class__(self.name if name is None else name, **kwargs)
         out.update(self)
+        out.sab = self.sab.copy()
         return out
 
     def get(self, key, default=None):
