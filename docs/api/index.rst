@@ -8,9 +8,10 @@ Reference
     :maxdepth: 2
     :caption: Contents
 
-    depletion
+    materials
     geometry
     model
+    depletion
     problem
     settings
     serpent

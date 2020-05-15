@@ -1,12 +1,15 @@
 import warnings
 import numbers
 from collections.abc import Mapping, Iterable
+import typing
 
 import numpy
 
 from hydep.typed import BoundedTyped
 from hydep.internal import Isotope, ZaiTuple, getIsotope
 from hydep.internal.registry import register, unregister
+
+IsotopeLike = typing.Union[int, str, Isotope]
 
 
 __all__ = ["Material", "BurnableMaterial"]
@@ -140,12 +143,44 @@ class Material(dict):
             "not {}".format(Isotope.__class__.__name__, ZaiTuple, type(key))
         )
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: IsotopeLike, value: float):
+        """Update or set atom density for a specific isotope
+
+        Parameters
+        ----------
+        key : str or int or hydep.internal.Isotope
+            Either isotope name, ZAI, or internal representation of an isotope
+        value : float
+            Atom density [atoms/b/cm] for this istope
+
+        Examples
+        --------
+        >>> w = Material("water", mdens=9.75)
+        >>> w["H1"] = 0.047
+        >>> w["H1"]
+        0.047
+        >>> w[10010]
+        0.047
+
+        """
         assert isinstance(value, numbers.Real)
         assert value > 0
         super().__setitem__(self._getIsotopeFromKey(key), value)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: IsotopeLike) -> float:
+        """Return atom density for a specific isotope
+
+        Parameters
+        ----------
+        key : str or int or hydep.internal.Isotope
+            Either isotope name, ZAI, or internal representation of an isotope
+
+        Returns
+        -------
+        float
+            Atom density [atoms/b/cm]
+
+        """
         return super().__getitem__(self._getIsotopeFromKey(key))
 
     def __repr__(self):
@@ -179,6 +214,18 @@ class Material(dict):
         )
 
     def copy(self, name=None):
+        """Create a copy of this material
+
+        Parameters
+        ----------
+        name : str, optional
+            New name. Otherwise use :attr:`name`
+
+        Returns
+        -------
+        hydep.Material
+
+        """
         kwargs = {attr: getattr(self, attr)
                   for attr in ["adens", "mdens", "temperature", "volume"]}
         out = self.__class__(self.name if name is None else name, **kwargs)
@@ -186,7 +233,33 @@ class Material(dict):
         out.sab = self.sab.copy()
         return out
 
-    def get(self, key, default=None):
+    def get(self, key: IsotopeLike, default: typing.Optional = None):
+        """Retrieve the atom density for an isotope if it is contained
+
+        Parameters
+        ----------
+        key : str or int or hydep.internal.Isotope
+            Isotope name or ZAI, or the internal representation of an isotope
+        default : object, optional
+            Item to be returned if ``key`` does not correspond to an isotope
+            on this material
+
+        Returns
+        -------
+        object
+            float of atom density [atoms/b/cm] if ``key`` matched an isotope
+            stored on the material. Otherwise return ``default``
+
+        Examples
+        --------
+        >>> w = Material("water", mdens=0.75)
+        >>> w["H1"] = 0.047
+        >>> w.get("H1")
+        0.047
+        >>> w.get("U235") is None
+        True
+
+        """
         iso = self._getIsotopeFromKey(key)
         return super().get(iso, default)
 
