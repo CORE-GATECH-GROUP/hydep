@@ -262,7 +262,7 @@ class Manager:
 
         if isinstance(solver, Callable):
             self._depsolver = solver
-            return solver
+            return
 
         raise TypeError(f"Could not decipher {solver} of type {type(solver)}")
 
