@@ -26,7 +26,7 @@ from hydep.typed import (
 )
 
 _CONFIG_CLASSES = {"hydep": None}
-_SUBSETTING_PATTERN = re.compile("^[A-Za-z][A-Za-z0-9_]*$")
+_SUBSETTING_PATTERN = "^[A-Za-z][A-Za-z0-9_]*$"
 
 
 def asBool(key: str, value: typing.Union[str, bool, int]) -> bool:
@@ -184,47 +184,18 @@ def makeAbsPath(p: typing.Union[pathlib.Path, str, typing.Any]) -> pathlib.Path:
 class SubSetting(metaclass=ABCMeta):
     """Abstract base class for creating solver-specific settings
 
-    Denoted as a sub-setting, because these are used by :class:`Settings`
+    Denoted as a sub-setting, because these are used by :class:`hydep.Settings`
     when a subsection is encountered. Subclasses should provide a unique
     ``sectionName`` and also implement all abstract methods, as the
     first subclass with ``sectionName`` will be found during
-    :meth:`Settings.updateAll`. Section names must be valid python
-    expressions, and not contain any periods.
-
-    """
-
-    def __init_subclass__(cls, sectionName: str, **kwargs):
-        if not _SUBSETTING_PATTERN.match(sectionName):
-            raise ValueError(
-                f"Cannot create {cls} with section name {sectionName}. "
-                'Not a valid Python name, and "." characters are disallowed'
-            )
-        super().__init_subclass__(**kwargs)
-
-        if sectionName in _CONFIG_CLASSES:
-            reserved = ", ".join(sorted(_CONFIG_CLASSES))
-            raise ValueError(
-                f"Settings namespace {sectionName} already exists. Currently "
-                f"reserved namespaces are {reserved}"
-            )
-        _CONFIG_CLASSES[sectionName] = cls
-
-    @abstractmethod
-    def update(self, options: typing.Mapping[str, typing.Any]):
-        """Update given user-provided options"""
-
-
-class Settings:
-    """Main setting configuration with validation and dynamic lookup
-
-    Intended to be passed to various solvers in the framework. Solver
-    specific settings may be included in :class:`SubSetting` instances
-    that may not exist at construction, but will be dynamically
-    created and assigned. For example
+    :meth:`hydep.Settings.updateAll`. Section names must be valid python
+    names, without leading underscores nor periods. Names
+    must match ``^[A-Za-z][A-Za-z0-9_]*$``
 
     .. code::
 
-        >>> h = Settings()
+        >>> import hydep
+        >>> h = hydep.Settings()
         >>> hasattr(h, "example")
         False
 
@@ -237,13 +208,50 @@ class Settings:
         >>> h.example.value
         5
 
+    """
+
+    def __init_subclass__(cls, sectionName: str, **kwargs):
+        if not re.match(_SUBSETTING_PATTERN, sectionName):
+            raise ValueError(
+                f"Cannot create {cls} with section name {sectionName}. "
+                'Not a valid Python name, leading "_" and "." characters '
+                'are disallowed'
+            )
+
+        if sectionName in _CONFIG_CLASSES:
+            reserved = ", ".join(sorted(_CONFIG_CLASSES))
+            raise ValueError(
+                f"Settings namespace {sectionName} already exists. Currently "
+                f"reserved namespaces are {reserved}"
+            )
+
+        super().__init_subclass__(**kwargs)
+
+        _CONFIG_CLASSES[sectionName] = cls
+
+    @abstractmethod
+    def update(self, options: typing.Mapping[str, typing.Any]):
+        """Update given user-provided options"""
+
+
+class Settings:
+    """Main setting configuration with validation and dynamic lookup
+
+    Intended to be passed to various solvers in the framework. Solver
+    specific settings may be included in :class:`hydep.settings.SubSetting`
+    instances that may not exist at construction, but will be dynamically
+    created and assigned
+
     Types are enforced so that downstream solvers can assume some
     constancy.
 
     Parameters
     ----------
     depletionSolver : str, optional
-        Initial value for :attr:`depletionSolver`.
+        Initial value for :attr:`depletionSolver`. Package supports
+        ``"cram16"`` and ``"cram48"`` string names.
+        More detailed configuration can be done via
+        :meth:`hydep.Manager.setDepletionSolver`
     boundaryConditions : str or iterable of str, optional
         Initial value for :attr:`boundaryConditions`. Default is
         vacuum in x, y, and z direction
@@ -273,7 +281,8 @@ class Settings:
         String indicating which depletion solver to use.
     boundaryConditions : tuple of string
         Three valued list or iterable indicating X, Y, and Z
-        boundary conditions
+        boundary conditions. Allowed entries are ``reflective``,
+        ``vacuum``, and ``periodic``
     fittingOrder : int
         Polynomial order for fitting cross sections and other
         nuclear data over time. Must be positive
@@ -289,7 +298,7 @@ class Settings:
         current working directory
     rundir : pathlib.Path or None
         Directory where the simulation will be run if different that
-        ``basedir``. Auxillary files may be written here. Passing a
+        ``basedir``. Auxiliary files may be written here. Passing a
         value of ``None`` indicates to use the same directory as
         :attr:`basedir`. If not given as an absolute path, resolves
         relative to the current working directory
