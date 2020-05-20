@@ -17,6 +17,7 @@ from collections.abc import Iterable
 import numbers
 import math
 
+import numpy
 from scipy.sparse import dok_matrix
 
 from hydep.internal import (
@@ -27,6 +28,7 @@ from hydep.internal import (
     getIsotope,
     Isotope,
     FissionYieldDistribution,
+    XsIndex,
 )
 from hydep.constants import FISSION_REACTIONS, REACTION_MT_MAP
 
@@ -49,8 +51,11 @@ class DepletionChain(tuple):
 
     Attributes
     ----------
-    zaiOrder : Tuple[int,...]
+    zaiOrder : tuple of int
         Ordering of isotopes
+    reactionIndex : hydep.internal.XsIndex
+        Read-only index for describing the ordering of isotopic
+        reaction cross sections and reaction rates
 
     """
     # TODO Some OpenMC compatibility layer?
@@ -60,6 +65,7 @@ class DepletionChain(tuple):
     def __init__(self, isotopes):
         self._indices = {isotope.zai: i for i, isotope in enumerate(self)}
         self._zaiOrder = tuple(isotope.zai for isotope in self)
+        self._reactionIndex = self._getReactionIndex()
 
     def __contains__(self, key):
         """Search for an isotope that matches the argument
@@ -307,3 +313,29 @@ class DepletionChain(tuple):
     @property
     def zaiOrder(self):
         return self._zaiOrder
+
+    @property
+    def reactionIndex(self) -> XsIndex:
+        return self._reactionIndex
+
+    def _getReactionIndex(self) -> XsIndex:
+        """Construct an indexer to be used for reaction rates and XS"""
+        zais = []
+        rxns = []
+        zptr = []
+
+        for isotope in self:
+            if not isotope.reactions:
+                continue
+            zais.append(isotope.zai)
+            zptr.append(len(rxns))
+            uniqrxns = {rxn.mt for rxn in isotope.reactions}
+            rxns.extend(sorted(uniqrxns))
+
+        zptr.append(len(rxns))
+
+        return XsIndex(
+            numpy.array(zais, dtype=int),
+            numpy.array(rxns, dtype=int),
+            numpy.array(zptr, dtype=int),
+        )
