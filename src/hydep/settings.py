@@ -262,9 +262,6 @@ class Settings:
     numFittingPoints : int or None, optional
         Number of points to use when fitting data. Defaults
         to three due to previous experience
-    unboundedFitting : bool, optional
-        True to keep indefinitely many points for cross section
-        extrapolation.
     basedir : str or pathlib.Path, optional
         Directory where result files and archived files should be saved.
         Defaults to current working directory
@@ -286,12 +283,13 @@ class Settings:
     fittingOrder : int
         Polynomial order for fitting cross sections and other
         nuclear data over time. Must be positive
-    numFittingPoints : int or None
-        Number of points to use when fitting data. A value
-        of ``None`` implies :attr:`unboundedFitting`
-    unboundedFitting : bool, optional
-        True to keep indefinitely many points for cross section
-        extrapolation.
+    numFittingPoints : int
+        Positive integer of fitting points to use when
+        extrapolating microscopic cross sections, reaction rates, and
+        other nuclear data. Larger numbers do not imply better accuracy,
+        as older data reflects a different problem state, which may
+        interfere with extrapolation. Previous experience indicates
+        that two or three points is sufficient
     basedir : pathlib.Path
         Directory where result files and archived files should be saved.
         If not given as an absolute path, resolves relative to the
@@ -341,7 +339,7 @@ class Settings:
 
     _name = "hydep"
     _ALLOWED_BC = frozenset({"reflective", "periodic", "vacuum"})
-    unboundedFitting = TypedAttr("_unboundedFitting", bool)
+    numFittingPoints = BoundedTyped("_numFittingPoints", int, gt=0)
     useTempDir = TypedAttr("_useTempDir", bool)
 
     def __init__(
@@ -350,7 +348,6 @@ class Settings:
         boundaryConditions: typing.Optional[typing.Sequence[str]] = None,
         fittingOrder: int = 1,
         numFittingPoints: int = 3,
-        unboundedFitting: bool = False,
         basedir: OptFile = None,
         rundir: OptFile = None,
         useTempDir: typing.Optional[bool] = False,
@@ -362,7 +359,6 @@ class Settings:
             self.boundaryConditions = boundaryConditions
         self.fittingOrder = fittingOrder
         self.numFittingPoints = numFittingPoints
-        self.unboundedFitting = unboundedFitting
         self.basedir = basedir or pathlib.Path.cwd()
         self.rundir = rundir
         self.useTempDir = useTempDir
@@ -430,21 +426,6 @@ class Settings:
         elif value < 0:
             raise ValueError("fitting order cannot be negative (for now)")
         self._fittingOrder = value
-
-    @property
-    def numFittingPoints(self) -> OptIntegral:
-        return self._numFittingPoints
-
-    @numFittingPoints.setter
-    def numFittingPoints(self, value):
-        if value is None:
-            self._numFittingPoints = None
-            return
-        if not isinstance(value, numbers.Integral):
-            raise TypeError(f"fitting points must be positive integer, not {value}")
-        elif not value > 0:
-            raise ValueError(f"fitting points must be positive integer, not {value}")
-        self._numFittingPoints = value
 
     @property
     def basedir(self) -> pathlib.Path:
@@ -536,8 +517,6 @@ class Settings:
           - update :attr:`boundaryConditions`
         * ``"fitting order"`` : int - update :attr:`fittingOrder`
         * ``"fitting points"`` : int - update :attr:`numFittingPoints`
-        * ``"unbounded fitting"`` : boolean - update
-          :attr:`unboundedFitting`
         * ``"basedir"`` : path-like - update :attr:`basedir`
         * ``"rundir"`` : path-like - update :attr:`rundir`
         * ``"use temp dir"`` : boolean - update :attr:`useTempDir`
@@ -560,8 +539,7 @@ class Settings:
 
         fitOrder = options.pop("fitting order", None)
         # None is an acceptable value here
-        fitPoints = options.pop("fitting points", False)
-        unboundFit = options.pop("unbounded fitting", None)
+        fitPoints = options.pop("fitting points", None)
 
         # Directories
         basedir = options.pop("basedir", None)
@@ -580,16 +558,12 @@ class Settings:
             self.boundaryConditions = bc
         if fitOrder is not None:
             self.fittingOrder = asInt("fitting order", fitOrder)
-        # None is an acceptable value
-        if fitPoints is not False:
-            if fitPoints is None or isinstance(fitPoints, numbers.Integral):
+
+        if fitPoints is not None:
+            if isinstance(fitPoints, numbers.Integral):
                 self.numFittingPoints = fitPoints
-            elif isinstance(fitPoints, str) and fitPoints.lower() == "none":
-                self.numFittingPoints = None
             else:
                 self.numFittingPoints = asPositiveInt("fitting points", fitPoints)
-        if unboundFit is not None:
-            self.unboundedFitting = asBool("unbounded fitting", unboundFit)
 
         if basedir is not None:
             if isinstance(basedir, str) and basedir.lower() == "none":
@@ -608,13 +582,7 @@ class Settings:
 
     def validate(self):
         """Validate settings"""
-        if self.unboundedFitting:
-            if self.numFittingPoints is not None:
-                raise ValueError(
-                    f"Requesting unbounded fitting and {self.numFittingPoints} "
-                    "points to be retained for fitting not allowed"
-                )
-        elif self.fittingOrder > self.numFittingPoints:
+        if self.fittingOrder > self.numFittingPoints:
             raise ValueError(
                 f"Cannot produce a {self.fittingOrder} polynomial fit with "
                 f"{self.numFittingPoints} points"

@@ -12,7 +12,6 @@ def test_settings():
     BC = "boundary conditions"
     FIT_ORDER = "fitting order"
     N_FIT_POINTS = "fitting points"
-    UNBOUND_FIT = "unbounded fitting"
 
     h = Settings()
     h.update(
@@ -21,7 +20,6 @@ def test_settings():
             BC: "reflective reflective vacuum",
             FIT_ORDER: 2,
             N_FIT_POINTS: 4,
-            UNBOUND_FIT: False,
         }
     )
 
@@ -29,7 +27,6 @@ def test_settings():
     assert h.boundaryConditions == ("reflective", "reflective", "vacuum")
     assert h.fittingOrder == 2
     assert h.numFittingPoints == 4
-    assert not h.unboundedFitting
 
     h.validate()
 
@@ -37,18 +34,12 @@ def test_settings():
         {
             BC: "vacuum",
             FIT_ORDER: "1",
-            N_FIT_POINTS: "none",
-            UNBOUND_FIT: "y",
+            N_FIT_POINTS: "3",
         }
     )
     assert h.boundaryConditions == ("vacuum", ) * 3
     assert h.fittingOrder == 1
-    assert h.numFittingPoints is None
-    assert h.unboundedFitting
-
-    with pytest.raises(TypeError, match=".*unbounded fitting.*bool"):
-        h.update({UNBOUND_FIT: "negative"})
-    assert h.unboundedFitting
+    assert h.numFittingPoints == 3
 
     with pytest.raises(ValueError, match=".*[B|b]oundary"):
         Settings().update({BC: ["reflective", "very strange", "vacuum"]})
@@ -57,9 +48,6 @@ def test_settings():
     with pytest.raises(TypeError):
         h.fittingOrder = "1"
 
-    with pytest.raises(TypeError):
-        h.unboundedFitting = 1
-
     fresh = Settings(
         depletionSolver="testSolver",
         boundaryConditions="reflective",
@@ -67,17 +55,8 @@ def test_settings():
     assert fresh.boundaryConditions == ("reflective", ) * 3
     assert fresh.depletionSolver == "testSolver"
 
-
-def test_validate():
     with pytest.raises(ValueError):
         Settings(fittingOrder=2, numFittingPoints=1).validate()
-
-    with pytest.raises(ValueError):
-        Settings(numFittingPoints=1, unboundedFitting=True).validate()
-
-    # Only enforce if number of previous points is definitely given
-    Settings(numFittingPoints=None, unboundedFitting=True).validate()
-
 
 def test_subsettings():
     randomSection = "".join(random.sample(string.ascii_letters, 10))
@@ -220,7 +199,6 @@ def test_exampleConfig(serpentdata):
     assert not settings.useTempDir
     assert settings.fittingOrder == 0
     assert settings.numFittingPoints == 2
-    assert not settings.unboundedFitting  # default
 
     serpent = settings.serpent
 

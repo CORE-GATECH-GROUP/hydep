@@ -234,9 +234,7 @@ class SfvSolver(ReducedOrderSolver):
 
         # Nubar extrapolation
         fittingOrder = settings.fittingOrder
-        if settings.unboundedFitting or settings.numFittingPoints is None:
-            self._nubar = NubarPolyFit(order=fittingOrder, maxlen=None)
-        elif fittingOrder >= settings.numFittingPoints:
+        if fittingOrder >= settings.numFittingPoints:
             raise ValueError(
                 f"Cannot make {fittingOrder} polynomial for nubar with "
                 f"{settings.numFittingPoints} values"

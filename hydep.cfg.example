@@ -65,11 +65,10 @@ fitting order = 0
 
 ## fitting points
 # Positive integer for the number of values to store when constructing
-# polynomial fits. Must be greater than fitting order or none. Defaults to three.
-# A value of None (case insensitive) implies no limit on previous points
-# but using "unbounded fitting" is preferred.
-# Older values are pushed out as newer values arrive unless the
-# setting unbounded fitting is True
+# polynomial fits. Must be greater than fitting order, defaults to three.
+# Older values are pushed out as newer values arrive.
+# More points increase memory use, and too many points may be detrimental.
+# Previous experience indicates that two or three points may be sufficient
 fitting points = 2
 
 ## rundir
@@ -84,13 +83,6 @@ fitting points = 2
 # - a temporary directory if use temp dir is true, or
 # - basedir
 rundir = example/run
-
-## unbounded fitting
-# Boolean switch that instructs polynomial fits to place no limit on
-# the number of previous points to keep. Defaults to false.
-# Will produce errors if this evaluates to True and a value f
-# fitting points is provided
-unbounded fitting = false
 
 ## use temp dir
 # Boolean switch to run simulations in a temporary directory

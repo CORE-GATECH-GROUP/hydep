@@ -230,7 +230,7 @@ class Problem(object):
             self.settings.fittingOrder,
             [startSeconds],
             [result.microXS],
-            None if self.settings.unboundedFitting else self.settings.numFittingPoints,
+            self.settings.numFittingPoints,
         )
 
         fissionYields = result.fissionYields
