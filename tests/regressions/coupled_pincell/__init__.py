@@ -30,9 +30,14 @@ class HdfResultCompare(CompareBase):
         with h5py.File(res, mode="r") as hf:
             materialIDs = hf["materials/ids"]
             names = hf["materials/names"]
-            for ix, mat in enumerate(problem.model.root.findBurnableMaterials()):
+            for ix, mat in enumerate(
+                problem.model.root.findBurnableMaterials()
+            ):
                 assert mat.id == materialIDs[ix], (mat.id, materialIDs[ix])
-                assert mat.name == names[ix].decode(), (mat.name, names[ix].decode())
+                assert mat.name == names[ix].decode(), (
+                    mat.name,
+                    names[ix].decode(),
+                )
             assert hf.attrs["burnableMaterials"] == len(names)
 
             assert hf.attrs["isotopes"] == len(problem.dep.chain)
@@ -40,7 +45,10 @@ class HdfResultCompare(CompareBase):
             names = hf["isotopes/names"]
             for ix, iso in enumerate(problem.dep.chain):
                 assert iso.zai == zais[ix], (iso, zais[ix])
-                assert iso.name == names[ix].decode(), (iso, names[ix].decode())
+                assert iso.name == names[ix].decode(), (
+                    iso,
+                    names[ix].decode(),
+                )
 
             assert hf.attrs["coarseSteps"] == len(problem.dep.timesteps) + 1
             assert hf.attrs["totalSteps"] == sum(problem.dep.substeps) + 1
@@ -52,7 +60,9 @@ class HdfResultCompare(CompareBase):
         reference = self.datadir / "results-reference.h5"
         fails = []
 
-        with h5py.File(testF, mode="r") as test, h5py.File(reference, mode="r") as ref:
+        with h5py.File(testF, mode="r") as test, h5py.File(
+            reference, mode="r"
+        ) as ref:
             version = test.attrs.get("fileVersion")
             if version is None:
                 raise ValueError("HDF storage version not written")
@@ -73,18 +83,26 @@ class HdfResultCompare(CompareBase):
         actualDS = test.get("multiplicationFactor")
         if actualDS is None:
             return False
-        assert (actualDS[:] > 0).all()
 
         refK = ref["multiplicationFactor"]
 
         if actualDS[:, 0] == pytest.approx(refK[:, 0]):
             return True
 
+        refnan = numpy.isnan(refK).any(axis=1)
+        actualnan = numpy.isnan(actualDS).any(axis=1)
+
+        if not numpy.equal(refnan, actualnan).any():
+            return False
+
         # Check statistics
-        diff = numpy.fabs(actualDS[:, 0] - refK[:, 0])
+        diff = numpy.fabs(actualDS[~refnan, 0] - refK[~refnan, 0])
 
-        unc = numpy.sqrt(numpy.square(actualDS[:, 1]) + numpy.square(refK[:, 1]))
+        unc = numpy.sqrt(
+            numpy.square(actualDS[~refnan, 1]) + numpy.square(refK[~refnan, 1])
+        )
 
+        # Check against non-nans
         if (diff > unc).any():
             return False
 
