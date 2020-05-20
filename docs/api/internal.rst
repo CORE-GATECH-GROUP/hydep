@@ -51,6 +51,7 @@ Other Helpers
 
     TimeStep
     TransportResult
+    XsIndex
     TemporalMicroXs
     MicroXsVector
     XsTimeMachine

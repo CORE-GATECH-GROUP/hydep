@@ -19,3 +19,4 @@ from .utils import (
 )
 from .fissionyields import FissionYieldDistribution, FissionYield
 from .cram import Cram16Solver, Cram48Solver
+from .xs import XsIndex
