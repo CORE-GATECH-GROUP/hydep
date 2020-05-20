@@ -323,7 +323,7 @@ class SerpentSolver(BaseSolver):
 
     def _writeMainFile(self, model, manager, settings):
         basefile = pathlib.Path.cwd() / "serpent-base.sss"
-        self.writer.writeBaseFile(basefile, settings)
+        self.writer.writeBaseFile(basefile, settings, manager.chain)
         return basefile
 
 
@@ -360,9 +360,8 @@ class CoupledSerpentSolver(BaseSolver):
         self._fp = basefile = pathlib.Path.cwd() / "serpent-extdep"
         self.writer.writeCouplingFile(
             basefile,
-            manager.timesteps,
-            manager.powers,
             settings,
+            manager,
         )
         return self._fp
 

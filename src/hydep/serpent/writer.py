@@ -560,7 +560,7 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
             bc.append(bcval)
         return bc
 
-    def _writehooks(self, stream):
+    def _writehooks(self, stream, chain):
         self.commentblock(stream, "BEGIN HOOKS")
         self._writeFluxDetectors(stream)
         if hdfeat.FISSION_MATRIX in self.hooks:
@@ -568,7 +568,7 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
         if hdfeat.HOMOG_LOCAL in self.hooks:
             self._writelocalgcu(stream)
         if hdfeat.MICRO_REACTION_XS in self.hooks:
-            self._writeMdep(stream)
+            self._writeMdep(stream, chain.reactionIndex)
 
     def _writefmtx(self, stream):
         stream.write("set fmtx 2 ")
@@ -586,40 +586,14 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
         lines = map("du {}".format, (m.id for m in self.burnable))
         stream.write(self._textwrapper.fill("\n".join(lines)) + "\n")
 
-    def _writeMdep(self, stream):
+    def _writeMdep(self, stream, reactions):
+        # Serpent has a hard limit of 992550
+        lines = [f"{z} {m}" for z, m in reactions if z < 992550]
+        fill = self._textwrapper.fill("\n".join(lines))
         for m in self.burnable:
-            stream.write(f"set mdep {m.id} 1.0 1 {m.id}\n")
-            reactions = self._getReactions(set(m))
-            lines = (f"{z} {m}" for z, m in sorted(reactions))
-            stream.write(self._textwrapper.fill("\n".join(lines)) + "\n")
+            stream.write(f"set mdep {m.id} 1.0 1 {m.id}\n{fill}\n")
 
-    @staticmethod
-    def _getReactions(isotopes):
-        # TODO Cache the reactions given a set of isotopes
-        reactions = set()
-        previous = {None}
-        while isotopes:
-            iso = isotopes.pop()
-            if iso in previous:
-                continue
-            previous.add(iso)
-            if iso.zai > 992550:  # Serpent upper limit
-                continue
-            for reaction in iso.reactions:
-                if reaction.target not in previous:
-                    isotopes.add(reaction.target)
-                reactions.add((iso.zai, reaction.mt))
-            for decay in iso.decayModes:
-                if decay.target not in previous:
-                    isotopes.add(decay.target)
-            if iso.fissionYields is None:
-                continue
-            for prod in (getIsotope(zai=z) for z in iso.fissionYields.products):
-                if prod not in previous:
-                    isotopes.add(prod)
-        return reactions
-
-    def writeMainFile(self, path, settings):
+    def writeMainFile(self, path, settings, chain):
         """Write the main input file
 
         Parameters
@@ -629,6 +603,9 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
             it will be overwritten
         settings : hydep.Settings
             Various configuration settings
+        chain : hydep.DepletionChain
+            Depletion chain. Necessary for producing reaction rates
+            and microscopic cross sections necessary for depletion
 
         Returns
         -------
@@ -679,7 +656,7 @@ cell {writeas} {writeas} {infmat.material.id} -{writeas}
             self._writegeometry(stream)
             self._writesettings(stream, sabLibraries, settings)
             if self.hooks:
-                self._writehooks(stream)
+                self._writehooks(stream, chain)
 
         return path
 
@@ -712,7 +689,7 @@ class SerpentWriter(BaseWriter):
         super().__init__()
         self.base = None
 
-    def writeBaseFile(self, path, settings):
+    def writeBaseFile(self, path, settings, chain):
         """Write the main input file
 
         The path is stored to be included later in
@@ -725,6 +702,10 @@ class SerpentWriter(BaseWriter):
         path : str or pathlib.Path
             Path of file to be written. If it is an existing file
             it will be overwritten
+        settings : hydep.Settings
+            Settings object with a ``serpent`` attribute
+        chain : hydep.DepletionChain
+            Chain with necessary reactions for depletion
 
         Raises
         ------
@@ -737,7 +718,7 @@ class SerpentWriter(BaseWriter):
             Absolute path to the file that has been written
 
         """
-        base = self.writeMainFile(path, settings)
+        base = self.writeMainFile(path, settings, chain)
         self.base = base
         return base
 
@@ -875,8 +856,25 @@ class ExtDepWriter(BaseWriter):
         self._burnable = mats
         self._names = names
 
-    def writeCouplingFile(self, path, timesteps, powers, settings):
-        base = self.writeMainFile(path, settings)
+    def writeCouplingFile(self, path, settings, manager):
+        """Write the input file for the external depletion coupling
+
+        Parameters
+        ----------
+        path : str or pathlib.Path
+            Destination for the input file
+        settings : hydep.Settings
+            Settings object with a ``serpent`` attribute
+        manager : hydep.Manager
+            Depletion interface
+
+        Returns
+        -------
+        pathlib.Path
+            Path to the written file
+
+        """
+        base = self.writeMainFile(path, settings, manager.chain)
 
         if self.compFile is None:
             self.compFile = base.with_suffix(".exdep")
@@ -896,7 +894,7 @@ set extdep 1 "{self.compFile}"
 set ppid {os.getpid()}
 """
             )
-            for sec, powr in zip(timesteps, powers):
+            for sec, powr in zip(manager.timesteps, manager.powers):
                 stream.write(
                     f"set power {powr} dep daystep {sec / SECONDS_PER_DAY:.3E}\n"
                 )
