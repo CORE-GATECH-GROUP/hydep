@@ -1,5 +1,6 @@
 import pathlib
 import shutil
+import warnings
 
 import numpy
 import numpy.testing
@@ -7,7 +8,7 @@ import pytest
 
 h5py = pytest.importorskip("h5py")
 
-from tests.regressions import CompareBase
+from tests.regressions import CompareBase  # noqa: E402
 
 
 class HdfResultCompare(CompareBase):
@@ -75,6 +76,9 @@ class HdfResultCompare(CompareBase):
             if not self._compareK(test, ref):
                 fails.append("keff")
 
+            if not self._compareComps(test, ref):
+                fails.append("compositions")
+
         if fails:
             shutil.move(str(testF), str(self.datadir / "results-fail.h5"))
         return fails
@@ -106,4 +110,29 @@ class HdfResultCompare(CompareBase):
         if (diff > unc).any():
             return False
 
+        return True
+
+    def _compareComps(self, test, ref):
+        actual = test.get("compositions")
+        if actual is None:
+            return False
+        reference = ref["compositions"]
+
+        # Check BOL, EOL, and then internals
+        # Internals will be skipped with warning if the number
+        # of intermediate steps (substeps) differs
+        if not actual[0] == pytest.approx(reference[0]):
+            return False
+
+        if not actual[-1] == pytest.approx(reference[-1]):
+            return False
+
+        if len(actual) == len(reference):
+            return actual[1:-1] == pytest.approx(reference[1:-1])
+
+        warnings.warn(
+            f"Number of steps differs: Reference: {len(reference)} "
+            f"Test: {len(actual)}. Contents will not be tested",
+            RuntimeWarning,
+        )
         return True
