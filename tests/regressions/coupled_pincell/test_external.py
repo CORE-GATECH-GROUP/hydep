@@ -49,7 +49,7 @@ def test_external(runInTempDir, endfChain, pincell):
     serpent = hdserpent.CoupledSerpentSolver()
     simplerom = hydep.simplerom.SimpleROSolver()
 
-    manager = hydep.Manager(endfChain, [50], 1e3, substepDivision=1)
+    manager = hydep.Manager(endfChain, [50], 1e3, substepDivision=2)
     problem = hydep.Problem(pincell, serpent, simplerom, manager)
 
     problem.configure(
