@@ -21,7 +21,7 @@ from hydep.typed import TypedAttr
 from hydep.internal import (
     TimeStep,
     compBundleFromMaterials,
-    XsTimeMachine,
+    DataBank,
 )
 
 __logger__ = logging.getLogger("hydep")
@@ -226,12 +226,14 @@ class Problem(object):
             raise FailedSolverError(f"Negative fluxes obtained at {timestep}")
         self.rom.processBOS(result, timestep, self.dep.powers[0])
 
-        xsmanager = XsTimeMachine(
-            self.settings.fittingOrder,
-            [startSeconds],
-            [result.microXS],
+        xsmanager = DataBank(
             self.settings.numFittingPoints,
+            len(self.dep.burnable),
+            self.dep.chain.reactionIndex,
+            order=self.settings.fittingOrder,
         )
+
+        xsmanager.push(startSeconds, result.microXS)
 
         fissionYields = result.fissionYields
 
@@ -254,7 +256,7 @@ class Problem(object):
             self.rom.processBOS(result, timestep, power)
             self.store.postTransport(timestep, result)
 
-            xsmanager.append(timestep.currentTime, result.microXS)
+            xsmanager.push(timestep.currentTime, result.microXS)
 
             # Substeps
             # TODO Zip all three?
@@ -325,7 +327,7 @@ class Problem(object):
 
             timestep += substepDT
             self.store.writeCompositions(timestep, compositions)
-            microXS = xsmachine.getMicroXsAt(timestep.currentTime)
+            microXS = xsmachine.at(timestep.currentTime)
 
             __logger__.info(
                 f"Executing {self.rom.__class__.__name__} for substep {substepIndex}"
