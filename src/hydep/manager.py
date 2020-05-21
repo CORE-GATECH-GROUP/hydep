@@ -390,9 +390,8 @@ class Manager:
             Incoming material compositions. The
             :attr:`hydep.internal.CompBundle.isotopes` will be
             consistent between the incoming and outgoing bundle
-        reactionRates : iterable of hydep.internal.MicroXsVector
-            Stand in for microscopic reaction rates in each burnable
-            material
+        reactionRates : hydep.internal.MaterialDataArray
+            Reaction rates in each burnable material
         fissionYields : iterable of hydep.internal.FissionYield
             Fission yields in each burnable material
 
