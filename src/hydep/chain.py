@@ -242,8 +242,11 @@ class DepletionChain(tuple):
 
         Parameters
         ----------
-        reactionRates : hydep.internal.MicroXsVector
-            Reaction rates [#/s] for isotopes of interest.
+        reactionRates : hydep.internal.MaterialArray
+            Reaction rates [#/s] for isotopes of interest. Expected
+            to be indexed according to :attr:`reactionIndex`, e.g.
+            ``reactionRates[ix]`` corresponds to the isotope and
+            reaction located at ``self.reactionIndex[ix]``
         fissionYields : hydep.internal.FissionYield
             Fission yields mapping of the form
             ``{parentZAI: {productZAI: yield}}``
@@ -306,7 +309,7 @@ class DepletionChain(tuple):
                         continue
                     mtx[rowIndex, columnIndex] += isotope.decayConstant * decay.branch
 
-        dok = dok_matrix((len(ordering), ) * 2, dtype=reactionRates.mxs.dtype)
+        dok = dok_matrix((len(ordering), ) * 2, dtype=reactionRates.data.dtype)
         dict.update(dok, mtx)
         return dok.tocsr()
 
