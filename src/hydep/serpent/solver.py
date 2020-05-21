@@ -219,6 +219,9 @@ class BaseSolver(HighFidelitySolver):
                     s.write("\n".join(detlines))
             self.processor.fyHelper = fyproc
 
+        if hdfeat.MICRO_REACTION_XS in self.hooks.features:
+            self.processor.reactionIndex = manager.chain.reactionIndex
+
         __logger__.info("Done.")
 
     @abstractmethod
