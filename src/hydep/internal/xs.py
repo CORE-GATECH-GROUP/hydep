@@ -357,6 +357,42 @@ class MaterialDataArray(_IndexedData):
         """Return scaled copy: Y = a * X"""
         return self * scalar
 
+    @classmethod
+    def fromLinearCombination(
+        cls, *pairs: typing.Iterator[typing.Tuple[float, "MaterialDataArray"]]
+    ):
+        r"""Use a weighted linear combination to compute a new material array
+
+        This is a simplified wrapper around repeated calls to
+        :meth:`__mul__` and :meth:`__add__` that avoids creating
+        intermediate classes and works solely on the stored arrays.
+        Each :class:`MaterialDataArray` must have a consistent
+        :attr:`index`.
+
+        The new data array will be computed as :math:`M=\sum_i w_i M_i`,
+        where each :math:`w_i` is a scalar weight for each material
+        data array :math:`M_i`.
+
+        Parameters
+        ----------
+        pairs : iterable of (float, MaterialDataArray)
+            Pairs of ``w_i, mdata_i`` to be used in the update
+
+        Returns
+        -------
+        MaterialDataArray
+
+        """
+        consume = iter(pairs)
+        alpha, mat = next(consume)
+        data = alpha * mat.data
+        index = mat.index
+        for alpha, mat in consume:
+            if mat.index != index:
+                raise ValueError("Reaction indices do not conform")
+            data += alpha * mat.data
+        return cls(index, data)
+
 
 class DataBank(TimeTraveler):
     """Store and extrapolate :class:`MaterialDataArray` at unique time points
