@@ -8,7 +8,7 @@ import numbers
 import numpy
 import scipy.sparse
 
-from .microxs import MicroXsVector
+from .xs import MaterialDataArray
 
 
 class TransportResult:
@@ -60,7 +60,7 @@ class TransportResult:
         expected number of fission neutrons born in burnable
         region ``j`` due to a fission event in burnable region
         ``i``
-    microXS : Sequence of hydep.internal.MicroXsVector or None
+    microXS : hydep.internal.MaterialDataArray or None
         Microscopic cross sections in each burnable region.
 
     """
@@ -184,22 +184,12 @@ class TransportResult:
 
     @microXS.setter
     def microXS(self, value):
-        if value is None:
-            self._microXS = None
-            return
-
-        if not isinstance(value, Sequence):
+        if value is None or isinstance(value, MaterialDataArray):
+            self._microXS = value
+        else:
             raise TypeError(
-                "microXS must be sequence of MicroXSVector not {}".format(type(value))
+                f"microXS must be None or MaterialDataArray, not {type(value)}"
             )
-        for item in value:
-            if not isinstance(item, MicroXsVector):
-                raise TypeError(
-                    "microXS must be sequence of MicroXSVector, found {}".format(
-                        type(item)
-                    )
-                )
-        self._microXS = value
 
     @property
     def fissionYields(self):
