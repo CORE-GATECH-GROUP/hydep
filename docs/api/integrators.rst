@@ -13,3 +13,4 @@ Integrators
 
     PredictorIntegrator
     CELIIntegrator
+    RK4Integrator

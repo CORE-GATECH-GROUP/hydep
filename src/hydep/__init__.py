@@ -13,7 +13,7 @@ from .stack import LatticeStack
 from .model import Model
 from .chain import DepletionChain
 from .manager import Manager
-from .integrators import PredictorIntegrator, CELIIntegrator
+from .integrators import PredictorIntegrator, CELIIntegrator, RK4Integrator
 from .problem import Problem
 from .settings import Settings, SerpentSettings, SfvSettings
 
