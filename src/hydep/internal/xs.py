@@ -357,6 +357,19 @@ class MaterialDataArray(_IndexedData):
         """Return scaled copy: Y = a * X"""
         return self * scalar
 
+    def __truediv__(self, scalar: float) -> "MaterialDataArray":
+        """Return scaled copy: Y = X / a"""
+        if isinstance(scalar, numbers.Real):
+            return type(self)(self.index, self.data / scalar)
+        return NotImplemented
+
+    def __itruediv__(self, scalar: float) -> "MaterialDataArray":
+        """Scale data in place: X /= a"""
+        if isinstance(scalar, numbers.Real):
+            self.data /= scalar
+            return self
+        return NotImplemented
+
     @classmethod
     def fromLinearCombination(
         cls, *pairs: typing.Iterator[typing.Tuple[float, "MaterialDataArray"]]
