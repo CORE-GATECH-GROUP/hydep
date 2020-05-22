@@ -323,6 +323,40 @@ class MaterialDataArray(_IndexedData):
         """Number of materials stored"""
         return len(self.data)
 
+    def __add__(self, other: "MaterialDataArray") -> "MaterialDataArray":
+        """Perform Z = X + Y, :attr:`indices` must agree"""
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        if self.index != other.index:
+            raise ValueError("Reaction indices do not agree")
+        return type(self)(self.index, self.data + other.data)
+
+    def __iadd__(self, other: "MaterialDataArray"):
+        """Perform X += Y, :attr:`indices` must agree"""
+        if not isinstance(other, type(self)):
+            return NotImplemented
+        if self.index != other.index:
+            raise ValueError("Reaction indices do not agree")
+        self.data += other.data
+        return self
+
+    def __mul__(self, scalar: float) -> "MaterialDataArray":
+        """Return scaled copy: Y = X * a"""
+        if isinstance(scalar, numbers.Real):
+            return type(self)(self.index, self.data * scalar)
+        return NotImplemented
+
+    def __imul__(self, scalar: float):
+        """Scale data in place: X *= a"""
+        if isinstance(scalar, numbers.Real):
+            self.data *= scalar
+            return self
+        return NotImplemented
+
+    def __rmul__(self, scalar: float):
+        """Return scaled copy: Y = a * X"""
+        return self * scalar
+
 
 class DataBank(TimeTraveler):
     """Store and extrapolate :class:`MaterialDataArray` at unique time points
