@@ -12,12 +12,9 @@ import multiprocessing
 
 import numpy
 
-from hydep import (
-    BurnableMaterial,
-    DepletionChain,
-    NegativeDensityWarning,
-    NegativeDensityError,
-)
+from .chain import DepletionChain
+from .materials import BurnableMaterial
+from .exceptions import NegativeDensityWarning, NegativeDensityError
 from hydep.constants import SECONDS_PER_DAY
 from hydep.typed import TypedAttr, IterableOf
 from hydep.internal import Cram16Solver, Cram48Solver, CompBundle
