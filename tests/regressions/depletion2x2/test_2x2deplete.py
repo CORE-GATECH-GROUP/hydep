@@ -99,22 +99,23 @@ def depletionHarness(endfChain, depletionModel):
         buildFissionYields(endfChain, ene=THERMAL_ENERGY, fallbackIndex=0), N_BURNABLE
     )
 
-    microxs = []
+    microxs = hydep.internal.MaterialDataArray(
+        endfChain.reactionIndex,
+        numpy.zeros((N_BURNABLE, len(endfChain.reactionIndex)))
+    )
 
     for ix in range(N_BURNABLE):
         mxsfile = datadir / "mxs{}.dat".format(ix + 1)
         assert mxsfile.is_file()
         flux = fluxes[ix] / burnable[ix].volume
         mxsdata = numpy.loadtxt(mxsfile)
-        zai = mxsdata[:, 0].astype(int)
-        rxns = mxsdata[:, 1].astype(int)
-        mxs = mxsdata[:, 2 : 2 + 1 + N_GROUPS]
 
-        microxs.append(
-            hydep.internal.MicroXsVector.fromLongFormVectors(
-                zai, rxns, mxs * flux, assumeSorted=True
-            )
-        )
+        for z, r, m in zip(
+            mxsdata[:, 0].astype(int),
+            mxsdata[:, 1].astype(int),
+            flux * mxsdata[:, 2:2+1+N_GROUPS],
+        ):
+            microxs.data[ix, endfChain.reactionIndex.index(z, r)] = m
 
     timestep = 50
     power = 6e6
