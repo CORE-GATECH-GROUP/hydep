@@ -136,7 +136,9 @@ class SerpentProcessor:
         pairs = ("{}: {}".format(k, v) for k, v in settings.items())
         msg = (
             "The following settings could not be used to control "
-            "Serpent reading:\n{}\nReason: {}".format("\n  ".join(pairs), reason)
+            "Serpent reading:\n{}\nReason: {}".format(
+                "\n  ".join(pairs), reason
+            )
         )
         warnings.warn(msg, SyntaxWarning)
 
@@ -400,14 +402,18 @@ class SerpentProcessor:
         elif "universe" not in detector.indexes:
             raise ValueError(
                 "Detector {} does not appear to be binned against "
-                "universes. Indexes: {}".format(detector.name, detector.indexes)
+                "universes. Indexes: {}".format(
+                    detector.name, detector.indexes
+                )
             )
 
         if detector.indexes == ("universe",):
             if tallies.size != len(self.burnable):
                 raise ValueError(
                     "Detector {} has {} tallies, expected {} for burnable "
-                    "universes".format(detector.name, tallies.size, len(self.burnable))
+                    "universes".format(
+                        detector.name, tallies.size, len(self.burnable)
+                    )
                 )
 
             return tallies.reshape((len(self.burnable), 1))
@@ -417,7 +423,8 @@ class SerpentProcessor:
                 raise ValueError(
                     "Detector {} must only be binned against universe, "
                     "and optionally energy, not {}".format(
-                        detector.name, detector.indexes)
+                        detector.name, detector.indexes
+                    )
                 )
 
             eneAx = detector.indexes.index("energy")
@@ -426,14 +433,18 @@ class SerpentProcessor:
             if tallies.shape[uAx] != len(self.burnable):
                 raise ValueError(
                     "Detector {} has {} tallies, expected {} for burnable "
-                    "universes".format(detector.name, tallies.size, len(self.burnable))
+                    "universes".format(
+                        detector.name, tallies.size, len(self.burnable)
+                    )
                 )
 
             return tallies.transpose((uAx, eneAx))
 
         raise ValueError(
             "Detector {} must only be binned against universe, "
-            "and optionally energy, not {}".format(detector.name, detector.indexes)
+            "and optionally energy, not {}".format(
+                detector.name, detector.indexes
+            )
         )
 
     @requireBurnable
@@ -444,8 +455,7 @@ class SerpentProcessor:
         microxs = self.read(mdepfile, "microxs").xsVal
 
         data = numpy.empty(
-            (len(self.burnable), len(self.reactionIndex)),
-            dtype=numpy.float64,
+            (len(self.burnable), len(self.reactionIndex)), dtype=numpy.float64,
         )
 
         for uindex, univ in enumerate(self.burnable):
@@ -464,7 +474,9 @@ class SerpentProcessor:
         """Take fission yields for all isotopes"""
         assert self.fyHelper is not None
         fydet = self.read(detectorfile, "det")
-        return self.fyHelper.collapseYieldsFromDetectors(fydet.detectors.values())
+        return self.fyHelper.collapseYieldsFromDetectors(
+            fydet.detectors.values()
+        )
 
 
 class FissionYieldFetcher:
@@ -500,7 +512,10 @@ class FissionYieldFetcher:
             REACTION_MTS.SECOND_CHANCE_FISSION,
             REACTION_MTS.THIRD_CHANCE_FISSION,
         },
-        962430: {REACTION_MTS.FIRST_CHANCE_FISSION, REACTION_MTS.SECOND_CHANCE_FISSION},
+        962430: {
+            REACTION_MTS.FIRST_CHANCE_FISSION,
+            REACTION_MTS.SECOND_CHANCE_FISSION,
+        },
     }
     # These isotopes don't have a total fission (MT=18)
     # reaction in my ENDF/B-VII.0 library that shipped
@@ -511,7 +526,9 @@ class FissionYieldFetcher:
     def __init__(self, matids, isotopes):
         self._constant = {}
         self._variable = {}
-        self._ucards = textwrap.fill(" ".join(["du {}".format(u) for u in matids]))
+        self._ucards = textwrap.fill(
+            " ".join(["du {}".format(u) for u in matids])
+        )
         for iso in isotopes:
             if iso.fissionYields is None:
                 continue
@@ -547,10 +564,12 @@ class FissionYieldFetcher:
 
             energies = []
             for ix, lower in enumerate(fy.energies[:-1]):
-                lethargyMid = math.sqrt(lower * fy.energies[ix + 1]) / 1E6
+                lethargyMid = math.sqrt(lower * fy.energies[ix + 1]) / 1e6
                 energies.append(f"{lethargyMid:.3E}")
 
-            detectors.append(f"ene {gridname} 1 0.0 {' '.join(energies)} {upperEnergy}")
+            detectors.append(
+                f"ene {gridname} 1 0.0 {' '.join(energies)} {upperEnergy}"
+            )
             rxns = " ".join(
                 [
                     f"dr {r} fy{zai}"
@@ -563,7 +582,9 @@ class FissionYieldFetcher:
             detectors.append(self._ucards)
         return materials + detectors
 
-    def collapseYieldsFromDetectors(self, detectors):
+    def collapseYieldsFromDetectors(
+        self, detectors
+    ) -> typing.List[typing.Dict[int, "hydep.internal.FissionYield"]]:
         """Obtain region specific, fission-rate-averaged fission yields
 
         Parameters
