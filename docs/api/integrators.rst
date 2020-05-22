@@ -12,3 +12,4 @@ Integrators
     :template: myintegrator.rst
 
     PredictorIntegrator
+    CELIIntegrator

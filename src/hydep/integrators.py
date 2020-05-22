@@ -67,3 +67,37 @@ class PredictorIntegrator(Integrator):
             self._xs.getReactionRatesAt(timestep.currentTime, flux),
             fissionYields,
         )
+
+
+class CELIIntegrator(Integrator):
+    def __call__(
+        self,
+        timestep: "hydep.internal.TimeStep",
+        dt: float,
+        compositions: "hydep.internal.CompBundle",
+        flux: "numpy.ndarray",
+        fissionYields: typing.List[
+            typing.Dict[int, "hydep.internal.FissionYield"]
+        ],
+    ) -> "hydep.internal.CompBundle":
+
+        # Predictor
+        bosRR = self._xs.getReactionRatesAt(timestep.currentTime, flux)
+        eosComp = self.dep.deplete(dt, compositions, bosRR, fissionYields)
+
+        eosFlux, _time = self.ro.intermediateSolve(
+            timestep, eosComp, self._xs.at(timestep.currentTime + dt)
+        )
+        eosRR = self._xs.getReactionRatesAt(timestep.currentTime + dt, eosFlux)
+
+        # Get average reaction rates for corrector step
+        avgRR = MaterialDataArray.fromLinearCombination(
+            (0.5, bosRR), (0.5, eosRR)
+        )
+
+        return self.dep.deplete(
+            dt,
+            compositions,
+            avgRR,
+            fissionYields,
+        )
