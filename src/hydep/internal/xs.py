@@ -72,6 +72,16 @@ class XsIndex:
         rxns: typing.Iterable[int],
         zptr: typing.Iterable[int],
     ):
+        if len(zais) != len(zptr) - 1:
+            raise ValueError(
+                f"Expect one additional pointer than isotopes. Got {len(zptr)} "
+                f"pointers and {len(zais)} isotopes"
+            )
+        if len(rxns) != zptr[-1]:
+            raise ValueError(
+                f"Number of reactions {len(rxns)} not equal to final pointer "
+                f"{zptr[-1]}"
+            )
         self._zais = tuple(zais)
         self._zptr = tuple(zptr)
         self._rxns = tuple(rxns)
