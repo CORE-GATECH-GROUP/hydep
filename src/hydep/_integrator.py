@@ -178,7 +178,7 @@ class Integrator(ABC):
             from .hdfstore import HdfStore
 
             filename = self.settings.basedir / "hydep-results.h5"
-            __logger__.debug(f"Storing result in {filename}")
+            __logger__.debug("Storing result in %s", filename)
 
             self.store = HdfStore(filename=filename)
 
@@ -287,17 +287,12 @@ class Integrator(ABC):
 
         # Run first solution to get information on micro xs
 
-        # TODO Some try / except around solutions? Or this whole method?
-        # We want to make sure that all solvers are adequately warned about
-        # failures
         __logger__.info(
-            f"Executing {type(self.hf)} step 0 "
-            f"Time {timestep.currentTime / SECONDS_PER_DAY:.4E} [d]"
+            "Executing %s step 0 Time %.4E [d]",
+            type(self.hf).__name__, startSeconds / SECONDS_PER_DAY,
         )
         result = self.hf.bosSolve(compositions, timestep, self.dep.powers[0])
-        __logger__.info(
-            f"   k =  {result.keff[0]:.6f} +/- {result.keff[1]:.6E}"
-        )
+        __logger__.info("   k =  %.6f +/- %.6E", result.keff[0], result.keff[1])
         self.store.postTransport(timestep, result)
         if numpy.less(result.flux, 0).any():
             raise FailedSolverError(f"Negative fluxes obtained at {timestep}")
@@ -318,13 +313,11 @@ class Integrator(ABC):
             zip(self.dep.timesteps[1:], self.dep.powers[1:]), start=1
         ):
             __logger__.info(
-                f"Executing {self.hf.__class__.__name__} step {coarseIndex} "
-                f"Time {timestep.currentTime / SECONDS_PER_DAY:.4E} [d]"
+                "Executing %s step %d Time %.4E [d]",
+                type(self.hf).__name__, coarseIndex, timestep.currentTime / SECONDS_PER_DAY,
             )
             result = self.hf.bosSolve(compositions, timestep, power)
-            __logger__.info(
-                f"   k =  {result.keff[0]:.6f} +/- {result.keff[1]:.6E}"
-            )
+            __logger__.info("   k =  %.6f +/- %.6E", result.keff[0], result.keff[1])
             self.ro.processBOS(result, timestep, power)
             self.store.postTransport(timestep, result)
 
@@ -344,13 +337,11 @@ class Integrator(ABC):
 
         # Final transport solution
         __logger__.info(
-            f"Executing {type(self.hf)} step {timestep.coarse} "
-            f"Time {timestep.currentTime / SECONDS_PER_DAY:.4E} [d]"
+            "Executing %s step %d Time %.4E [d]",
+            type(self.hf).__name__, timestep.coarse, timestep.currentTime / SECONDS_PER_DAY,
         )
         result = self.hf.eolSolve(compositions, timestep, self.dep.powers[-1])
-        __logger__.info(
-            f"   k =  {result.keff[0]:.6f} +/- {result.keff[1]:.6E}"
-        )
+        __logger__.info("   k =  %.6f +/- %.6E", result.keff[0], result.keff[1])
         self.store.postTransport(timestep, result)
         if numpy.less(result.flux, 0).any():
             raise FailedSolverError(f"Negative fluxes obtained at {timestep}")
@@ -409,13 +400,12 @@ class Integrator(ABC):
             microXS = xsmachine.at(timestep.currentTime)
 
             __logger__.info(
-                f"Executing {type(self.ro)} for substep {substepIndex}"
+                "Executing %s for substep %d",
+                type(self.ro).__name__, substepIndex,
             )
             result = self.ro.substepSolve(timestep, compositions, microXS)
             if not numpy.isnan(result.keff).all():
-                __logger__.info(
-                    f"   k =  {result.keff[0]:.6f} +/- {result.keff[1]:.6E}"
-                )
+                __logger__.info("   k =  %.6f +/- %.6E", result.keff[0], result.keff[1])
             self.store.postTransport(timestep, result)
             if numpy.less(result.flux, 0).any():
                 raise FailedSolverError(
