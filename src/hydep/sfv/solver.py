@@ -11,10 +11,9 @@ from numpy.linalg import LinAlgError
 from hydep import FailedSolverError
 from hydep.constants import BARN_PER_CM2, EV_PER_JOULE, REACTION_MTS, FISSION_REACTIONS
 from hydep.lib import ReducedOrderSolver
-from hydep.internal import TransportResult
+from hydep.internal import TransportResult, TimeTraveler
 import hydep.internal.features as hdfeat
 from .lib import predict_spatial_flux, getAdjFwdEig
-from .utils import NubarPolyFit
 
 __all__ = ["SfvSolver"]
 
@@ -239,10 +238,10 @@ class SfvSolver(ReducedOrderSolver):
                 f"Cannot make {fittingOrder} polynomial for nubar with "
                 f"{settings.numFittingPoints} values"
             )
-        else:
-            self._nubar = NubarPolyFit(
-                order=fittingOrder, maxlen=settings.numFittingPoints
-            )
+
+        self._nubar = TimeTraveler(
+            settings.numFittingPoints, (len(vols), ), fittingOrder
+        )
 
         self._totalvolume = sum(vols)
         self._macroData = numpy.empty((len(vols), len(DataIndexes)))
@@ -291,8 +290,9 @@ class SfvSolver(ReducedOrderSolver):
         self._keff0 = txresult.keff[0]
         self._bosProcessFlux(txresult.flux)
         self._currentPower = power * EV_PER_JOULE
-        nubar = [m["nubar"] for m in txresult.macroXS]
-        self._nubar.insort(timestep.currentTime, nubar)
+        # One-group -> take only first index
+        nubar = [m["nubar"][0] for m in txresult.macroXS]
+        self._nubar.push(timestep.currentTime, nubar)
 
     def _bosProcessFmtx(self, txresult, timestep):
         try:
@@ -348,7 +348,7 @@ class SfvSolver(ReducedOrderSolver):
 
         """
         self._updateMacroFromMicroXs(compositions, microxs)
-        self._macroData[:, DataIndexes.NUBAR] = self._nubar(timestep.currentTime)
+        self._macroData[:, DataIndexes.NUBAR] = self._nubar.at(timestep.currentTime)
 
         start = time.time()
         data = self._macroData

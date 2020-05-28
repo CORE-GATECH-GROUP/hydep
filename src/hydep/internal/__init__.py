@@ -10,7 +10,7 @@ from .isotope import (
 )
 from .timestep import TimeStep
 from .results import TransportResult
-from .microxs import TemporalMicroXs, MicroXsVector, XsTimeMachine
+from .timetravel import TimeTraveler
 from .utils import (
     Boundaries,
     CompBundle,

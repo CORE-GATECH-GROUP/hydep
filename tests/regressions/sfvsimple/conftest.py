@@ -6,7 +6,7 @@ import numpy
 import pytest
 import hydep
 from hydep.constants import CM2_PER_BARN
-from hydep.internal import MicroXsVector, CompBundle, getIsotope
+from hydep.internal import XsIndex, MaterialDataArray, CompBundle, getIsotope
 
 from tests.regressions import ProblemProxy
 from . import SfvDataHarness
@@ -92,20 +92,33 @@ def sfvMacroData():
 
 @pytest.fixture
 def sfvMicroXS(simpleSfvProblem):
-    mxs = []
     datadir = pathlib.Path(__file__).parent
-    for m in simpleSfvProblem.dep.burnable:
-        mxsf = datadir / f"mxs{m.id}.dat"
-        data = numpy.loadtxt(mxsf)
-        mxs.append(
-            MicroXsVector.fromLongFormVectors(
-                data[:, 0].astype(int),
-                data[:, 1].astype(int),
-                data[:, 2] * CM2_PER_BARN,
-                assumeSorted=False,
-            )
-        )
-    return mxs
+    # Build reaction index and data array with first
+    # file, then fill in with other files
+    ids = [m.id for m in simpleSfvProblem.dep.burnable]
+    basefile = datadir / f"mxs{ids[0]}.dat"
+    data0 = numpy.loadtxt(basefile)
+
+    zvector = data0[:, 0].astype(int)
+    zais = [zvector[0]]
+    zptr = [0]
+    for ix, zai in enumerate(zvector[1:], start=1):
+        if zai != zais[-1]:
+            zptr.append(ix)
+            zais.append(zai)
+    zptr.append(len(data0))
+    index = XsIndex(zais, data0[:, 1].astype(int), zptr)
+
+    mdata = numpy.empty((len(ids), len(index)))
+    mdata[0] = data0[:, 2]
+
+    for mindex, mid in enumerate(ids[1:], start=1):
+        data = numpy.loadtxt(datadir / f"mxs{mid}.dat")
+        keys = [(z, r) for z, r in data[:, :2].astype(int)]
+        lookup = dict(zip(keys, data[:, 2]))
+        for ix, key in enumerate(index):
+            mdata[mindex, ix] = lookup[key]
+    return MaterialDataArray(index, mdata * CM2_PER_BARN)
 
 
 @pytest.fixture

@@ -2,15 +2,14 @@
 Classes for interacting with microscopic cross sections and reaction rates
 
 """
-import math
-from collections import deque
 from collections.abc import Iterable
 import typing
 import bisect
 import numbers
 
 import numpy
-from numpy.polynomial import polynomial
+
+from hydep.internal.timetravel import TimeTraveler
 
 
 class XsIndex:
@@ -325,8 +324,8 @@ class MaterialDataArray(_IndexedData):
         return len(self.data)
 
 
-class DataBank:
-    """Store and extrapolate :class:`MaterialDataArray`s at unique time points
+class DataBank(TimeTraveler):
+    """Store and extrapolate :class:`MaterialDataArray` at unique time points
 
     Parameters
     ----------
@@ -348,24 +347,13 @@ class DataBank:
         rxnIndex: XsIndex,
         order: typing.Optional[int] = 1,
     ):
-        self._data = numpy.empty(
-            (nsteps, nmaterials, len(rxnIndex)), dtype=numpy.float64
-        )
+        super().__init__(nsteps, (nmaterials, len(rxnIndex)), order)
         self._reactionIndex = rxnIndex
-        self._times = numpy.empty(nsteps)
-        self._timeIndex = deque(maxlen=nsteps)
-        self._coeffs = None
-        self._order = order
 
     @property
     def reactionIndex(self) -> XsIndex:
         """Read-only property for underlying reaction index"""
         return self._reactionIndex
-
-    @property
-    def shape(self) -> typing.Tuple[int, int, int]:
-        """Shape of underlying array"""
-        return self._data.shape
 
     @property
     def nsteps(self) -> int:
@@ -381,11 +369,6 @@ class DataBank:
     def nreactions(self) -> int:
         """Number of reactions stored"""
         return self._data.shape[2]
-
-    @property
-    def stacklen(self) -> int:
-        """Number of time points currently stored"""
-        return len(self._timeIndex)
 
     def push(self, t: float, materialData: MaterialDataArray):
         """Push another set of data to be extrapolated
@@ -406,19 +389,7 @@ class DataBank:
         """
         if materialData.index != self._reactionIndex:
             raise ValueError("Reaction indices do not conform")
-        if self._timeIndex:
-            if t <= self._times[self._timeIndex[-1]]:
-                raise ValueError(
-                    f"Current time {t} is less than maximum time "
-                    f"{self._times[self._timeIndex[-1]]}"
-                )
-            index = (self._timeIndex[-1] + 1) % self._data.shape[0]
-        else:
-            index = 0
-        self._data[index] = materialData.data
-        self._timeIndex.append(index)
-        self._times[index] = t
-        self._coeffs = None
+        super().push(t, materialData.data)
 
     def at(
         self, t: float, atol: typing.Optional[float] = 1e-12
@@ -455,30 +426,8 @@ class DataBank:
             there is no data to be projected
 
         """
-        if not self._timeIndex:
-            raise AttributeError("No xs loaded")
-
-        # Sequential search because we should only be storing
-        # a few time points, and time vector is not sorted
-        for ix in self._timeIndex:
-            if math.fabs(self._times[ix] - t) <= atol:
-                vals = self._data[ix]
-                break
-        else:
-            if self._coeffs is None:
-                self._coeffs = polynomial.polyfit(
-                    self._times[self._timeIndex],
-                    self._data[self._timeIndex].reshape(
-                        len(self._timeIndex), self.nmaterials * self.nreactions
-                    ),
-                    deg=min(len(self._timeIndex) - 1, self._order),
-                )
-
-            vals = polynomial.polyval(t, self._coeffs).reshape(
-                self.nmaterials, self.nreactions
-            )
-
-        return MaterialDataArray(self._reactionIndex, vals)
+        data = super().at(t, atol=atol)
+        return MaterialDataArray(self._reactionIndex, data)
 
     def getReactionRatesAt(
         self,

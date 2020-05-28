@@ -52,11 +52,12 @@ Other Helpers
     TimeStep
     TransportResult
     XsIndex
-    TemporalMicroXs
-    MicroXsVector
-    XsTimeMachine
+    MaterialData
+    MaterialDataArray
+    DataBank
     Boundaries
     CompBundle
+    TimeTraveler
 
 
 ``openmc``-inspired
@@ -71,16 +72,3 @@ Other Helpers
     Cram48Solver
     FissionYieldDistribution
     FissionYield
-
-Time Traveler Bases
-===================
-
-.. currentmodule:: hydep.internal.timetravel
-
-.. autosummary::
-    :toctree: generated
-    :nosignatures:
-    :template: myclass.rst
-
-    TimeTraveler
-    CachedTimeTraveler
