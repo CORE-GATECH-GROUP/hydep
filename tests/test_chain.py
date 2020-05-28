@@ -88,7 +88,7 @@ def test_xsindex(simpleChain):
         assert not isoReactions
 
     for ix, (zai, rxn) in enumerate(index):
-        start = index.getZaiStart(zai)
+        start = index.findZai(zai)
         assert index.zais[start] == zai
         assert index[ix] == (zai, rxn)
         assert index.index(zai, rxn) == ix

@@ -57,7 +57,7 @@ class XsIndex:
     2
     >>> xs[-1]
     (922380, 18)
-    >>> xs.getZaiStart(922380)
+    >>> xs.findZai(922380)
     2
     >>> for rxn, index in xs.getReactions(922350):
     ...     print(rxn, index)
@@ -158,15 +158,12 @@ class XsIndex:
             If ``zai`` or ``rxn`` was not found
 
         """
-        zix = self.getZaiStart(zai)
-        start, end = self.zptr[zix : zix + 2]
-        rxns = self.rxns[start:end]
-        for offset, r in enumerate(rxns):
-            if r == rxn:
-                return start + offset
-        raise ValueError(f"Reaction {rxn} for {zai} not found")
+        for myrxn, ix in self.getReactions(zai):
+            if myrxn == rxn:
+                return ix
+        raise ValueError(f"Reaction {rxn} of isotope {zai} not found")
 
-    def getZaiStart(self, zai: int) -> int:
+    def findZai(self, zai: int) -> int:
         """Return the index in :attr:`zais` for a given ZAI
 
         Parameters
@@ -178,7 +175,7 @@ class XsIndex:
         -------
         int
             Index in :attr:`zais` such that
-            ``x.zais[x.getZaiStart(z)] == z``
+            ``x.zais[x.findZai(z)] == z``
 
         Raises
         ------
@@ -213,7 +210,7 @@ class XsIndex:
             If ``zai`` is not found
 
         """
-        zix = self.getZaiStart(zai)
+        zix = self.findZai(zai)
         start, end = self._zptr[zix : zix + 2]
         return (
             (rxn, start + ix) for ix, rxn in enumerate(self.rxns[start:end])
@@ -353,7 +350,7 @@ class DataBank:
     @property
     def reactionIndex(self) -> XsIndex:
         """Read-only property for underlying reaction index"""
-        return self._rxnIndex
+        return self._reactionIndex
 
     @property
     def shape(self) -> typing.Tuple[int, int, int]:
