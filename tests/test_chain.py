@@ -91,4 +91,4 @@ def test_xsindex(simpleChain):
         start = index.findZai(zai)
         assert index.zais[start] == zai
         assert index[ix] == (zai, rxn)
-        assert index.index(zai, rxn) == ix
+        assert index(zai, rxn) == ix

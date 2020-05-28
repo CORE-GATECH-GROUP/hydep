@@ -115,7 +115,7 @@ def depletionHarness(endfChain, depletionModel):
             mxsdata[:, 1].astype(int),
             flux * mxsdata[:, 2:2+1+N_GROUPS],
         ):
-            microxs.data[ix, endfChain.reactionIndex.index(z, r)] = m
+            microxs.data[ix, endfChain.reactionIndex(z, r)] = m
 
     timestep = 50
     power = 6e6

@@ -53,7 +53,7 @@ class XsIndex:
     [(80160, 102), (922350, 18), (922350, 102), (922380, 102), (922380, 18)]
     >>> xs[2]
     (922350, 102)
-    >>> xs.index(922350, 102)
+    >>> xs(922350, 102)
     2
     >>> xs[-1]
     (922380, 18)
@@ -134,19 +134,7 @@ class XsIndex:
             return self._zais[place], rxn
         return self._zais[place - 1], rxn
 
-    @property
-    def zais(self):
-        return self._zais
-
-    @property
-    def rxns(self):
-        return self._rxns
-
-    @property
-    def zptr(self):
-        return self._zptr
-
-    def index(self, zai: int, rxn: int) -> int:
+    def __call__(self, zai: int, rxn: int) -> int:
         """Retrieve the index for a given isotope and reaction
 
         Parameters
@@ -172,6 +160,18 @@ class XsIndex:
             if myrxn == rxn:
                 return ix
         raise ValueError(f"Reaction {rxn} of isotope {zai} not found")
+
+    @property
+    def zais(self):
+        return self._zais
+
+    @property
+    def rxns(self):
+        return self._rxns
+
+    @property
+    def zptr(self):
+        return self._zptr
 
     def findZai(self, zai: int) -> int:
         """Return the index in :attr:`zais` for a given ZAI
