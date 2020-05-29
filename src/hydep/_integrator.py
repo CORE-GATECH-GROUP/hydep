@@ -199,12 +199,6 @@ class Integrator(ABC):
             self.settings.fittingOrder,
         )
 
-    def solve(self, initialDays=0):
-        """Alias for :meth:`integrate` to work with old scripts"""
-        import warnings
-        warnings.warn("Use integrate instead of solve")
-        return self.integrate(initialDays=initialDays)
-
     def integrate(self, initialDays=0):
         """Launch the coupled sequence and hold your breath
 
