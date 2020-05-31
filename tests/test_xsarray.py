@@ -90,6 +90,40 @@ def xsArray(xsInputs):
     )
 
 
+def test_xsMath(xsArray):
+    orig = xsArray.data.copy()
+
+    add = xsArray + xsArray
+    assert add.index is xsArray.index
+    assert add.data == pytest.approx(orig * 2)
+
+    add += xsArray
+    assert add.data == pytest.approx(orig * 3)
+
+    mul = xsArray * 2
+    assert mul.data == pytest.approx(orig * 2)
+    assert mul.index is xsArray.index
+
+    mul *= 0.5
+    assert mul.data == pytest.approx(orig)
+    assert xsArray.data == pytest.approx(orig)
+
+    assert (1.5 * xsArray).data == pytest.approx(orig * 1.5)
+
+    div = xsArray / 2
+    assert div.data == pytest.approx(orig / 2)
+
+    div /= 2
+    assert div.data == pytest.approx(orig / 4)
+
+    linc = MaterialDataArray.fromLinearCombination(
+        (0.5, xsArray), (1.5, xsArray)
+    )
+    assert linc.data == pytest.approx(orig * 2)
+
+    assert xsArray.data == pytest.approx(orig)
+
+
 @pytest.mark.parametrize("order", (0, 1, 2))
 def test_extrapolation(xsArray, order):
     """Test the validity of the microxs extrapolation
