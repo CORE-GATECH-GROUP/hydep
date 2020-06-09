@@ -289,16 +289,16 @@ class DepletionChain(tuple):
                         continue
                     mtx[rowIndex, columnIndex] += rate * reaction.branch
 
-            if isotope.decayModes:
+            if isotope.decayConstant is not None:
                 mtx[columnIndex, columnIndex] -= isotope.decayConstant
 
-                for decay in isotope.decayModes:
-                    if decay.target is None:
-                        continue
-                    rowIndex = ordering.get(decay.target.zai)
-                    if rowIndex is None:
-                        continue
-                    mtx[rowIndex, columnIndex] += isotope.decayConstant * decay.branch
+            for decay in isotope.decayModes:
+                if decay.target is None:
+                    continue
+                rowIndex = ordering.get(decay.target.zai)
+                if rowIndex is None:
+                    continue
+                mtx[rowIndex, columnIndex] += isotope.decayConstant * decay.branch
 
         dok = dok_matrix((len(ordering), ) * 2, dtype=reactionRates.mxs.dtype)
         dict.update(dok, mtx)
