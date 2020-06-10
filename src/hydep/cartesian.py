@@ -358,7 +358,7 @@ class CartesianLattice(Universe):
 
         See Also
         --------
-        hydep.Pin.differentialBurnableMaterials
+        hydep.Pin.differentiateBurnableMaterials
 
         """
         # TODO Treatment for outer - assume not burnable
