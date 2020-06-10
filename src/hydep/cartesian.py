@@ -386,8 +386,14 @@ class CartesianLattice(Universe):
             self.array = newarray
             return self
 
-        return self.__class__(
-            self.nx, self.ny, self.pitch, array=newarray, name=self.name,
+        return type(self)(
+            self.nx,
+            self.ny,
+            self.pitch,
+            array=newarray,
+            name=self.name,
+            center=self.center,
+            outer=self.outer,
         )
 
     def boundaries(self, memo=None):
