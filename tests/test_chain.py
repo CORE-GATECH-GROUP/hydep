@@ -73,3 +73,22 @@ def test_u5(simpleChain):
     for ene, fydist in zip(sorted(u5.fissionYields), expYields):
         assert u5.fissionYields[ene].products == products
         assert u5.fissionYields[ene].yields == pytest.approx(fydist)
+
+
+def test_xsindex(simpleChain):
+    index = simpleChain.reactionIndex
+
+    for zai in index.zais:
+        isotope = simpleChain.find(zai=zai)
+        isoReactions = {rxn.mt.value for rxn in isotope.reactions}
+        for rxn, ix in index.getReactions(zai):
+            isoReactions.remove(rxn)
+            assert index[ix] == (zai, rxn)
+
+        assert not isoReactions
+
+    for ix, (zai, rxn) in enumerate(index):
+        start = index.findZai(zai)
+        assert index.zais[start] == zai
+        assert index[ix] == (zai, rxn)
+        assert index(zai, rxn) == ix

@@ -4,7 +4,12 @@ import pathlib
 import numpy
 import pytest
 import hydep
-from hydep.internal import CompBundle, TimeStep, compBundleFromMaterials, Boundaries
+from hydep.internal import (
+    CompBundle,
+    TimeStep,
+    compBundleFromMaterials,
+    Boundaries,
+)
 import hydep.serpent
 
 from tests import strcompare, filecompare
@@ -136,7 +141,9 @@ def test_writeSteadyStateFile(tmp_path, beavrsMaterials):
         testfile.rename(reference)
         return
 
-    assert filecompare(reference, testfile, testfile.parent / "steady_state_fail")
+    assert filecompare(
+        reference, testfile, testfile.parent / "steady_state_fail"
+    )
 
     testfile.unlink()
 
@@ -165,7 +172,7 @@ def test_filteredMaterials(tmp_path, fakeXsDataStream):
         (95, 242, 1),
     ]
 
-    densities = [1E-4, 1E-5]
+    densities = [1e-4, 1e-5]
 
     explines = [
         f"95242.{LIB} {densities[0]:13.9E}",
@@ -177,7 +184,9 @@ def test_filteredMaterials(tmp_path, fakeXsDataStream):
 
     stream = io.StringIO()
 
-    missing = writer.writeMatIsoDef(stream, zip(allIsotopes, densities), LIB, threshold=0)
+    missing = writer.writeMatIsoDef(
+        stream, zip(allIsotopes, densities), LIB, threshold=0
+    )
     assert missing == 0
     strcompare("\n".join(explines), stream.getvalue())
 
@@ -185,7 +194,8 @@ def test_filteredMaterials(tmp_path, fakeXsDataStream):
     stream.truncate(0)
 
     missing = writer.writeMatIsoDef(
-        stream, zip(allIsotopes, densities), LIB, threshold=densities[0])
+        stream, zip(allIsotopes, densities), LIB, threshold=densities[0]
+    )
     assert missing == densities[1]
     strcompare(explines[0], stream.getvalue())
 
@@ -193,7 +203,7 @@ def test_filteredMaterials(tmp_path, fakeXsDataStream):
     stream.truncate(0)
 
     BAD_ISO = (1, 200, 0)
-    BAD_DENS = 1E-10
+    BAD_DENS = 1e-10
     allIsotopes.append(BAD_ISO)
     densities.append(BAD_DENS)
 
@@ -201,8 +211,7 @@ def test_filteredMaterials(tmp_path, fakeXsDataStream):
     assert len(p.missing) == 1
     assert BAD_ISO in p.missing
 
-    missing = writer.writeMatIsoDef(
-        stream, zip(allIsotopes, densities), LIB)
+    missing = writer.writeMatIsoDef(stream, zip(allIsotopes, densities), LIB)
     assert missing == BAD_DENS
     strcompare("\n".join(explines), stream.getvalue())
 
@@ -210,7 +219,7 @@ def test_filteredMaterials(tmp_path, fakeXsDataStream):
 
 
 @pytest.mark.serpent
-def test_unbounded(tmp_path, beavrsFuelPin, serpentcfg):
+def test_unbounded(tmp_path, beavrsFuelPin, serpentcfg, simpleChain):
     writer = hydep.serpent.SerpentWriter()
     writer.burnable = tuple(beavrsFuelPin.findBurnableMaterials())
     writer.model = hydep.Model(beavrsFuelPin)
@@ -219,17 +228,21 @@ def test_unbounded(tmp_path, beavrsFuelPin, serpentcfg):
     assert writer.model.root.bounds is None
 
     with pytest.raises(hydep.GeometryError, match=".* unbounded.*"):
-        writer.writeMainFile(tmp_path / "unbounded", serpentcfg)
+        writer.writeMainFile(tmp_path / "unbounded", serpentcfg, simpleChain)
 
     # Check that identical files will be written if bounds are placed
     # on root or on model
     bounds = Boundaries((-0.63, 0.63), (-0.63, 0.63), None)
 
     writer.model.bounds = bounds
-    boundedModel = writer.writeMainFile(tmp_path / "bounded_model", serpentcfg)
+    boundedModel = writer.writeMainFile(
+        tmp_path / "bounded_model", serpentcfg, simpleChain
+    )
 
     writer.model.bounds = None
     writer.model.root.bounds = bounds
-    boundedRoot = writer.writeMainFile(tmp_path / "bounded_root", serpentcfg)
+    boundedRoot = writer.writeMainFile(
+        tmp_path / "bounded_root", serpentcfg, simpleChain,
+    )
 
     assert filecompare(boundedModel, boundedRoot)

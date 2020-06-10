@@ -10,7 +10,7 @@ from .isotope import (
 )
 from .timestep import TimeStep
 from .results import TransportResult
-from .microxs import TemporalMicroXs, MicroXsVector, XsTimeMachine
+from .timetravel import TimeTraveler
 from .utils import (
     Boundaries,
     CompBundle,
@@ -19,3 +19,4 @@ from .utils import (
 )
 from .fissionyields import FissionYieldDistribution, FissionYield
 from .cram import Cram16Solver, Cram48Solver
+from .xs import XsIndex, MaterialDataArray, DataBank, MaterialData

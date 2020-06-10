@@ -10,7 +10,7 @@ from tests import filecompare
 
 
 @pytest.mark.serpent
-def test_write2x2(serpentcfg, write2x2Model):
+def test_write2x2(serpentcfg, write2x2Model, simpleChain):
     burnable = tuple(write2x2Model.root.findBurnableMaterials())
     assert len(burnable) == 2
 
@@ -23,7 +23,7 @@ def test_write2x2(serpentcfg, write2x2Model):
     reference = rundir / "2x2_ref.txt"
     failfile = rundir / "2x2_fail.txt"
 
-    writer.writeBaseFile(output, serpentcfg)
+    writer.writeBaseFile(output, serpentcfg, simpleChain)
 
     written = output.read_text()
     for key in {"acelib", "nfylib", "declib"}:

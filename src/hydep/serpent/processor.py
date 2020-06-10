@@ -12,7 +12,7 @@ import typing
 import numpy
 import serpentTools
 
-from hydep.internal import MicroXsVector
+from hydep.internal import MaterialDataArray, XsIndex
 from hydep.constants import CM2_PER_BARN, REACTION_MTS
 from .fmtx import parseFmtx
 
@@ -58,18 +58,23 @@ class SerpentProcessor:
 
     Parameters
     ----------
-    burnable : Optional[Tuple[str]]
+    burnable : tuple of str, optional
         Names of universes with burnable materials. If not given,
         must be provided prior to processing files
+    reactionIndex : hydep.internal.XsIndex, optional
+        Index to be used when fetching microscopic cross sections
 
     Attributes
     ----------
-    burnable : Union[Tuple[str], None]
+    burnable : tuple of str or None
         Universes that contain burnable materials. Will attempt to
         pull data from these universes, including group fluxes,
         macroscopic cross sections, microscopic cross sections, and
         properties of the fission matrix. Must be set prior to
         processing files.
+    reactionIndex : hydep.internal.XsIndex or None
+        Index to be used when fetching microscopic cross sections.
+        Must be set prior to :meth:`processMicroXS`
     options : dictionary
         Readable dictionary of settings to be applied to specific
         readers. The first level correspond to file types, e.g.
@@ -97,9 +102,10 @@ class SerpentProcessor:
         "microxs": {"microxs.getFlx": False},
     }
 
-    def __init__(self, burnable=None):
+    def __init__(self, burnable=None, reactionIndex=None):
         self._burnable = burnable
         self.fyHelper = None
+        self.reactionIndex = reactionIndex
 
     @property
     def burnable(self):
@@ -111,6 +117,19 @@ class SerpentProcessor:
             self._burnable = None
         else:
             self._burnable = tuple(b)
+
+    @property
+    def reactionIndex(self):
+        return self._reactionIndex
+
+    @reactionIndex.setter
+    def reactionIndex(self, ix):
+        if ix is None or isinstance(ix, XsIndex):
+            self._reactionIndex = ix
+        else:
+            raise TypeError(
+                f"Reaction index must be None or XsIndex, not {type(ix)}"
+            )
 
     @staticmethod
     def _warnOptions(settings, reason):
@@ -397,7 +416,8 @@ class SerpentProcessor:
             if len(detector.indexes) != 2:
                 raise ValueError(
                     "Detector {} must only be binned against universe, "
-                    "and optionally energy, not {}".format(detector.indexes)
+                    "and optionally energy, not {}".format(
+                        detector.name, detector.indexes)
                 )
 
             eneAx = detector.indexes.index("energy")
@@ -413,30 +433,31 @@ class SerpentProcessor:
 
         raise ValueError(
             "Detector {} must only be binned against universe, "
-            "and optionally energy, not {}".format(detector.indexes)
+            "and optionally energy, not {}".format(detector.name, detector.indexes)
         )
 
     @requireBurnable
-    def processMicroXS(self, mdepfile):
+    def processMicroXS(self, mdepfile) -> MaterialDataArray:
+        if self.reactionIndex is None:
+            raise AttributeError("Reaction index for {self} not set")
 
         microxs = self.read(mdepfile, "microxs").xsVal
-        out = []
 
-        for u in self.burnable:
-            z = []
-            r = []
-            m = []
+        data = numpy.empty(
+            (len(self.burnable), len(self.reactionIndex)),
+            dtype=numpy.float64,
+        )
 
-            for key, xs in microxs[u].items():
-                z.append(key.zai)
-                r.append(key.mt)
-                # TODO Metastable
-                m.append(xs)
+        for uindex, univ in enumerate(self.burnable):
+            univxs = microxs[univ]
+            for rxnIndex, (zai, rxn) in enumerate(self.reactionIndex):
+                # Keys to microxs are (zai, rxn, metastable), where
+                # metastable indicates if the reaction goes to a ground
+                # or metastable state. These are handled by branching ratios
+                # on the chain
+                data[uindex, rxnIndex] = univxs.get((zai, rxn, 0), 0.0)
 
-            xsInBarn = MicroXsVector.fromLongFormVectors(z, r, m, assumeSorted=False)
-            out.append(xsInBarn * CM2_PER_BARN)
-
-        return out
+        return MaterialDataArray(self.reactionIndex, data * CM2_PER_BARN)
 
     @requireBurnable
     def processFissionYields(self, detectorfile):
