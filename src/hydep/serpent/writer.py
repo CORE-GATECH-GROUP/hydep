@@ -458,7 +458,7 @@ set nfg {self._eneGridName}
             stream.write(f"% {lat.name}\n")
 
         stream.write(
-            f"lat {innermost} 1 {lat.center[0]:.3f} {lat.center[1]:.3f} "
+            f"lat {innermost} 1 {lat.center[0]:.6f} {lat.center[1]:.6f} "
             f"{lat.nx} {lat.ny} {lat.pitch:.5f}\n"
         )
         while univrows:
