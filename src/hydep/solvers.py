@@ -35,6 +35,7 @@ local reaction rates
 """
 
 from abc import ABC, abstractmethod
+import typing
 
 from hydep.internal import TransportResult
 from hydep.internal.features import FeatureCollection
@@ -237,6 +238,36 @@ class ReducedOrderSolver(TransportSolver):
             At least flux, keff, and run time for this substep solution
 
         """
+
+    def intermediateSolve(
+        self, timestep, compositions, microCrossSections,
+    ) -> typing.Tuple["numpy.ndarray", float]:
+        """Solve at intermediate points needed for higher-order schemes
+
+        Not required to implement, and defaults back to
+        :meth:`substepSolve`.
+
+        Parameters
+        ----------
+        timestep : hydep.internal.TimeStep
+            Current time step information
+        compositions : hydep.internal.CompBundle
+            Updated compositions for this ``timestep``
+        microCrossSections : iterable of hydep.internal.MicroXsVector
+            Microscopic cross sections extrapolated for this time step.
+            Each entry corresponds to a burnable material, ordered
+            consistent with the remainder of the framework
+
+        Returns
+        -------
+        numpy.ndarray
+            Flux at the intermediate point
+        float
+            Time spent in the reduced order solution
+
+        """
+        result = self.substepSolve(timestep, compositions, microCrossSections)
+        return result.flux, result.runTime
 
     def processBOS(self, txResult, timestep, power):
         """Process data from the beginning of step high fidelity solution

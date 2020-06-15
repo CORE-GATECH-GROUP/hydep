@@ -11,6 +11,7 @@ Abstract Base Classes
     :template: myclass.rst
 
     BaseStore
+    Integrator
     TransportSolver
     HighFidelitySolver
     ReducedOrderSolver

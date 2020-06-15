@@ -3,3 +3,4 @@
 from .solvers import TransportSolver, HighFidelitySolver, ReducedOrderSolver
 from .universe import Universe
 from .store import BaseStore
+from ._integrator import Integrator

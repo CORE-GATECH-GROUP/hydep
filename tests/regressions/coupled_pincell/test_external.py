@@ -50,9 +50,9 @@ def test_external(runInTempDir, endfChain, pincell):
     simplerom = hydep.simplerom.SimpleROSolver()
 
     manager = hydep.Manager(endfChain, [50], 1e3, substepDivision=2)
-    problem = hydep.Problem(pincell, serpent, simplerom, manager)
+    integrator = hydep.PredictorIntegrator(pincell, serpent, simplerom, manager)
 
-    problem.configure(
+    integrator.configure(
         {
             "hydep": {
                 "boundary conditions": "reflective",
@@ -76,4 +76,4 @@ def test_external(runInTempDir, endfChain, pincell):
     )
 
     tester = HdfResultCompare()
-    tester.main(problem)
+    tester.main(integrator)

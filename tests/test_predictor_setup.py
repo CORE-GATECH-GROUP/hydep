@@ -73,7 +73,13 @@ def mockProblem():
     chain = hydep.DepletionChain(fuel.keys())
     manager = hydep.Manager(chain, [10], 1e6, 1)
 
-    return hydep.Problem(model, MockHFSolver(), MockROMSolver(), manager, MockStore())
+    return hydep.PredictorIntegrator(
+        model,
+        MockHFSolver(),
+        MockROMSolver(),
+        manager,
+        MockStore(),
+    )
 
 
 @pytest.fixture

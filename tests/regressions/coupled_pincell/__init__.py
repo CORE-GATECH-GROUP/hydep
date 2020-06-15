@@ -18,12 +18,12 @@ class HdfResultCompare(CompareBase):
     def __init__(self):
         super().__init__(pathlib.Path(__file__).parent)
 
-    def main(self, problem):
-        problem.solve()
+    def main(self, integrator):
+        integrator.integrate()
         res = pathlib.Path(self.targetFile).resolve()
         assert res.is_file(), res
 
-        self._checkConsistency(problem, res)
+        self._checkConsistency(integrator, res)
 
         return super().main(res)
 
