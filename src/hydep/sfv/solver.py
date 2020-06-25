@@ -9,13 +9,20 @@ import numpy
 from numpy.linalg import LinAlgError
 
 from hydep import FailedSolverError
-from hydep.constants import BARN_PER_CM2, EV_PER_JOULE, REACTION_MTS, FISSION_REACTIONS
+from hydep.integrators import PredictorIntegrator, CELIIntegrator, RK4Integrator
+from hydep.constants import (
+    BARN_PER_CM2,
+    EV_PER_JOULE,
+    REACTION_MTS,
+    FISSION_REACTIONS,
+    SECONDS_PER_DAY,
+)
 from hydep.lib import ReducedOrderSolver
 from hydep.internal import TransportResult, TimeTraveler
 import hydep.internal.features as hdfeat
 from .lib import predict_spatial_flux, getAdjFwdEig
 
-__all__ = ["SfvSolver"]
+__all__ = ["SfvSolver", "MixedRK4Integrator"]
 
 
 __logger__ = logging.getLogger("hydep.sfv")
@@ -414,3 +421,140 @@ class SfvSolver(ReducedOrderSolver):
 
         self._macroData[:, DataIndexes.VOL_K_FIS] *= (
             BARN_PER_CM2 * self._macroData[:, DataIndexes.VOLUMES])
+
+
+class MixedRK4Integrator(RK4Integrator):
+    """Integrator that conditionally uses RK4, depending on step size
+
+    Previous experience indicates that the SFV method does not
+    perform well for small step sizes. The RK4 scheme requires
+    solutions after a half depletion step, which can be too
+    small for the SFV method to be useful. This integrator
+    allows the RK4 scheme to fall back to another scheme if the
+    step size is under some threshold, e.g. one day.
+
+    Parameters
+    ----------
+    model : hydep.Model
+        Representation of the problem geometry
+    hf : hydep.lib.HighFidelitySolver
+        High fidelity solver to be executed at the beginning
+        of each coarse step, and the final EOL point
+    ro : hydep.lib.ReducedOrderSolver
+        Reduced order solver to be executed at the substeps,
+        and potentially any intermediate time points
+    dep : hydep.Manager
+        Depletion manager, including access to depletion chain
+        and depletion solver
+    store : hydep.lib.BaseStore, optional
+        Instance responsible for writing transport and depletion
+        result data. If not provided, will be set to
+        :class:`hydep.hdfstore.HdfStore`
+    stepThreshold : float, optional
+        Step size [d] that the current step must meet or exceed in
+        order to use the RK4 scheme. Otherwise the scheme indicated
+        by ``fallback`` will be used.
+    fallback : {"predictor", "celi"}, optional
+        Scheme to use if the current step size does not exceed
+        ``stepThreshold``. These steps should be faily small, so
+        using the predictor [default] will hopefully not incur a
+        substantial penalty.
+
+    Attributes
+    ----------
+    model : hydep.Model
+        Representation of the problem geometry
+    hf : hydep.lib.HighFidelitySolver
+        High fidelity solver to be executed at the beginning
+        of each coarse step, and the final EOL point
+    ro : hydep.lib.ReducedOrderSolver
+        Reduced order solver to be executed at the substeps,
+        and potentially any intermediate time points
+    dep : hydep.Manager
+        Depletion manager, including access to depletion chain
+        and depletion solver
+    store : hydep.lib.BaseStore or None
+        Instance responsible for writing transport and depletion
+        result data. If not provided, will be set to
+        :class:`hydep.hdfstore.HdfStore`
+    settings : hydep.Settings
+        Simulation settings. Can be updated directly, or
+        through :meth:`configure`
+    """
+
+    def __init__(
+        self,
+        *args,
+        stepThreshold=5,
+        fallback="predictor",
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        integratorFallbacks = {
+            "predictor": PredictorIntegrator,
+            "celi": CELIIntegrator,
+        }
+        self._fallback = integratorFallbacks.get(fallback)
+        if self._fallback is None:
+            raise ValueError(
+                f"Fallback time integration scheme {fallback} not in allowed options: "
+                f"{sorted(integratorFallbacks)}"
+            )
+        if not isinstance(stepThreshold, numbers.Real):
+            raise TypeError(
+                f"Threshold must be positive real, not {type(stepThreshold)}"
+            )
+        elif stepThreshold < 0:
+            raise ValueError(
+                f"Threshold must be positive real, not {stepThreshold}"
+            )
+        self._threshold = stepThreshold * SECONDS_PER_DAY
+
+    def __call__(
+        self,
+        tstart,
+        dt,
+        compositions,
+        flux,
+        fissionYields,
+    ):
+        """Progress across a single step given BOS data
+
+        Will use the RK4 scheme if ``dt`` is sufficiently large. Otherwise,
+        the scheme described by ``fallback`` during construction will be used.
+
+        Parameters
+        ----------
+        tstart : float
+            Current point in calendar time [s]
+        dt : float
+            Length of depletion interval [s]
+        compositions : hydep.internal.CompBundle
+            Beginning-of-step compositions for all burnable materials
+        flux : numpy.ndarray
+            Beginning-of-step flux in all burnable materials
+        fissionYields : list of mapping {int: fission yield}
+            Fission yields in all burnable materials, ordered consistently
+            with with material ordering of ``flux`` and ``compositions``.
+            Each entry is a dictionary mapping parent isotope ZAI
+            to :class:`hydep.internal.FissionYield` for that isotope.
+            Suitable to be passed directly off to
+            :meth:`hydep.Manager.deplete`
+
+        Returns
+        -------
+        hydep.internal.CompBundle
+            End-of-step compositions in all burnable materials. Intermediate
+            points should not be returned
+
+        """
+        if dt >= self._threshold:
+            return super().__call__(tstart, dt, compositions, flux, fissionYields)
+        return self._fallback.__call__(
+            self,
+            tstart,
+            dt,
+            compositions,
+            flux,
+            fissionYields,
+        )

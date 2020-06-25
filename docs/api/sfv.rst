@@ -12,3 +12,4 @@ SFV Interface
     :template: myclass.rst
 
     SfvSolver
+    MixedRK4Integrator
