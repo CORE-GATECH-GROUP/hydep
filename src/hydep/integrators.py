@@ -70,6 +70,59 @@ class PredictorIntegrator(Integrator):
 
 
 class CELIIntegrator(Integrator):
+    """CE/LI variation on the predictor-corrector scheme
+
+    Employs the constant extrapolation - linear interpolation
+    scheme proposed by Isotalo and Aarnio.
+
+    A variation on the predictor-corrector that uses one reduced order
+    transport solution at the end of each depletion step to compute
+    predicted end-of-step (EOS) reaction rates.
+    The final EOS compositions are by depleting the beginning-of-step
+    (BOS) compositions with the average of BOS and the predicted EOS
+    reaction rates.
+
+    Reference: https://dx.doi.org/10.1016/j.anucene.2011.04.022
+
+    Parameters
+    ----------
+    model : hydep.Model
+        Representation of the problem geometry
+    hf : hydep.lib.HighFidelitySolver
+        High fidelity solver to be executed at the beginning
+        of each coarse step, and the final EOL point
+    ro : hydep.lib.ReducedOrderSolver
+        Reduced order solver to be executed at the substeps,
+        and potentially any intermediate time points
+    dep : hydep.Manager
+        Depletion manager, including access to depletion chain
+        and depletion solver
+    store : hydep.lib.BaseStore, optional
+        Instance responsible for writing transport and depletion
+        result data. If not provided, will be set to
+        :class:`hydep.hdfstore.HdfStore`
+
+    Attributes
+    ----------
+    model : hydep.Model
+        Representation of the problem geometry
+    hf : hydep.lib.HighFidelitySolver
+        High fidelity solver to be executed at the beginning
+        of each coarse step, and the final EOL point
+    ro : hydep.lib.ReducedOrderSolver
+        Reduced order solver to be executed at the substeps,
+        and potentially any intermediate time points
+    dep : hydep.Manager
+        Depletion manager, including access to depletion chain
+        and depletion solver
+    store : hydep.lib.BaseStore or None
+        Instance responsible for writing transport and depletion
+        result data. If not provided, will be set to
+        :class:`hydep.hdfstore.HdfStore`
+    settings : hydep.Settings
+        Simulation settings. Can be updated directly, or
+        through :meth:`configure`
+    """
     def __call__(
         self,
         timestep: "hydep.internal.TimeStep",
@@ -104,6 +157,56 @@ class CELIIntegrator(Integrator):
 
 
 class RK4Integrator(Integrator):
+    """Fourth order Runge-Kutta time integration scheme
+
+    Uses two reduced order solutions at the mid-point of the depletion
+    interval and one at the end of the depletion interval.
+    The solution follows the formulation presented by Josey,
+    Forget, and Smith in "High order methods for the integration of
+    the Bateman equations and other problems of the form
+    y' = F(y, t)y"
+
+    Reference: https://dx.doi.org/10.1016/j.jcp.2017.08.025
+
+    Parameters
+    ----------
+    model : hydep.Model
+        Representation of the problem geometry
+    hf : hydep.lib.HighFidelitySolver
+        High fidelity solver to be executed at the beginning
+        of each coarse step, and the final EOL point
+    ro : hydep.lib.ReducedOrderSolver
+        Reduced order solver to be executed at the substeps,
+        and potentially any intermediate time points
+    dep : hydep.Manager
+        Depletion manager, including access to depletion chain
+        and depletion solver
+    store : hydep.lib.BaseStore, optional
+        Instance responsible for writing transport and depletion
+        result data. If not provided, will be set to
+        :class:`hydep.hdfstore.HdfStore`
+
+    Attributes
+    ----------
+    model : hydep.Model
+        Representation of the problem geometry
+    hf : hydep.lib.HighFidelitySolver
+        High fidelity solver to be executed at the beginning
+        of each coarse step, and the final EOL point
+    ro : hydep.lib.ReducedOrderSolver
+        Reduced order solver to be executed at the substeps,
+        and potentially any intermediate time points
+    dep : hydep.Manager
+        Depletion manager, including access to depletion chain
+        and depletion solver
+    store : hydep.lib.BaseStore or None
+        Instance responsible for writing transport and depletion
+        result data. If not provided, will be set to
+        :class:`hydep.hdfstore.HdfStore`
+    settings : hydep.Settings
+        Simulation settings. Can be updated directly, or
+        through :meth:`configure`
+    """
     def __call__(
         self,
         timestep: "hydep.internal.TimeStep",
