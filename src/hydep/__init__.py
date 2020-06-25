@@ -14,7 +14,6 @@ from .model import Model
 from .chain import DepletionChain
 from .manager import Manager
 from .integrators import PredictorIntegrator, CELIIntegrator, RK4Integrator
-from .problem import Problem
 from .settings import Settings, SerpentSettings, SfvSettings
 
 __version__ = "0.0.0"
