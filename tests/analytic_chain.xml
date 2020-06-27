@@ -1,0 +1,8 @@
+<depletion_chain>
+  <nuclide name="Xe135" reactions="1">
+    <reaction type="(n,gamma)" Q="1.0" target="Nothing"/>
+  </nuclide>
+  <nuclide name="U235" reactions="1">
+    <reaction type="(n,gamma)" Q="1.0" target="Xe135"/>
+  </nuclide>
+</depletion_chain>
