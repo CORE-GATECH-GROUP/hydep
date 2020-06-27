@@ -1,5 +1,7 @@
 """Tiny little class for storing and easily modifying time step information"""
 
+from hydep.constants import SECONDS_PER_DAY
+
 
 class TimeStep:
     """Class for modifying and storing time step information.
@@ -65,3 +67,9 @@ class TimeStep:
         """Advance one substep of length ``delta`` [s]"""
         self.increment(delta, coarse=False)
         return self
+
+    def __repr__(self) -> str:
+        return (
+            f"{type(self).__name__}(coarse={self.coarse}, substep={self.substep}, "
+            f"total={self.total}, currentTime={self.currentTime / SECONDS_PER_DAY} [d])"
+        )
