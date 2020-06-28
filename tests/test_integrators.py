@@ -124,7 +124,7 @@ def model():
 
 
 @pytest.fixture
-def manager():
+def manager(clearIsotopes):
     dep = hydep.Manager(buildDepletionChain(), [5 / SECONDS_PER_DAY], [1.0], [1])
 
     return dep

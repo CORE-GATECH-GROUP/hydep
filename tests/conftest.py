@@ -40,3 +40,9 @@ def toy2x2lattice():
     pin = hydep.Pin([0.42, 0.45], [fuel, clad], outer=water)
 
     return hydep.CartesianLattice(2, 2, 1.23, [[pin, pin], [pin, pin]])
+
+
+@pytest.fixture
+def clearIsotopes():
+    from hydep.internal.isotope import _ISOTOPES
+    _ISOTOPES.clear()
