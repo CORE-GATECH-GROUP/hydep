@@ -484,6 +484,14 @@ class HdfProcessor(Mapping):
         """Dictionary-like membership testing of ``key``"""
         return key in self._root
 
+    def __enter__(self):
+        """Enable the processor to be used as a context manager"""
+        return self
+
+    def __exit__(self, *args):
+        """Close the underlying data file"""
+        self._root.close()
+
     def get(
         self, key: str, default: typing.Optional = None
     ) -> typing.Optional[typing.Any]:

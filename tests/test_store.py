@@ -242,6 +242,19 @@ def test_hdfProcessor(result, simpleChain, compositions, h5Destination):
         processor["fake key"]
     assert processor.get("fake key") is None
 
+    # Test context manager behavior
+    with hydep.hdfstore.HdfProcessor(h5Destination) as data:
+        assert isinstance(data, hydep.hdfstore.HdfProcessor)
+        # Compare based on IDs of underlying HDF5 files
+        assert data._root.id == processor._root.id
+
+    # Check that the file is closed
+    with pytest.raises(ValueError):
+        data.fluxes[0]
+
+    # Ensure that the closing of one file doesn't close the other
+    processor.fluxes[0]
+
 
 def test_hdfenums():
     RootNames = hydep.hdfstore.HdfStrings
