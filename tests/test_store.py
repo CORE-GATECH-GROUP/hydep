@@ -149,7 +149,8 @@ def test_hdfProcessor(result, simpleChain, compositions, h5Destination):
     assert fullDays == pytest.approx(processor.days)
     assert fullKeff == pytest.approx(processor.keff[:])
 
-    assert processor.compositions.shape == (processor.days.size, N_BU_MATS, len(simpleChain))
+    assert processor.compositions.shape == (
+        processor.days.size, N_BU_MATS, len(simpleChain))
     assert processor.compositions[END.total] == pytest.approx(compositions.densities)
 
     assert processor.fluxes.shape == (processor.days.size, N_BU_MATS, N_GROUPS)
@@ -184,7 +185,7 @@ def test_hdfProcessor(result, simpleChain, compositions, h5Destination):
     randomDens = processor.getDensities(names=randomNames)
     assert randomDens == pytest.approx(processor.compositions[:][..., indices])
     assert processor.getDensities(names=randomNames[0]) == pytest.approx(
-            processor.compositions[..., indices[0]])
+        processor.compositions[..., indices[0]])
 
     with pytest.raises(ValueError, match=".*bad name"):
         processor.getIsotopeIndexes(names="bad name")
@@ -203,15 +204,15 @@ def test_hdfProcessor(result, simpleChain, compositions, h5Destination):
     randomDens = processor.getDensities(zais=randomZais)
     assert randomDens == pytest.approx(processor.compositions[:][..., indices])
     assert processor.getDensities(zais=randomZais[0]) == pytest.approx(
-            processor.compositions[..., indices[0]])
+        processor.compositions[..., indices[0]])
 
     assert processor.getDensities() == pytest.approx(processor.compositions[:])
-    assert processor.getDensities(
-        days=processor.days[0], names=processor.names[0]) == pytest.approx(
-            processor.compositions[0, :, 0][:])
-    assert processor.getDensities(
-        days=[processor.days[0], processor.days[-1]], names=processor.names[:5]) == pytest.approx(
-            processor.compositions[(0, END.total), :, :5])
+    bos = processor.getDensities(days=processor.days[0], names=processor.names[0])
+    assert bos == pytest.approx(processor.compositions[0, :, 0][:])
+    adensSlice = processor.getDensities(
+        days=[processor.days[0], processor.days[-1]], names=processor.names[:5]
+    )
+    assert adensSlice == pytest.approx(processor.compositions[(0, END.total), :, :5])
 
     with pytest.raises(ValueError, match=".*0"):
         processor.getIsotopeIndexes(zais=0)
@@ -247,7 +248,9 @@ def test_hdfenums():
     SecondNames = hydep.hdfstore.HdfSubStrings
 
     bypathop = RootNames.CALENDAR / SecondNames.CALENDAR_TIME
-    expected = "/".join([o.value for o in [RootNames.CALENDAR, SecondNames.CALENDAR_TIME]])
+    expected = "/".join(
+        [o.value for o in [RootNames.CALENDAR, SecondNames.CALENDAR_TIME]]
+    )
     assert bypathop == expected
 
     bydig = RootNames.CALENDAR.dig(SecondNames.CALENDAR_TIME)
