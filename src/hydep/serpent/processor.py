@@ -493,6 +493,9 @@ class FissionYieldFetcher:
     isotopes : iterable of hydep.internal.Isotope
         Isotopes that may or may not have fission yields. Will
         skip isotopes without yields.
+    upperEnergy : float, optional
+        Maximum energy [MeV] above which fission events will not
+        contribute to the weighting
 
     """
 
@@ -523,7 +526,7 @@ class FissionYieldFetcher:
     # fission reaction
     FISSION_MT = REACTION_MTS.TOTAL_FISSION
 
-    def __init__(self, matids, isotopes):
+    def __init__(self, matids, isotopes, upperEnergy=20):
         self._constant = {}
         self._variable = {}
         self._ucards = textwrap.fill(
@@ -536,15 +539,10 @@ class FissionYieldFetcher:
                 self._constant[iso.zai] = iso.fissionYields.at(0)
             else:
                 self._variable[iso.zai] = iso.fissionYields
+        self.upperEnergy = upperEnergy
 
-    def makeDetectors(self, upperEnergy=20) -> list:
+    def makeDetectors(self) -> list:
         """Produce lines that can be used to write detector inputs
-
-        Parameters
-        ----------
-        upperEnergy : float, optional
-            Upper energy to be used in the tallies. Fission
-            rates will be capped at this energy
 
         Returns
         -------
@@ -568,7 +566,7 @@ class FissionYieldFetcher:
                 energies.append(f"{lethargyMid:.3E}")
 
             detectors.append(
-                f"ene {gridname} 1 0.0 {' '.join(energies)} {upperEnergy}"
+                f"ene {gridname} 1 0.0 {' '.join(energies)} {self.upperEnergy}"
             )
             rxns = " ".join(
                 [

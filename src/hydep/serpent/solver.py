@@ -212,8 +212,8 @@ class BaseSolver(HighFidelitySolver):
         # Not super pretty, as this interacts both with the writer's roles
         # and the processors roles
         if hdfeat.FISSION_YIELDS in self.hooks.features:
-            fyproc = FissionYieldFetcher(matids, manager.chain)
-            detlines = fyproc.makeDetectors(upperEnergy=20)
+            fyproc = WeightedFPYFetcher(matids, manager.chain)
+            detlines = fyproc.makeDetectors()
             if detlines:
                 with mainfile.open("a") as s:
                     s.write("\n".join(detlines))
