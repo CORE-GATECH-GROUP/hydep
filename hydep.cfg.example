@@ -196,6 +196,23 @@ omp = 16
 # determined by the omp setting
 mpi = 2
 
+## Fission product yields
+# Two settings control how Serpent handles FPY
+# The main setting in "fpy mode", which can be constant
+# or weighted. The weighted scheme will use local spectral
+# information to produce a representative set of fission
+# product yields for each fissile isotope in each burnable
+# material. This will add additional detectors, but hopefully
+# captures more of the physics
+fpy mode = constant
+# Constant mode will use a fixed set of yields to all isotopes
+# regardless of local information. The default is to use a 
+# set of thermal spectrum yields (corresponding to 0.0253 evaluate
+# in evaluated data files), but this can be configured with
+# the "fpy spectrum" setting to indicate "thermal", "epithermal",
+# or "fast" yields 
+fpy spectrum = fast
+
 [hydep.sfv]
 # Configure the spatial flux variation solver
 

@@ -58,6 +58,7 @@ def test_settings():
     with pytest.raises(ValueError):
         Settings(fittingOrder=2, numFittingPoints=1).validate()
 
+
 def test_subsettings():
     randomSection = "".join(random.sample(string.ascii_letters, 10))
     settings = Settings()
@@ -219,6 +220,9 @@ def test_exampleConfig(serpentdata):
     assert serpent.executable == "sss2"
     assert serpent.omp == 16
     assert serpent.mpi == 2
+
+    assert serpent.fpyMode == "constant"
+    assert serpent.constantFPYSpectrum == "fast"
 
     sfv = settings.sfv
     assert sfv.modes == 10
