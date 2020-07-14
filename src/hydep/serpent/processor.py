@@ -8,16 +8,17 @@ import textwrap
 import math
 import collections
 import typing
+from abc import ABC, abstractmethod
 
 import numpy
 import serpentTools
 
-from hydep.internal import MaterialDataArray, XsIndex
+from hydep.internal import MaterialDataArray, XsIndex, FakeSequence
 from hydep.constants import CM2_PER_BARN, REACTION_MTS
 from .fmtx import parseFmtx
 
 
-__all__ = ["SerpentProcessor", "FissionYieldFetcher"]
+__all__ = ["SerpentProcessor", "FPYHelper", "WeightedFPYFetcher"]
 
 
 ResTuple = collections.namedtuple("ResTuple", "keff macroXS")
@@ -81,6 +82,9 @@ class SerpentProcessor:
         ``resutls``, ``microxs``. The second level are key, value
         pairs of valid ``serpentTools`` settings to be set prior
         to file reading
+    fyHelper : None or FPYHelper
+        Instance responsible for processing detector outputs and computing
+        effective fission yields
 
     """
 
@@ -479,7 +483,55 @@ class SerpentProcessor:
         )
 
 
-class FissionYieldFetcher:
+FYMaps = typing.Iterable[typing.Dict[int, "hydep.internal.FissionYield"]]
+Detectors = typing.Iterable[serpentTools.Detector]
+
+
+class FPYHelper(ABC):
+    """Base class for collapsing fission product yields
+
+    Parameters
+    ----------
+    matids : iterable of str
+        Ordering of universes to be consistent with the rest
+        of the framework. Fission product yields must be returned
+        according to these universes
+    isotopes : iterable of hydep.internal.Isotope
+        All isotopes in the problem that may or may not have fission
+        yields
+
+    """
+
+    @abstractmethod
+    def __init__(self, matids, isotopes):
+        pass
+
+    @staticmethod
+    def makeDetectors() -> typing.List[str]:
+        """Compute input commands to generate necessary detectors"""
+        return []
+
+    @abstractmethod
+    def collapseYieldsFromDetectors(self, detectors: Detectors) -> FYMaps:
+        """Produce a set of effective fission yields for all materials
+
+        Parameters
+        ----------
+        detectors : iterable of serpentTools.Detector
+            All detectors contained in the detector file
+
+        Returns
+        -------
+        list of dict
+            The ordering of entries must correspond to the ordering
+            of ``matids`` passed during construction. Each entry ``i``
+            must be a dictionary mapping ``{zai: fpy}`` for burnable
+            material ``i`` for all isotopes with fission product yields
+
+        """
+
+
+class WeightedFPYFetcher(FPYHelper):
     """Helper for getting energy-averaged fission yields from Serpent
 
     Inspired by :class:`openmc.deplete.helpers.AveragedFissionYieldHelper`
@@ -657,3 +709,103 @@ class FissionYieldFetcher:
                 fy += eneyields.at(ix) * w
             matyields.append(fy)
         return matyields
+
+
+class ConstantFPYHelper(FPYHelper):
+    """Provides constant fission yields for all isotopes
+
+    Parameters
+    ----------
+    matids : iterable of int
+        Iterable that can be used to determine the number of materials are
+        expected in the framework. Helps with iteration of the item returned
+        in :meth:`collapseYieldsFromDetectors`
+    isotopes : iterable of :class:`hydep.internal.Isotope`
+        All isotopes that may or may not have fission yields
+    spectrum : str, {"thermal", "epithermal", "fast"}, optional
+        Spectrum to emuluate for the constant yields, default is thermal, or
+        0.0253 eV evaluated yields. Epithermal and fast correspond to 500 KeV and
+        14 MeV evaluated yields
+
+    Warns
+    -----
+    RuntimeWarning
+        If isotopes are found with more than one set of yields, but
+        the corresponding energy could not be found. For example, thermal
+        yields for U238 will likely fall back to the epithermal
+        values. Most distributions do not include a set of thermal
+        spectrum fission product yields for U238 and thus the closest
+        set of evaluated energies is the epithermal at 500 KeV
+
+    """
+
+    _energies = {
+        "thermal": 0.0253,
+        "epithermal": 500e3,
+        "fast": 14e6,
+    }
+
+    def __init__(self, matids, isotopes, spectrum="thermal"):
+        target = self._energies.get(spectrum)
+        if target is None:
+            raise KeyError(
+                f"Requested energy spectra {spectrum} not in {self._energies.keys()}"
+            )
+        constants = {}
+        missing = {}
+        for nuc in isotopes:
+            if nuc.fissionYields is None:
+                continue
+            if len(nuc.fissionYields.energies) == 1:
+                constants[nuc.zai] = nuc.fissionYields.at(0)
+                continue
+            fpy = nuc.fissionYields.get(target)
+            if fpy is None:
+                missing[nuc.zai], fpy = self._getfallback(target, nuc.fissionYields)
+            constants[nuc.zai] = fpy
+
+        if missing:
+            warnings.warn(
+                "The following isotopes did not have fission yields at an energy of "
+                f"{target} eV, but were replaced by the closet set of provided yields: "
+                f"{missing}",
+                RuntimeWarning,
+            )
+
+        self._fpy = FakeSequence(constants, len(matids))
+
+    @staticmethod
+    def _getfallback(targetEne, fpys):
+        gen = fpys.items()
+        prevEne, prevFpy = next(gen)
+        if prevEne > targetEne:
+            return prevEne, prevFpy
+        for ene, fpy in gen:
+            if ene < targetEne:
+                prevEne, prevFpy = ene, fpy
+                continue
+            # choose closest set of yields
+            elif math.fabs(ene - targetEne) > math.fabs(prevEne - targetEne):
+                return prevEne, prevFpy
+            else:
+                return ene, fpy
+        # If we've made it here, then all provided yields are less than
+        # the target. Therefore return the current (highest) set of yields
+        return prevEne, prevFpy
+
+    def collapseYieldsFromDetectors(self, *args, **kwargs) -> FYMaps:
+        """Return an iterable of the constant fission yields
+
+        All input arguments are ignored, but maintained for consistency
+        with the API.
+
+        Returns
+        -------
+        list of dict
+            Each entry ``l[i]`` is a dictionary mapping ``{int: fpy}``
+            for material ``i``. All yields are the same, but the iterable
+            is constructed to help with the depletion chain down the line
+
+        """
+
+        return self._fpy

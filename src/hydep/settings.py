@@ -688,6 +688,20 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         to pull from ``OMP_NUM_THREADS`` environment variable
     mpi : int or None
         Number of MPI tasks to use
+    fpyMode : str, {"constant", "weighted"}, optional
+        Manner by which to compute effective fission yields for each
+        fissile isotope. ``constant`` means a single set of fission
+        yields for each isotope will be used. ``weighted`` will use the
+        local spectra to compute a unique set of yields for each isotope
+        in each material. The default is ``weighted``
+    constantFPYSpectrum : str or None
+        Neutron spectra to emulate when pulling constant fission yields
+        with :attr:`fpyMode` ``== "constant"``. Default is thermal if,
+        at or near 0.0253 eV. Epithermal and fast yields correspond to
+        500 keV and 14MeV energies in evaluated data. Will be stored as
+        a stripped, lower-case quantity if a string is given. Otherwise
+        a value of ``None`` is accepted and will overwrite the currently
+        stored attribute.
 
     """
 
@@ -709,6 +723,8 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         executable: typing.Optional[str] = None,
         omp: OptIntegral = None,
         mpi: OptIntegral = None,
+        fpyMode: typing.Optional[str] = "weighted",
+        constantFPYSpectrum: typing.Optional[str] = "thermal",
     ):
         if datadir is None:
             datadir = os.environ.get("SERPENT_DATA") or None
@@ -729,6 +745,8 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
             omp = int(omp) if omp else None
         self.omp = omp
         self.mpi = mpi
+        self.fpyMode = fpyMode
+        self.constantFPYSpectrum = constantFPYSpectrum
 
     @property
     def datadir(self) -> PossiblePath:
@@ -913,6 +931,39 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         enforceInt("mpi", value, True)
         self._mpi = value
 
+    @property
+    def fpyMode(self) -> str:
+        return self._fpyMode
+
+    @fpyMode.setter
+    def fpyMode(self, mode: str):
+        opts = {"constant", "weighted"}
+        if not isinstance(mode, str):
+            raise TypeError(
+                f"Serpent fission product yield mode must be string, not {type(mode)}"
+            )
+        elif mode not in opts:
+            raise ValueError(
+                f"Serpent fission product yield must be one of {opts}, not {mode}"
+            )
+        self._fpyMode = mode
+
+    @property
+    def constantFPYSpectrum(self) -> typing.Optional[str]:
+        return self._constFPYSpectrum
+
+    @constantFPYSpectrum.setter
+    def constantFPYSpectrum(self, spectrum: typing.Optional[str]):
+        if spectrum is None:
+            self._constFPYSpectrum = None
+            return
+        elif not isinstance(spectrum, str):
+            raise TypeError(
+                "FPY spectrum is expected to be either None or str, not "
+                f"{type(spectrum)}"
+            )
+        self._constFPYSpectrum = spectrum.lower()
+
     def update(self, options: typing.Mapping[str, typing.Any]):
         """Update from a map of user supplied values
 
@@ -951,6 +1002,8 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         executable = options.pop("executable", None)
         omp = options.pop("omp", False)
         mpi = options.pop("mpi", False)
+        fpyMode = options.pop("fpyMode", None)
+        fpySpectrum = options.pop("constantFPYSpectrum", None)
 
         if options:
             remain = ", ".join(sorted(options))
@@ -1039,6 +1092,17 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
             if mpi is None or (isinstance(mpi, str) and mpi.lower() == "none"):
                 raise ValueError(f"Cannot set mpi to None from {mpi}")
             self.mpi = asPositiveInt("mpi", mpi)
+
+        if fpyMode is not None:
+            self.fpyMode = fpyMode
+
+        if fpySpectrum is not None:
+            if fpyMode != "constant":
+                warnings.warn(
+                    "Constant FPY spectrum provided to Serpent settings "
+                    "but FPY mode is not constant. This setting may be ignored"
+                )
+            self.constantFPYSpectrum = fpySpectrum
 
 
 class SfvSettings(SubSetting, sectionName="sfv"):

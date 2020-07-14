@@ -14,7 +14,7 @@ import hydep.internal.features as hdfeat
 
 from .writer import BaseWriter, SerpentWriter, ExtDepWriter
 from .runner import BaseRunner, SerpentRunner, ExtDepRunner
-from .processor import SerpentProcessor, FissionYieldFetcher
+from .processor import SerpentProcessor, WeightedFPYFetcher, ConstantFPYHelper
 from .xsavail import XS_2_1_30
 
 
@@ -212,7 +212,16 @@ class BaseSolver(HighFidelitySolver):
         # Not super pretty, as this interacts both with the writer's roles
         # and the processors roles
         if hdfeat.FISSION_YIELDS in self.hooks.features:
-            fyproc = WeightedFPYFetcher(matids, manager.chain)
+            mode = settings.serpent.fpyMode
+            if mode == "weighted":
+                fyproc = WeightedFPYFetcher(matids, manager.chain)
+            elif mode == "constant":
+                fyproc = ConstantFPYHelper(
+                    matids, manager.chain, settings.serpent.constantFPYSpectrum
+                )
+            else:
+                raise ValueError(f"FPY mode {mode} unsupported")
+
             detlines = fyproc.makeDetectors()
             if detlines:
                 with mainfile.open("a") as s:
