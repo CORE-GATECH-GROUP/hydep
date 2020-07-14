@@ -972,6 +972,8 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
 
         * ``"generations per batch"`` -> :attr:`generationsPerBatch`
         * ``"thermal scattering"`` -> :attr:`sab`
+        * ``"fpy mode"`` -> :attr:`fpyMode`
+        * ``"fpy spectrum"`` -> :attr:`constantFPYSpectrum`
 
         Parameters
         ----------
@@ -1002,8 +1004,8 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         executable = options.pop("executable", None)
         omp = options.pop("omp", False)
         mpi = options.pop("mpi", False)
-        fpyMode = options.pop("fpyMode", None)
-        fpySpectrum = options.pop("constantFPYSpectrum", None)
+        fpyMode = options.pop("fpy mode", None)
+        fpySpectrum = options.pop("fpy spectrum", None)
 
         if options:
             remain = ", ".join(sorted(options))
