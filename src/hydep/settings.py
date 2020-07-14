@@ -962,7 +962,13 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
                 "FPY spectrum is expected to be either None or str, not "
                 f"{type(spectrum)}"
             )
-        self._constFPYSpectrum = spectrum.lower()
+        opts = {"thermal", "fast", "epithermal"}
+        if spectrum not in opts:
+            raise ValueError(
+                f"FPY spectrum {spectrum} not understood. Expected "
+                f"one of {opts}"
+            )
+        self._constFPYSpectrum = spectrum
 
     def update(self, options: typing.Mapping[str, typing.Any]):
         """Update from a map of user supplied values
