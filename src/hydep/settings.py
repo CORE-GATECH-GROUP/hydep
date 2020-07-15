@@ -693,10 +693,10 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         fissile isotope. ``constant`` means a single set of fission
         yields for each isotope will be used. ``weighted`` will use the
         local spectra to compute a unique set of yields for each isotope
-        in each material. The default is ``weighted``
+        in each material. The default is ``constant``
     constantFPYSpectrum : str or None
         Neutron spectra to emulate when pulling constant fission yields
-        with :attr:`fpyMode` ``== "constant"``. Default is thermal if,
+        with :attr:`fpyMode` ``== "constant"``. Default is thermal,
         at or near 0.0253 eV. Epithermal and fast yields correspond to
         500 keV and 14MeV energies in evaluated data. Will be stored as
         a stripped, lower-case quantity if a string is given. Otherwise
@@ -723,7 +723,7 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         executable: typing.Optional[str] = None,
         omp: OptIntegral = None,
         mpi: OptIntegral = None,
-        fpyMode: typing.Optional[str] = "weighted",
+        fpyMode: typing.Optional[str] = "constant",
         constantFPYSpectrum: typing.Optional[str] = "thermal",
     ):
         if datadir is None:
