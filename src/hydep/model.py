@@ -13,6 +13,9 @@ from .exceptions import GeometryError
 __all__ = ("Model",)
 
 
+__logger__ = logging.getLogger("hydep.model")
+
+
 class Model:
     """Representation of the entire problem geometry
 
@@ -105,9 +108,8 @@ class Model:
             for a burnable material
 
         """
-        logger = logging.getLogger("hydep.model")
         if updateVolumes:
-            logger.debug("Counting and updating burnable material volumes")
+            __logger__.debug("Counting and updating burnable material volumes")
             vols = self.root.countBurnableMaterials()
 
             for mat, counts in vols.values():
@@ -115,11 +117,11 @@ class Model:
                     raise AttributeError("Volume not set for {}".format(mat))
                 mat.volume = mat.volume / counts
 
-            logger.debug("Done.")
+            __logger__.debug("Done.")
 
-        logger.debug("Differentiating burnable materials")
+        __logger__.debug("Differentiating burnable materials")
         self.root.differentiateBurnableMaterials()
-        logger.debug("Done.")
+        __logger__.debug("Done.")
 
     @property
     def bounds(self):
