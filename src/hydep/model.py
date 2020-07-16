@@ -8,6 +8,7 @@ import numpy
 from .universe import Universe
 from .typed import TypedAttr
 from hydep.internal import Boundaries
+from .exceptions import GeometryError
 
 __all__ = ("Model",)
 
@@ -24,7 +25,9 @@ class Model:
     Parameters
     ----------
     root : hydep.lib.Universe
-        Root universe for the problem.
+        Root universe for the problem
+    axialSymmetry : bool, optional
+        Flag indicating if ``root`` has axial symmetry at ``z=0``
 
     Attributes
     ----------
@@ -34,19 +37,36 @@ class Model:
         X, Y, and Z boundaries for the root universe. A value of
         ``None`` is allowed, but implies the problem is unbounded in
         all directions. This may cause issues with downstream solvers.
+    axialSymmetry : bool
+        Read-only attribute indicating axial symmetry
 
     See Also
     --------
     * :meth:`hydep.lib.Universe.boundaries`
         Look into the root universe and determine size from contents.
+    * :meth:`applyAxialSymmetry`
+        Additional notes regarding axial symmetry and modeling decisions
+
+    Notes
+    -----
+    To developers: :attr:`axialSymmetry` should be used to, in some way, apply
+    a reflected boundary condition across the ``xy`` plane at ``z==0``.
 
     """
 
     root = TypedAttr("root", (Universe))
 
-    def __init__(self, root):
+    def __init__(self, root, axialSymmetry=False):
         self.root = root
         self._bounds = None
+        if axialSymmetry:
+            self.applyAxialSymmetry()
+        else:
+            self._axialSymmetry = False
+
+    @property
+    def axialSymmetry(self) -> bool:
+        return self._axialSymmetry
 
     def differentiateBurnableMaterials(self, updateVolumes=True):
         """Create new burnable materials across the geometry.
@@ -174,3 +194,70 @@ class Model:
 
         return not numpy.isinf(bounds.z).any()
 
+    def applyAxialSymmetry(self):
+        """Denote this model as one containing axial symmetry
+
+        This method is designed to ease some model building,
+        especially for problems that are known to axially unstable
+        with respect to depletion.
+
+        If :attr:`bounds` is not set, then the boundaries of the
+        root universe will be inspected. If both are ``None`` (indicating
+        unset or an issue in :meth:`hydep.Universe.boundaries`), an error
+        will be raised.
+
+        The following conditions must be met.
+
+        1. The lower z boundary must be zero, with a finite upper z boundary.
+        2. The ``xy`` plane must contain the origin
+
+        Calling this method successfully a second time will have no effect,
+        as :attr:`axialSymmetry` is set inside this method.
+
+        This method will also update :attr:`bounds` such that
+        ``self.bounds.z.lower == -self.bounds.z.upper``
+
+        .. warning::
+
+            Altering :attr:`bounds` after calling this method is strongly
+            discouraged and should be avoided at all costs.
+
+        Raises
+        ------
+        hydep.GeometryError
+            If any of the conditions mentioned above fail
+
+        """
+        if self.axialSymmetry:
+            return
+
+        bounds = self.bounds
+        if bounds is None:
+            bounds = self.root.bounds
+            if bounds is None:
+                __logger__.debug(
+                    "Model and root universe do not have defined boundaries. "
+                    "Inspecting underlying geometry"
+                )
+                bounds = self.root.boundaries()
+                if bounds is None:
+                    raise GeometryError(
+                        "Model and root universe appear to be unbounded"
+                    )
+                self.root.bounds = bounds
+
+        if numpy.isinf(bounds.z).any():
+            raise GeometryError(
+                f"Geometry is unbounded in z direction. Boundaries: {bounds.z}"
+            )
+        elif bounds.z.lower != 0:
+            raise GeometryError(
+                f"Lower z boundary must be at zero, not {bounds.z.lower}"
+            )
+        elif 0 not in bounds.x or 0 not in bounds.y:
+            raise GeometryError(
+                f"Origin not found in the xy plane: {bounds.x}, {bounds.y}"
+            )
+
+        self._bounds = Boundaries(bounds.x, bounds.y, (-bounds.z.upper, bounds.z.upper))
+        self._axialSymmetry = True
