@@ -111,37 +111,18 @@ class Model:
             self._bounds = None
             return
 
-        if not isinstance(bounds, Boundaries):
-            if not isinstance(bounds, Iterable):
-                raise TypeError(
-                    "Boundaries must be Iterable[Tuple[Real, Real]], not ".format(
-                        bounds))
-            bounds = Boundaries(*bounds)
+        if isinstance(bounds, Boundaries):
+            self._bounds = bounds
+            return
 
-        bx = self._checkBounds(bounds.x, "X")
-        by = self._checkBounds(bounds.y, "Y")
-        bz = self._checkBounds(bounds.z, "Z")
-
-        self._bounds = Boundaries(bx, by, bz)
-
-    @staticmethod
-    def _checkBounds(b, dim):
-        if b is None:
-            return b
-        fmt = dim + " dimension must be None, or (real, real), not {}"
-        if not isinstance(b, Iterable):
-            raise TypeError(fmt.format(type(b)))
-        elif not len(b) == 2:
-            raise ValueError(fmt.format(b))
-        elif not all(isinstance(o, numbers.Real) for o in b):
-            raise ValueError(fmt.format(b))
-        elif b[0] >= b[1]:
-            raise ValueError(
-                "Lower bound {} greater than upper bound {}".format(b[0], b[1])
+        if not isinstance(bounds, Iterable):
+            raise TypeError(
+                "Boundaries must be Iterable[Tuple[Real, Real]], not "
+                f"{type(bounds)}"
             )
-        return b
+        self._bounds = Boundaries(*bounds)
 
-    def isBounded(self, dim: typing.Optional[str]=None) -> bool:
+    def isBounded(self, dim: typing.Optional[str] = None) -> bool:
         """Check if the problem is bounded in all or one direction
 
         When checking all dimensions, the Z-axis is allowed to
@@ -171,14 +152,14 @@ class Model:
             return False
 
         if dim.lower() == "x" or dim == "all":
-            x = self._isDimensionBounded(bounds.x)
+            x = not numpy.isinf(bounds.x).any()
             if dim != "all":
                 return x
             elif not x:
                 return False
 
         if dim.lower() == "y" or dim == "all":
-            y = self._isDimensionBounded(bounds.y)
+            y = not numpy.isinf(bounds.y).any()
             if dim != "all":
                 return y
             elif not y:
@@ -191,10 +172,5 @@ class Model:
         if dim == "all":
             return True
 
-        return self._isDimensionBounded(bounds.z)
+        return not numpy.isinf(bounds.z).any()
 
-    @staticmethod
-    def _isDimensionBounded(bounds):
-        if bounds is None or None in bounds:
-            return False
-        return not numpy.isinf(bounds).any()

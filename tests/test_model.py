@@ -47,7 +47,7 @@ def test_model(toy2x2lattice):
 
     assert model.bounds.x == pytest.approx(bounds[0])
     assert model.bounds.y == pytest.approx(bounds[1])
-    assert model.bounds.z is None
+    assert model.bounds.z == pytest.approx((-numpy.inf, numpy.inf))
 
 
 @pytest.mark.parametrize("root", [True, False])

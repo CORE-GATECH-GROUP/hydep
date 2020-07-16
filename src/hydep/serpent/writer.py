@@ -488,7 +488,7 @@ set nfg {self._eneGridName}
         xybounds = " ".join(
             map("{:.5f}".format, (bounds.x[0], bounds.x[1], bounds.y[0], bounds.y[1]),)
         )
-        if bounds.z is None or (-bounds.z[0] == bounds.z[1] == numpy.inf):
+        if -bounds.z[0] == bounds.z[1] == numpy.inf:
             surf = f"rect {xybounds}"
         else:
             surf = f"cuboid {xybounds} {bounds.z[0]:.5f} {bounds.z[1]:.5f}"

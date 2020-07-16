@@ -192,7 +192,10 @@ def test_cartesianLattice(materials, pins, pinArray):
     assert lat.pitch == 1.26
     assert lat.array.size == lat.size == 9
     assert lat.array.dtype == object
-    assert lat.boundaries() == ((-hwidth, hwidth), (-hwidth, hwidth), None)
+
+    bounds = lat.boundaries()
+    assert bounds.x == bounds.y == (-hwidth, hwidth)
+    assert bounds.z == (-numpy.inf, numpy.inf)
 
     assert lat[0, 0] is pins["fuel"]
     assert lat[1, 1] is pins["guide"]
@@ -325,7 +328,9 @@ def test_latticeStack(materials, pins, pinArray):
     assert mat is materials["fuel"]
     assert count == 8
 
-    assert stack.boundaries() == ((-hwidth, hwidth), (-hwidth, hwidth), (0, 1))
+    bounds = stack.boundaries()
+    assert bounds.x == bounds.y == (-hwidth, hwidth)
+    assert bounds.z == (0, 1)
 
 
 def test_minicore(materials, pins, pinArray):
