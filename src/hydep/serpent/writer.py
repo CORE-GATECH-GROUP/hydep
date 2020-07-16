@@ -496,9 +496,12 @@ set nfg {self._eneGridName}
             f"""
 surf {universeID}_x {surf}
 cell {universeID}_1 {universeNumber} fill {filler} -{universeID}_x
-cell {universeID}_2 {universeNumber} {outer} {universeID}_x
+""")
+        if outer is not None:
+            stream.write(
+                f"""cell {universeID}_2 {universeNumber} {outer} {universeID}_x
 """
-        )
+            )
 
     def _writestack(self, stream, lstack, memo):
         previous = memo.get(lstack.id)
