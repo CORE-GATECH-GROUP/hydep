@@ -22,6 +22,9 @@ import hydep.internal.features as hdfeat
 from .utils import findLibraries, findProblemIsotopes, ProblematicIsotopes
 
 
+_ROOT_UNIVERSE_ID = 0
+
+
 class BaseWriter:
     """Parent class for writing basic information
 
@@ -353,16 +356,46 @@ set nfg {self._eneGridName}
         self.commentblock(stream, "BEGIN GEOMETRY BLOCK")
         rootid = self.writeUniverse(stream, self.model.root, {})
 
-        bounds = self.model.bounds
-        if bounds is None:
-            bounds = self.model.root.bounds
+        globalBounds = self.model.bounds
+        rootBounds = self.model.root.bounds
 
+        if not self.model.axialSymmetry:
+            self._writeCellAndBoundSurf(
+                stream,
+                self.model.root.id,
+                _ROOT_UNIVERSE_ID,
+                rootid,
+                rootBounds if globalBounds is None else globalBounds,
+                outer="outside",
+            )
+            return
+
+        # For axial symmetry, we need to make one more universe before the root
+        # that will be rotated about the xy plane. We need to model the upper
+        # bounding box, fill that with the geometry that has since been built,
+        # apply symmetry, then fill the root universe with this symmetric universe
+
+        subuniv = f"sym{rootid}"
         self._writeCellAndBoundSurf(
             stream,
             self.model.root.id,
-            0,
+            subuniv,
             rootid,
-            bounds,
+            rootBounds,
+            outer=None,
+        )
+        # Format is universe, axis (1=x), boundary (2=ref) x0 y0
+        # theta0, theta_width
+        # Angles are in degrees
+        stream.write(
+            f"set usym {subuniv} 1 2 0.0 0.0 0 180\n"
+        )
+        self._writeCellAndBoundSurf(
+            stream,
+            str(_ROOT_UNIVERSE_ID),
+            _ROOT_UNIVERSE_ID,
+            subuniv,
+            globalBounds,
             outer="outside",
         )
 
