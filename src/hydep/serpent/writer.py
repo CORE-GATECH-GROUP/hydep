@@ -732,7 +732,7 @@ class SerpentWriter(BaseWriter):
                 continue
             self.writemat(stream, mat)
 
-    def _writeMdep(self, stream):
+    def _writeMdep(self, stream, *args):
         self.commentblock(
             stream,
             """BEGIN MICROSCOPIC REACTION XS BLOCK
@@ -740,7 +740,7 @@ Need to trick Serpent into given this information, but we don't want a ton
 of depletion. Add a single one day step here. Maybe hack something later""",
         )
         stream.write("dep daystep 1\nset pcc 0\n")
-        super()._writeMdep(stream)
+        super()._writeMdep(stream, *args)
 
     def writeSteadyStateFile(self, path, compositions, timestep, power, final=False):
         """Write updated burnable materials for steady state solution
