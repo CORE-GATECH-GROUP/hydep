@@ -224,6 +224,8 @@ def test_exampleConfig(serpentdata):
     assert serpent.fpyMode == "constant"
     assert serpent.constantFPYSpectrum == "fast"
 
+    assert serpent.fspInactiveBatches == 2
+
     sfv = settings.sfv
     assert sfv.modes == 10
     assert sfv.modeFraction == 0.75

@@ -123,6 +123,8 @@ def test_update(cleanEnviron, mockSerpentData, useDataDir, allStrings, onHydep):
         "active": 50,
         "inactive": 20,
         "k0": 1.2,
+        "fpy mode": "weighted",
+        "fsp inactive batches": 5,
     }
 
     if useDataDir:
@@ -158,3 +160,5 @@ def test_update(cleanEnviron, mockSerpentData, useDataDir, allStrings, onHydep):
     assert serpent.active == 50
     assert serpent.inactive == 20
     assert serpent.k0 == 1.2
+    assert serpent.fpyMode == "weighted"
+    assert serpent.fspInactiveBatches == 5

@@ -1010,6 +1010,7 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         * ``"thermal scattering"`` -> :attr:`sab`
         * ``"fpy mode"`` -> :attr:`fpyMode`
         * ``"fpy spectrum"`` -> :attr:`constantFPYSpectrum`
+        * ``"fsp inactive batches"`` -> :attr:`fspInactiveBatches`
 
         Parameters
         ----------
@@ -1042,6 +1043,7 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         mpi = options.pop("mpi", False)
         fpyMode = options.pop("fpy mode", None)
         fpySpectrum = options.pop("fpy spectrum", None)
+        fspInactiveBatches = options.pop("fsp inactive batches", None)
 
         if options:
             remain = ", ".join(sorted(options))
@@ -1141,6 +1143,9 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
                     "but FPY mode is not constant. This setting may be ignored"
                 )
             self.constantFPYSpectrum = fpySpectrum
+
+        if fspInactiveBatches is not None:
+            self.fspInactiveBatches = asInt("fsp inactive batches", fspInactiveBatches)
 
 
 class SfvSettings(SubSetting, sectionName="sfv"):

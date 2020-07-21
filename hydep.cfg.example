@@ -213,6 +213,21 @@ fpy mode = constant
 # or "fast" yields 
 fpy spectrum = fast
 
+## Fission source passing
+# Serpent allows the fission source to be passed between depletion
+# steps, and reducing the number of inactive cycles at subsequent steps.
+# This can be used to reduce the overall computational resources required,
+# as fewer inactive cycles are needed to update the fission source.
+# The setting
+fsp inactive batches = 2
+# can be used to activate this Serpent option. Note that this value,
+# like the parameter for inactive and active, denotes batches, not cycles.
+# The number of inactive cycles run at subsequent steps will be
+# fsp batches * generations per batch. If given, must be a non-negative
+# integer, ideally less than the number of inactive batches for the first
+# transport solution. Not providing a value will have every Serpent solution
+# start from a uniform fission source distribution.
+
 [hydep.sfv]
 # Configure the spatial flux variation solver
 
