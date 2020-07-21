@@ -215,6 +215,9 @@ set nfylib "{serpentSettings.nfylib}"
         if serpentSettings.seed is not None:
             stream.write(f"set seed {serpentSettings.seed}\n")
 
+        if serpentSettings.fspInactiveBatches is not None:
+            stream.write(f"set fsp 1 {serpentSettings.fspInactiveBatches * gen}\n")
+
         stream.write(
             f"""% Hard set one group [0, 20] MeV for all data
 ene {self._eneGridName} 2 1 0 20

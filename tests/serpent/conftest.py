@@ -193,6 +193,7 @@ def serpentcfg(mockSerpentData):
         active=5,
         inactive=2,
         executable="sss2",
+        fspInactiveBatches=1,
     )
     settings = hydep.settings.Settings(boundaryConditions="reflective")
 

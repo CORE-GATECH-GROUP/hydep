@@ -702,6 +702,15 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         a stripped, lower-case quantity if a string is given. Otherwise
         a value of ``None`` is accepted and will overwrite the currently
         stored attribute.
+    fspInactiveBatches : int or None
+        Number of inactive **batches** to run for all but the very first
+        transport solution. Number of inactive **cycles** will be the
+        product of :attr:`generationsPerBatch` and :attr:`fspInactiveBatches`,
+        if provided. Instructs Serpent to activate fission source passing
+        using ``set fsp``. The fission source will be passed between
+        transport steps. Value cannot be negative, and a value of
+        ``None`` (default) will not activate this setting. A value of
+        zero will run zero inactive cycles at subsequent transport solutions.
 
     """
 
@@ -725,6 +734,7 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         mpi: OptIntegral = None,
         fpyMode: typing.Optional[str] = "constant",
         constantFPYSpectrum: typing.Optional[str] = "thermal",
+        fspInactiveBatches: OptIntegral = None,
     ):
         if datadir is None:
             datadir = os.environ.get("SERPENT_DATA") or None
@@ -747,6 +757,7 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         self.mpi = mpi
         self.fpyMode = fpyMode
         self.constantFPYSpectrum = constantFPYSpectrum
+        self.fspInactiveBatches = fspInactiveBatches
 
     @property
     def datadir(self) -> PossiblePath:
@@ -969,6 +980,25 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
                 f"one of {opts}"
             )
         self._constFPYSpectrum = spectrum
+
+    @property
+    def fspInactiveBatches(self) -> OptIntegral:
+        return self._fspInactiveBatches
+
+    @fspInactiveBatches.setter
+    def fspInactiveBatches(self, value: OptIntegral):
+        if value is None:
+            self._fspInactiveBatches = None
+            return
+        # Don't enforce positivity, as a value of
+        # zero tells Serpent not to run any inactive cycles
+        enforceInt("fspInactiveBatches", value, False)
+        if value < 0:
+            raise ValueError(
+                "Value of inactive batches using fission source passing "
+                f"cannot be negative. Got {value}"
+            )
+        self._fspInactiveBatches = value
 
     def update(self, options: typing.Mapping[str, typing.Any]):
         """Update from a map of user supplied values
