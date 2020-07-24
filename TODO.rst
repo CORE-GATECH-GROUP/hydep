@@ -1,7 +1,9 @@
-Big open items
-==============
+Documentation items
+===================
 
-* Documentation outside of docstrings
+* Examples
+* Purpose and scope (why this project)
+* Serpent axial symmetry rules (more of a rotation in YZ plane)
 
 TODOs
 =====
@@ -10,8 +12,6 @@ TODOs
 * Guard against hooks that aren't supported by solvers
 * Using vectorized / subprocess-managed routines for SFV macroxs
   reconstruction
-* Use vectorized / subprocess-managed routines when projecting
-  MicroXsVector on TemporalMicroXs
 * Resolve how hydep.Pin objects are handled by numpy
 * Remove most assert statements in favor of actual checks
 * Find a way to add regression test file (setup, post-process) into
@@ -39,7 +39,6 @@ Wish list
 =========
 
 * Multigroup
-* Reflective geometry
 * OpenMC compatibility?
 * Helper function for making pins with automatic subdivision
   a. la. openmc.model.pin
