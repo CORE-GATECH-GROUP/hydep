@@ -16,4 +16,4 @@ from .manager import Manager
 from .integrators import PredictorIntegrator, CELIIntegrator, RK4Integrator
 from .settings import Settings, SerpentSettings, SfvSettings
 
-__version__ = "0.0.0"
+__version__ = "0.1.0"

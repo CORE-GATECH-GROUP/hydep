@@ -22,8 +22,8 @@ copyright = '2020, Andrew Johnson'
 author = 'Andrew Johnson'
 
 # The full version, including alpha/beta/rc tags
-version = "0.0.0"
-release = '0.0.0'
+version = "0.1.0"
+release = '0.1.0'
 
 
 # -- General configuration ---------------------------------------------------
