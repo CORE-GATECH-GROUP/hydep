@@ -201,7 +201,9 @@ class Universe(ABC):
             assert len(bounds) == 3
             bounds = Boundaries(*bounds)
 
-        bx, by, bz = bounds
+        bx = bounds.x
+        by = bounds.y
+        bz = bounds.z
 
         if bx is not None:
             assert all(isinstance(o, numbers.Real) for o in bx)

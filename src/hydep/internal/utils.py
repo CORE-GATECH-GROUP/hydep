@@ -9,32 +9,140 @@ import numpy
 
 __all__ = ("Boundaries", "CompBundle", "compBundleFromMaterials")
 
-Boundaries = namedtuple("Boundaries", "x y z")
-Boundaries.__doc__ = """Representation of spatial domains
 
-For all parameters, a value of ``None`` indicates an
-unbounded domain in a specific direction. The other
-alternative is to use ``numpy.inf`` for one or both
-items.
+class Dimension(tuple):
 
-Parameters
-----------
-x : iterable of float or None
-    Lower and upper boundaries in the x direction.
-y : iterable of float or None
-    Lower and upper boundaries in the y direction.
-z : iterable of float or None
-    Lower and upper boundaries in the z direction.
+    def __new__(cls, *items):
+        if len(items) == 0:
+            return tuple.__new__(cls, (-numpy.inf, numpy.inf))
+        elif len(items) == 1:
+            lower, upper = items[0]
+        else:
+            raise ValueError(
+                f"Expected between zero or one input, got {len(items)}"
+            )
 
-Examples
---------
->>> b = Boundaries((-10.21, 10.21), (-10.21, 10.21), None)
->>> b.x
-(-10.21, 10.21)
->>> b.z is None
-True
+        if lower is None:
+            lower = -numpy.inf
+        elif not isinstance(lower, numbers.Real):
+            raise TypeError(f"Lower bound must be real, not {type(lower)}")
+        if upper is None:
+            upper = numpy.inf
+        elif not isinstance(upper, numbers.Real):
+            raise TypeError(f"Upper bound must be real, not {type(upper)}")
 
-"""
+        if not upper > lower:
+            raise ValueError(
+                f"Upper boundary {upper} must be less than lower {lower}"
+            )
+
+        return tuple.__new__(cls, (lower, upper))
+
+    @property
+    def lower(self):
+        return self[0]
+
+    @property
+    def upper(self):
+        return self[1]
+
+    def __contains__(self, value: float):
+        return self.lower <= value <= self.upper
+
+
+class Boundaries:
+    """Representation of spatial domains
+
+    For all parameters, a value of ``None`` indicates an
+    unbounded domain in a specific direction. The other
+    alternative is to use ``numpy.inf`` for one or both
+    items.
+
+    Each dimensional boundary can be accessed with position,
+    e.g. ``bounds.x[0]`` for lower, ``1`` for upper, or by
+    name, ``bounds.x.lower is bounds.x[0]``.
+
+    Lower boundaries must be less than upper boundaries,
+    and the use of infinities is allowed.
+
+    Parameters
+    ----------
+    x : iterable of float or None
+        Lower and upper boundaries in the x direction.
+    y : iterable of float or None
+        Lower and upper boundaries in the y direction.
+    z : iterable of float or None
+        Lower and upper boundaries in the z direction.
+
+    Attributes
+    ----------
+    x : tuple of float
+        Lower and upper boundaries in the x direction
+    y : tuple of float
+        Lower and upper boundaries in the y direction
+    z : tuple of float
+        Lower and upper boundaries in the z direction
+
+    Examples
+    --------
+    >>> b = Boundaries((-10.21, 10.21), (-10.21, 10.21), None)
+    >>> b.x
+    (-10.21, 10.21)
+    >>> b.z
+    (-inf, inf)
+    >>> b.y.lower, b.z.upper
+    (-10.21, inf)
+    >>> b.x.lower is b.x[0]
+    True
+
+    """
+    __slots__ = ("_x", "_y", "_z")
+
+    def __init__(self, x=None, y=None, z=None):
+        self.x = x
+        self.y = y
+        self.z = z
+
+    @property
+    def x(self):
+        return self._x
+
+    @x.setter
+    def x(self, xd):
+        if xd is None:
+            self._x = Dimension((-numpy.inf, numpy.inf))
+        else:
+            self._x = Dimension(xd)
+
+    @property
+    def y(self):
+        return self._y
+
+    @y.setter
+    def y(self, yd):
+        if yd is None:
+            self._y = Dimension((-numpy.inf, numpy.inf))
+        else:
+            self._y = Dimension(yd)
+
+    @property
+    def z(self):
+        return self._z
+
+    @z.setter
+    def z(self, zd):
+        if zd is None:
+            self._z = Dimension((-numpy.inf, numpy.inf))
+        else:
+            self._z = Dimension(zd)
+
+    def __contains__(self, xyz):
+        assert len(xyz) == 3, xyz
+        assert all(isinstance(p, numbers.Real) for p in xyz), xyz
+        return xyz[0] in self.x and xyz[1] in self.y and xyz[2] in self.z
+
+    def __repr__(self):
+        return f"{type(self).__name__}({self.x}, {self.y}, {self.z})"
 
 
 CompBundle = namedtuple("CompBundle", "isotopes densities")

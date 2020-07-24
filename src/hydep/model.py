@@ -8,8 +8,12 @@ import numpy
 from .universe import Universe
 from .typed import TypedAttr
 from hydep.internal import Boundaries
+from .exceptions import GeometryError
 
 __all__ = ("Model",)
+
+
+__logger__ = logging.getLogger("hydep.model")
 
 
 class Model:
@@ -24,7 +28,9 @@ class Model:
     Parameters
     ----------
     root : hydep.lib.Universe
-        Root universe for the problem.
+        Root universe for the problem
+    axialSymmetry : bool, optional
+        Flag indicating if ``root`` has axial symmetry at ``z=0``
 
     Attributes
     ----------
@@ -34,19 +40,36 @@ class Model:
         X, Y, and Z boundaries for the root universe. A value of
         ``None`` is allowed, but implies the problem is unbounded in
         all directions. This may cause issues with downstream solvers.
+    axialSymmetry : bool
+        Read-only attribute indicating axial symmetry
 
     See Also
     --------
     * :meth:`hydep.lib.Universe.boundaries`
         Look into the root universe and determine size from contents.
+    * :meth:`applyAxialSymmetry`
+        Additional notes regarding axial symmetry and modeling decisions
+
+    Notes
+    -----
+    To developers: :attr:`axialSymmetry` should be used to, in some way, apply
+    a reflected boundary condition across the ``xy`` plane at ``z==0``.
 
     """
 
     root = TypedAttr("root", (Universe))
 
-    def __init__(self, root):
+    def __init__(self, root, axialSymmetry=False):
         self.root = root
         self._bounds = None
+        if axialSymmetry:
+            self.applyAxialSymmetry()
+        else:
+            self._axialSymmetry = False
+
+    @property
+    def axialSymmetry(self) -> bool:
+        return self._axialSymmetry
 
     def differentiateBurnableMaterials(self, updateVolumes=True):
         """Create new burnable materials across the geometry.
@@ -85,9 +108,8 @@ class Model:
             for a burnable material
 
         """
-        logger = logging.getLogger("hydep.model")
         if updateVolumes:
-            logger.debug("Counting and updating burnable material volumes")
+            __logger__.debug("Counting and updating burnable material volumes")
             vols = self.root.countBurnableMaterials()
 
             for mat, counts in vols.values():
@@ -95,11 +117,11 @@ class Model:
                     raise AttributeError("Volume not set for {}".format(mat))
                 mat.volume = mat.volume / counts
 
-            logger.debug("Done.")
+            __logger__.debug("Done.")
 
-        logger.debug("Differentiating burnable materials")
+        __logger__.debug("Differentiating burnable materials")
         self.root.differentiateBurnableMaterials()
-        logger.debug("Done.")
+        __logger__.debug("Done.")
 
     @property
     def bounds(self):
@@ -111,37 +133,18 @@ class Model:
             self._bounds = None
             return
 
-        if not isinstance(bounds, Boundaries):
-            if not isinstance(bounds, Iterable):
-                raise TypeError(
-                    "Boundaries must be Iterable[Tuple[Real, Real]], not ".format(
-                        bounds))
-            bounds = Boundaries(*bounds)
+        if isinstance(bounds, Boundaries):
+            self._bounds = bounds
+            return
 
-        bx = self._checkBounds(bounds.x, "X")
-        by = self._checkBounds(bounds.y, "Y")
-        bz = self._checkBounds(bounds.z, "Z")
-
-        self._bounds = Boundaries(bx, by, bz)
-
-    @staticmethod
-    def _checkBounds(b, dim):
-        if b is None:
-            return b
-        fmt = dim + " dimension must be None, or (real, real), not {}"
-        if not isinstance(b, Iterable):
-            raise TypeError(fmt.format(type(b)))
-        elif not len(b) == 2:
-            raise ValueError(fmt.format(b))
-        elif not all(isinstance(o, numbers.Real) for o in b):
-            raise ValueError(fmt.format(b))
-        elif b[0] >= b[1]:
-            raise ValueError(
-                "Lower bound {} greater than upper bound {}".format(b[0], b[1])
+        if not isinstance(bounds, Iterable):
+            raise TypeError(
+                "Boundaries must be Iterable[Tuple[Real, Real]], not "
+                f"{type(bounds)}"
             )
-        return b
+        self._bounds = Boundaries(*bounds)
 
-    def isBounded(self, dim: typing.Optional[str]=None) -> bool:
+    def isBounded(self, dim: typing.Optional[str] = None) -> bool:
         """Check if the problem is bounded in all or one direction
 
         When checking all dimensions, the Z-axis is allowed to
@@ -171,14 +174,14 @@ class Model:
             return False
 
         if dim.lower() == "x" or dim == "all":
-            x = self._isDimensionBounded(bounds.x)
+            x = not numpy.isinf(bounds.x).any()
             if dim != "all":
                 return x
             elif not x:
                 return False
 
         if dim.lower() == "y" or dim == "all":
-            y = self._isDimensionBounded(bounds.y)
+            y = not numpy.isinf(bounds.y).any()
             if dim != "all":
                 return y
             elif not y:
@@ -191,10 +194,69 @@ class Model:
         if dim == "all":
             return True
 
-        return self._isDimensionBounded(bounds.z)
+        return not numpy.isinf(bounds.z).any()
 
-    @staticmethod
-    def _isDimensionBounded(bounds):
-        if bounds is None or None in bounds:
-            return False
-        return not numpy.isinf(bounds).any()
+    def applyAxialSymmetry(self):
+        """Denote this model as one containing axial symmetry
+
+        This method is designed to ease some model building,
+        especially for problems that are known to axially unstable
+        with respect to depletion.
+
+        If :attr:`bounds` is not set, then the boundaries of the
+        root universe will be inspected. If both are ``None`` (indicating
+        unset or an issue in :meth:`hydep.Universe.boundaries`), an error
+        will be raised.
+
+        The following conditions must be met.
+
+        1. The lower z boundary must be zero, with a finite upper z boundary.
+        2. The ``xy`` plane must contain the origin
+
+        Calling this method successfully a second time will have no effect,
+        as :attr:`axialSymmetry` is set inside this method.
+
+        .. warning::
+
+            Altering :attr:`bounds` after calling this method is strongly
+            discouraged and should be avoided at all costs.
+
+        Raises
+        ------
+        hydep.GeometryError
+            If any of the conditions mentioned above fail
+
+        """
+        if self.axialSymmetry:
+            return
+
+        bounds = self.bounds
+        if bounds is None:
+            bounds = self.root.bounds
+            if bounds is None:
+                __logger__.debug(
+                    "Model and root universe do not have defined boundaries. "
+                    "Inspecting underlying geometry"
+                )
+                bounds = self.root.boundaries()
+                if bounds is None:
+                    raise GeometryError(
+                        "Model and root universe appear to be unbounded"
+                    )
+                self.root.bounds = bounds
+
+        if numpy.isinf(bounds.z).any():
+            raise GeometryError(
+                f"Geometry is unbounded in z direction. Boundaries: {bounds.z}"
+            )
+        elif bounds.z.lower != 0:
+            raise GeometryError(
+                f"Lower z boundary must be at zero, not {bounds.z.lower}"
+            )
+        elif 0 not in bounds.x or 0 not in bounds.y:
+            raise GeometryError(
+                f"Origin not found in the xy plane: {bounds.x}, {bounds.y}"
+            )
+
+        self._bounds = Boundaries(bounds.x, bounds.y, (0, bounds.z.upper))
+        self._axialSymmetry = True

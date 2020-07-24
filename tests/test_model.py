@@ -4,6 +4,7 @@ import math
 import numpy
 import pytest
 import hydep
+from hydep.internal import Boundaries
 
 
 def test_model(toy2x2lattice):
@@ -47,7 +48,7 @@ def test_model(toy2x2lattice):
 
     assert model.bounds.x == pytest.approx(bounds[0])
     assert model.bounds.y == pytest.approx(bounds[1])
-    assert model.bounds.z is None
+    assert model.bounds.z == pytest.approx((-numpy.inf, numpy.inf))
 
 
 @pytest.mark.parametrize("root", [True, False])
@@ -106,3 +107,65 @@ def test_boundsCheck(root):
     assert model.isBounded("x")
     assert model.isBounded("y")
     assert model.isBounded("z")
+
+
+@pytest.fixture
+def simpleModel():
+    univ = hydep.InfiniteMaterial(hydep.Material("inf", adens=1))
+    return hydep.Model(univ)
+
+
+def checkbounds(actual, expected):
+    assert actual.x == expected.x
+    assert actual.y == expected.y
+    assert actual.z == expected.z
+
+
+@pytest.mark.parametrize("presetBounds", [True, False])
+def test_axialSymmetry(simpleModel, presetBounds):
+    bounds = Boundaries((-1, 1), (-1, 1), (0, 1))
+    simpleModel.root.bounds = bounds
+    assert simpleModel.bounds is None
+
+    if presetBounds:
+        simpleModel.bounds = bounds
+
+    assert not simpleModel.axialSymmetry
+
+    simpleModel.applyAxialSymmetry()
+
+    assert simpleModel.axialSymmetry
+    checkbounds(
+        simpleModel.bounds,
+        Boundaries(bounds.x, bounds.y, (0, bounds.z.upper))
+    )
+    checkbounds(simpleModel.root.bounds, bounds)
+
+
+def test_symmetryFailure(simpleModel):
+    # No boundaries are declared at all
+    with pytest.raises(hydep.GeometryError, match=".*root universe.*unbounded"):
+        simpleModel.applyAxialSymmetry()
+
+    assert not simpleModel.axialSymmetry
+
+    # Unbounded in z direction
+    for z in [None, (0, numpy.inf), (-numpy.inf, 1)]:
+        simpleModel.bounds = ((-1, 1), (-1, 1), z)
+        with pytest.raises(hydep.GeometryError, match=".*unbounded.* z "):
+            simpleModel.applyAxialSymmetry()
+
+        assert not simpleModel.axialSymmetry
+
+    simpleModel.bounds = (-1, 1), (-1, 1), (1, 2)
+    with pytest.raises(hydep.GeometryError, match=".*z boundary"):
+        simpleModel.applyAxialSymmetry()
+    assert not simpleModel.axialSymmetry
+
+    # origin not contained in xy plane
+    for coords in [(1, 2), (-numpy.inf, -1)]:
+        simpleModel.bounds = coords, (-1, 1), (0, 1)
+        with pytest.raises(hydep.GeometryError, match=".*xy"):
+            simpleModel.applyAxialSymmetry()
+
+        assert not simpleModel.axialSymmetry

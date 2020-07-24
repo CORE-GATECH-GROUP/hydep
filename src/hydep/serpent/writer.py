@@ -22,6 +22,9 @@ import hydep.internal.features as hdfeat
 from .utils import findLibraries, findProblemIsotopes, ProblematicIsotopes
 
 
+_ROOT_UNIVERSE_ID = 0
+
+
 class BaseWriter:
     """Parent class for writing basic information
 
@@ -356,18 +359,35 @@ set nfg {self._eneGridName}
         self.commentblock(stream, "BEGIN GEOMETRY BLOCK")
         rootid = self.writeUniverse(stream, self.model.root, {})
 
-        bounds = self.model.bounds
-        if bounds is None:
-            bounds = self.model.root.bounds
+        globalBounds = self.model.bounds
+        rootBounds = self.model.root.bounds
 
         self._writeCellAndBoundSurf(
             stream,
             self.model.root.id,
-            0,
+            _ROOT_UNIVERSE_ID,
             rootid,
-            bounds,
+            rootBounds if globalBounds is None else globalBounds,
             outer="outside",
         )
+
+        if self.model.axialSymmetry:
+
+            # In Serpent 2.1.31+, we can apply symmetry to the root universe
+            # using particle reflections and translation rather than coordinate
+            # transformations. In this way, we don't have to model the geometry
+            # going in to the negative direction, nor create an additional sub
+            # root universe. The root universe is _technically_ rotated in the
+            # yz plane about x=0, so some additional modeling considerations
+            # should be taken and noted to the user
+
+            # Format is universe, axis (1=x), boundary (2=ref) x0 y0
+            # theta0, theta_width,
+            # how (1=particle reflection & translation, 0=coordinate transform)
+            # Angles are in degrees
+            stream.write(
+                f"set usym {_ROOT_UNIVERSE_ID} 1 2 0.0 0.0 0 180 1\n"
+            )
 
     def writeUniverse(self, stream, u, memo):
         """Write the geometry definition for this material
@@ -491,7 +511,7 @@ set nfg {self._eneGridName}
         xybounds = " ".join(
             map("{:.5f}".format, (bounds.x[0], bounds.x[1], bounds.y[0], bounds.y[1]),)
         )
-        if bounds.z is None or (-bounds.z[0] == bounds.z[1] == numpy.inf):
+        if -bounds.z[0] == bounds.z[1] == numpy.inf:
             surf = f"rect {xybounds}"
         else:
             surf = f"cuboid {xybounds} {bounds.z[0]:.5f} {bounds.z[1]:.5f}"
@@ -499,9 +519,12 @@ set nfg {self._eneGridName}
             f"""
 surf {universeID}_x {surf}
 cell {universeID}_1 {universeNumber} fill {filler} -{universeID}_x
-cell {universeID}_2 {universeNumber} {outer} {universeID}_x
+""")
+        if outer is not None:
+            stream.write(
+                f"""cell {universeID}_2 {universeNumber} {outer} {universeID}_x
 """
-        )
+            )
 
     def _writestack(self, stream, lstack, memo):
         previous = memo.get(lstack.id)
@@ -732,7 +755,7 @@ class SerpentWriter(BaseWriter):
                 continue
             self.writemat(stream, mat)
 
-    def _writeMdep(self, stream):
+    def _writeMdep(self, stream, *args):
         self.commentblock(
             stream,
             """BEGIN MICROSCOPIC REACTION XS BLOCK
@@ -740,7 +763,7 @@ Need to trick Serpent into given this information, but we don't want a ton
 of depletion. Add a single one day step here. Maybe hack something later""",
         )
         stream.write("dep daystep 1\nset pcc 0\n")
-        super()._writeMdep(stream)
+        super()._writeMdep(stream, *args)
 
     def writeSteadyStateFile(self, path, compositions, timestep, power, final=False):
         """Write updated burnable materials for steady state solution
