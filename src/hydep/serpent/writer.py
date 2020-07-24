@@ -359,45 +359,32 @@ set nfg {self._eneGridName}
         globalBounds = self.model.bounds
         rootBounds = self.model.root.bounds
 
-        if not self.model.axialSymmetry:
-            self._writeCellAndBoundSurf(
-                stream,
-                self.model.root.id,
-                _ROOT_UNIVERSE_ID,
-                rootid,
-                rootBounds if globalBounds is None else globalBounds,
-                outer="outside",
-            )
-            return
-
-        # For axial symmetry, we need to make one more universe before the root
-        # that will be rotated about the xy plane. We need to model the upper
-        # bounding box, fill that with the geometry that has since been built,
-        # apply symmetry, then fill the root universe with this symmetric universe
-
-        subuniv = f"sym{rootid}"
         self._writeCellAndBoundSurf(
             stream,
             self.model.root.id,
-            subuniv,
-            rootid,
-            rootBounds,
-            outer=None,
-        )
-        # Format is universe, axis (1=x), boundary (2=ref) x0 y0
-        # theta0, theta_width
-        # Angles are in degrees
-        stream.write(
-            f"set usym {subuniv} 1 2 0.0 0.0 0 180\n"
-        )
-        self._writeCellAndBoundSurf(
-            stream,
-            str(_ROOT_UNIVERSE_ID),
             _ROOT_UNIVERSE_ID,
-            subuniv,
-            globalBounds,
+            rootid,
+            rootBounds if globalBounds is None else globalBounds,
             outer="outside",
         )
+
+        if self.model.axialSymmetry:
+
+            # In Serpent 2.1.31+, we can apply symmetry to the root universe
+            # using particle reflections and translation rather than coordinate
+            # transformations. In this way, we don't have to model the geometry
+            # going in to the negative direction, nor create an additional sub
+            # root universe. The root universe is _technically_ rotated in the
+            # yz plane about x=0, so some additional modeling considerations
+            # should be taken and noted to the user
+
+            # Format is universe, axis (1=x), boundary (2=ref) x0 y0
+            # theta0, theta_width,
+            # how (1=particle reflection & translation, 0=coordinate transform)
+            # Angles are in degrees
+            stream.write(
+                f"set usym {_ROOT_UNIVERSE_ID} 1 2 0.0 0.0 0 180 1\n"
+            )
 
     def writeUniverse(self, stream, u, memo):
         """Write the geometry definition for this material
