@@ -137,7 +137,7 @@ def test_axialSymmetry(simpleModel, presetBounds):
     assert simpleModel.axialSymmetry
     checkbounds(
         simpleModel.bounds,
-        Boundaries(bounds.x, bounds.y, (-bounds.z.upper, bounds.z.upper))
+        Boundaries(bounds.x, bounds.y, (0, bounds.z.upper))
     )
     checkbounds(simpleModel.root.bounds, bounds)
 

@@ -216,9 +216,6 @@ class Model:
         Calling this method successfully a second time will have no effect,
         as :attr:`axialSymmetry` is set inside this method.
 
-        This method will also update :attr:`bounds` such that
-        ``self.bounds.z.lower == -self.bounds.z.upper``
-
         .. warning::
 
             Altering :attr:`bounds` after calling this method is strongly
@@ -261,5 +258,5 @@ class Model:
                 f"Origin not found in the xy plane: {bounds.x}, {bounds.y}"
             )
 
-        self._bounds = Boundaries(bounds.x, bounds.y, (-bounds.z.upper, bounds.z.upper))
+        self._bounds = Boundaries(bounds.x, bounds.y, (0, bounds.z.upper))
         self._axialSymmetry = True
