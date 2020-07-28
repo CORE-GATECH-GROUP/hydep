@@ -4,8 +4,10 @@
 Reference
 =========
 
+.. module:: hydep
+
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
     :caption: Contents
 
     materials
@@ -15,6 +17,7 @@ Reference
     integrators
     settings
     serpent
+    simplero
     sfv
     hdf
     abc

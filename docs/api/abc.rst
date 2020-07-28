@@ -2,6 +2,8 @@
 
 .. _lib-abc:
 
+.. module:: hydep.lib
+
 Abstract Base Classes
 =====================
 

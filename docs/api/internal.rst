@@ -9,6 +9,8 @@ Feature Control
 
 .. currentmodule:: hydep.internal.features
 
+.. module:: hydep.internal.features
+
 .. autosummary::
     :toctree: generated
     :nosignatures:
@@ -18,6 +20,8 @@ Feature Control
     FeatureCollection
 
 .. currentmodule:: hydep.internal
+
+.. module:: hydep.internal
 
 Isotopics
 =========

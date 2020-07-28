@@ -2,6 +2,8 @@
 
 .. _api-sfv:
 
+.. module:: hydep.sfv
+
 =============
 SFV Interface
 =============

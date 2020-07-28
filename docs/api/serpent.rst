@@ -2,6 +2,8 @@
 
 .. currentmodule:: hydep.serpent
 
+.. module:: hydep.serpent
+
 =================
 Serpent Interface
 =================
