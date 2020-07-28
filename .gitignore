@@ -5,3 +5,5 @@
 .coverage
 docs/**/generated/
 docs/_build/
+**/.ipynb_checkpoints/
+docs/**/*.h5

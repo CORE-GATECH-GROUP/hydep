@@ -12,6 +12,7 @@ Welcome to hydep's documentation!
 
    introduction
    scope
+   examples/index
    configuration
    api/index
 
