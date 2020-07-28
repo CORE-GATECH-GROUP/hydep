@@ -6,10 +6,19 @@ import logging
 import subprocess
 import numbers
 import os
+import re
 from enum import Enum, auto
 import signal
 
 from hydep import FailedSolverError
+
+# Patterns used to search for the source of error in
+# the output stream. Should be binary raw strings.
+# Ordering might be important? Most likely errors first?
+
+ERROR_PATTERNS = [
+    rb"Out of memory error\s+\(.*\)",
+]
 
 
 class BaseRunner:
@@ -163,6 +172,18 @@ class BaseRunner:
             if value is not None:
                 setattr(self, attr, value)
 
+    def _reportFailure(self, tail: bytes):
+        msg = None
+        for pattern in ERROR_PATTERNS:
+            match = re.search(pattern, tail)
+            if match is not None:
+                start, end = match.span(0)
+                msg = f"Reason:\n{tail[start:end].decode()}"
+                break
+        else:
+            msg = f"Last portion of stdout:\n{tail.decode()}"
+        raise FailedSolverError(f"Serpent has failed. {msg}")
+
 
 class SerpentRunner(BaseRunner):
     """Class responsible for running a Serpent job
@@ -219,9 +240,7 @@ class SerpentRunner(BaseRunner):
         cmd = self.makeCommand() + [inputpath]
         proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         if proc.returncode:
-            msg = proc.stdout[-500:].decode()
-            # TODO Improve error parsing?
-            raise FailedSolverError(msg)
+            self._reportFailure(proc.stdout[-500:])
 
 
 class STATE(Enum):
