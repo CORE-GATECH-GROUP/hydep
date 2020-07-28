@@ -14,7 +14,7 @@ import hydep.internal.features as hdfeat
 
 from .writer import BaseWriter, SerpentWriter, ExtDepWriter
 from .runner import BaseRunner, SerpentRunner, ExtDepRunner
-from .processor import SerpentProcessor, WeightedFPYFetcher, ConstantFPYHelper
+from .processor import SerpentProcessor, WeightedFPYHelper, ConstantFPYHelper
 from .xsavail import XS_2_1_30
 
 
@@ -214,7 +214,7 @@ class BaseSolver(HighFidelitySolver):
         if hdfeat.FISSION_YIELDS in self.hooks.features:
             mode = settings.serpent.fpyMode
             if mode == "weighted":
-                fyproc = WeightedFPYFetcher(matids, manager.chain)
+                fyproc = WeightedFPYHelper(matids, manager.chain)
             elif mode == "constant":
                 fyproc = ConstantFPYHelper(
                     matids, manager.chain, settings.serpent.constantFPYSpectrum

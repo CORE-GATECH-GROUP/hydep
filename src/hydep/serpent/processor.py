@@ -532,7 +532,7 @@ class FPYHelper(ABC):
         """
 
 
-class WeightedFPYFetcher(FPYHelper):
+class WeightedFPYHelper(FPYHelper):
     """Helper for getting energy-averaged fission yields from Serpent
 
     Inspired by :class:`openmc.deplete.helpers.AveragedFissionYieldHelper`
