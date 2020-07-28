@@ -1,15 +1,5 @@
 """
 Serpent high fidelity transport solver interface
-
-Primarily beneficial classes:
-
-.. autosummary::
-    :toctree: generated
-    :nosignatures:
-
-    SerpentSolver
-    CoupledSerpentSolver
-
 """
 try:
     import serpentTools
