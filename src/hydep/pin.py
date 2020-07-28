@@ -83,6 +83,13 @@ class Pin(Universe):
             raise TypeError(index)
         return self.radii[index], self.materials[index]
 
+    def __repr__(self) -> str:
+        head = f"{type(self).__name__} {self.id} {self.name or ''}"
+        mats = ", ".join(f"{m.id} {m.name or ''}" for m in self.materials)
+        return "\n".join(
+            [head, str(self.radii), mats, f"{self.outer.id} {self.outer.name or ''}"]
+        )
+
     def findMaterials(self, memo=None):
         """Yield all materials present.
 

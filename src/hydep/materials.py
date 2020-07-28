@@ -184,33 +184,32 @@ class Material(dict):
         return super().__getitem__(self._getIsotopeFromKey(key))
 
     def __repr__(self):
-        return "<{} {} at {}>".format(self.__class__.__name__, self.name, hex(id(self)))
-
-    def __str__(self):
         if self.mdens is not None:
-            dens = " {:9.5e} [g/cc]".format(self.mdens)
+            dens = f" {self.mdens:9.5e} [g/cc]"
         elif self.adens is not None:
-            dens = " {:9.5e} [atoms/b/cm]".format(self.adens)
+            dens = f" {self.adens:9.5e} [atoms/b/cm]"
         else:
             dens = ""
         if self.temperature is not None:
-            temp = " at {:7.5f} K".format(self.temperature)
+            temp = f" at {self.temperature:7.5f} K"
         else:
             temp = ""
         if self.volume is not None:
-            vol = " volume {:7.5f} cm^3".format(self.volume)
+            vol = f" volume {self.volume:7.5f} cm^3"
         else:
             vol = ""
         tail = "\n".join(
-            "  {}: {:9.5e}".format(k.name, v) for k, v in sorted(self.items())
+            f"  {iso.name}: {dens:9.5e}" for iso, dens in sorted(self.items())
         )
-        return "{cls} {name}{dens}{temp}{vol}\n{d}".format(
+        return "{cls} {mid} {name}{dens}{temp}{vol}\n{d}{sab}".format(
             cls=self.__class__.__name__,
+            mid=self.id,
             name=self.name,
             dens=dens,
             temp=temp,
             vol=vol,
             d=tail,
+            sab=f"\nS(a,b): {sorted(self.sab)}" if self.sab else "",
         )
 
     def copy(self, name=None):
