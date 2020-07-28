@@ -18,3 +18,6 @@ Exceptions
 
 .. autoclass:: hydep.NegativeDensityWarning
     :show-inheritance:
+
+.. autoclass:: hydep.DataWarning
+    :show-inheritance:

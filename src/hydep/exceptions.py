@@ -16,3 +16,7 @@ class NegativeDensityError(RuntimeError):
 
 class NegativeDensityWarning(RuntimeWarning):
     """Warning that sufficiently negative densities were obtained"""
+
+
+class DataWarning(UserWarning):
+    """Warning that non-ideal behavior has been found in nuclear data"""
