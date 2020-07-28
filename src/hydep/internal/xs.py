@@ -347,7 +347,7 @@ class MaterialDataArray(_IndexedData):
         return NotImplemented
 
     def __imul__(self, scalar: float):
-        """Scale data in place: X *= a"""
+        r"""Scale data in place: X \*= a"""
         if isinstance(scalar, numbers.Real):
             self.data *= scalar
             return self

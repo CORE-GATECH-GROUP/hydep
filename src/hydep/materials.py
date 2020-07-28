@@ -363,10 +363,10 @@ class BurnableMaterial(Material):
         ----------
         order : Dict[int, int] or Iterable[int], optional
             Order to write isotopes. If not provided, write all
-            isotopes sorted by their :term:`ZAI` number. If ``order``
-            is a map, it should map :term:`ZAI`s to indexes in the
+            isotopes sorted by their ZAI number. If ``order``
+            is a map, it should map ZAIs to indexes in the
             resulting array. Otherwise it should be an iterable, e.g.
-            :class:`list` or :class:`numpy.ndarray` of :term:`ZAI`.
+            :class:`list` or :class:`numpy.ndarray` of ZAI.
             Isotopes will be written in this order
         default : float, optional
             Default value to write if an isotope is present in ``order``
