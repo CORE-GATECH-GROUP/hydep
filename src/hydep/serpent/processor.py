@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 import numpy
 import serpentTools
 
+from hydep import DataWarning
 from hydep.internal import MaterialDataArray, XsIndex, FakeSequence
 from hydep.constants import CM2_PER_BARN, REACTION_MTS
 from .fmtx import parseFmtx
@@ -729,7 +730,7 @@ class ConstantFPYHelper(FPYHelper):
 
     Warns
     -----
-    RuntimeWarning
+    hydep.DataWarning
         If isotopes are found with more than one set of yields, but
         the corresponding energy could not be found. For example, thermal
         yields for U238 will likely fall back to the epithermal
@@ -769,7 +770,7 @@ class ConstantFPYHelper(FPYHelper):
                 "The following isotopes did not have fission yields at an energy of "
                 f"{target} eV, but were replaced by the closet set of provided yields: "
                 f"{missing}",
-                RuntimeWarning,
+                DataWarning,
             )
 
         self._fpy = FakeSequence(constants, len(matids))
