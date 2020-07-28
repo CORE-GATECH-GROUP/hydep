@@ -334,10 +334,7 @@ class ExtDepRunner(BaseRunner):
             if desiredState == STATE.TERM:
                 return
             # All is lost
-            raise subprocess.SubprocessError(
-                "Serpent has failed/terminated when it should not have. "
-                f"Exit code: {stat}"
-            )
+            self._reportFailure(self._proc.stdout[-500:])
 
     def solveNext(self):
         """Tell Serpent to solve the next transport step
