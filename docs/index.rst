@@ -10,6 +10,9 @@ Welcome to hydep's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   introduction
+   scope
+   configuration
    api/index
 
 Indices and tables
