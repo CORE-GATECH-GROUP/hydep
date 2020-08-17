@@ -23,7 +23,7 @@ TODOs
 Serpent
 -------
 
-* Improved parsing of error at output
+* Improved parsing of error at output (catch more types of errors)
 * Support for writing outer materials for lattice stack
 
 Caveats
