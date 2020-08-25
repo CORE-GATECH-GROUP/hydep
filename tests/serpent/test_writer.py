@@ -246,3 +246,41 @@ def test_unbounded(tmp_path, beavrsFuelPin, serpentcfg, simpleChain):
     )
 
     assert filecompare(boundedModel, boundedRoot)
+
+
+@pytest.mark.serpent
+@pytest.mark.parametrize(
+    "klass",
+    [hydep.serpent.SerpentWriter, hydep.serpent.ExtDepWriter]
+)
+def test_materialTemperature(klass):
+    writer = klass()
+
+    mat = hydep.Material("test", adens=1)
+
+    # No temperature
+    t = writer._getmatlib(mat)
+    assert t == "06c"
+
+    # Temperature too small -> raise a warning
+    mat.temperature = 0.5 * min(writer._temps)
+    with pytest.warns(hydep.DataWarning):
+        t = writer._getmatlib(mat)
+    assert t == "06c"
+
+    # Use an exact temperature
+    mat.temperature = 300
+    t = writer._getmatlib(mat)
+    assert t == "03c"
+
+    # Use a temperature between libraries
+    mat.temperature = 800
+    t = writer._getmatlib(mat)
+    assert t == "06c"
+
+    # Temperature greater than max
+    maxt = max(writer._temps)
+    mat.temperature = maxt * 1.1
+    lib = f"{maxt // 100:02}c"
+    t = writer._getmatlib(mat)
+    assert t == lib

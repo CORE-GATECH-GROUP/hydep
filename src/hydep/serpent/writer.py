@@ -44,8 +44,6 @@ class BaseWriter:
     """
 
     _temps = (300, 600, 900, 1200, 1500)
-    # TODO Allow config control over default material temperature
-    _defaulttemp = 600
     hooks = TypedAttr("hooks", hdfeat.FeatureCollection)
     burnable = IterableOf("burnable", hydep.BurnableMaterial, allowNone=True)
 
@@ -332,23 +330,24 @@ set nfg {self._eneGridName}
         if mat.temperature is not None:
             if mat.temperature < min(self._temps):
                 warnings.warn(
-                    "Temperature {:.5f} for {} too low. Using {}".format(
-                        mat.temperature, repr(mat), self._defaulttemp
-                    )
+                    "Temperature {:.5f} for {} too low. Using 600K".format(
+                        mat.temperature, repr(mat)
+                    ),
+                    hydep.DataWarning,
                 )
-                temp = self._defaulttemp
-            else:
-                temp = mat.temperature
+                # TODO Allow control over default material temperature
+                return "06c"
+            temp = mat.temperature
         else:
-            temp = self._defaulttemp
+            return "06c"
 
-        for ix, t in enumerate(self._temps, start=1):
+        for ix, t in enumerate(self._temps[1:], start=1):
             if t == temp:
                 break
             elif t > temp:
-                t = self._temps[ix - 1]
+                ix -= 1
                 break
-        return "{:02}c".format(t // 100)
+        return "{:02}c".format(self._temps[ix] // 100)
 
     def _writematerials(self, stream, materials):
         self.commentblock(stream, "BEGIN MATERIAL BLOCK")
