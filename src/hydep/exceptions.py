@@ -20,3 +20,7 @@ class NegativeDensityWarning(RuntimeWarning):
 
 class DataWarning(UserWarning):
     """Warning that non-ideal behavior has been found in nuclear data"""
+
+
+class DataError(Exception):
+    """Raised if there is an issue with nuclear data, e.g. missing libraries"""

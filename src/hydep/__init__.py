@@ -4,6 +4,7 @@ from .exceptions import (
     FailedSolverError,
     NegativeDensityWarning,
     NegativeDensityError,
+    DataError,
     DataWarning,
 )
 from .materials import Material, BurnableMaterial

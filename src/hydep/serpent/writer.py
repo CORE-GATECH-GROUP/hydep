@@ -141,11 +141,23 @@ class BaseWriter:
                     prev = line
                     continue
                 del patterns[key]
+                found.remove(key)
                 if patterns:
                     prev = line
                     continue
                 else:
                     break
+
+        if not tables:
+            raise hydep.DataError(
+                f"Could not find any S(a,b) tables matching (material, temperature) "
+                f"pairs in {sab!s}: {found}",
+            )
+        elif found:
+            raise hydep.DataError(
+                "The following (material, temperature) pairs were not found in "
+                f"{sab!s}: {found}",
+            )
 
         return tables
 
