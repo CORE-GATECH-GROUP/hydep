@@ -103,6 +103,11 @@ class BaseWriter:
         stream.write("\n */\n")
 
     def _findSABTables(self, materials, sab: pathlib.Path) -> dict:
+        if not sab.is_file():
+            raise FileNotFoundError(
+                f"Model contains S(a,b) tables, but file {sab} not found"
+            )
+
         replace = {
             "HinH2O": "HinH20",
             "DinH2O": "DinH20",
@@ -115,11 +120,6 @@ class BaseWriter:
 
         if not found:
             return {}
-
-        if not sab.is_file():
-            raise FileNotFoundError(
-                f"Model contains S(a,b) tables, but file {sab} not found"
-            )
 
         patterns = {}
         for table, temp in found:
@@ -148,12 +148,7 @@ class BaseWriter:
                 else:
                     break
 
-        if not tables:
-            raise hydep.DataError(
-                f"Could not find any S(a,b) tables matching (material, temperature) "
-                f"pairs in {sab!s}: {found}",
-            )
-        elif found:
+        if found:
             raise hydep.DataError(
                 "The following (material, temperature) pairs were not found in "
                 f"{sab!s}: {found}",

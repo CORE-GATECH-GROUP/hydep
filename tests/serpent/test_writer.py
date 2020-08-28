@@ -11,6 +11,7 @@ from hydep.internal import (
     Boundaries,
 )
 import hydep.serpent
+from hydep.serpent.utils import Library
 
 from tests import strcompare, filecompare
 from tests.regressions import config
@@ -283,3 +284,33 @@ def test_materialTemperature(writer):
     lib = f"{maxt // 100:02}c"
     t = writer._getmatlib(mat)
     assert t == lib
+
+
+@pytest.fixture
+def mockSAB(mockSerpentData):
+    yield mockSerpentData[Library.SAB]
+
+
+@pytest.mark.serpent
+def test_sab(mockSAB, writer):
+    mat = hydep.Material("water", mdens=1, temperature=600)
+    # Empty dictionary if no S(a, b) found
+    assert writer._findSABTables([mat], mockSAB) == {}
+
+    mat.addSAlphaBeta("HinH2O")
+    actual = writer._findSABTables([mat], mockSAB)
+    assert actual == {("HinH2O", "600.00"): "lwe6.12t"}
+
+    # Off temperature material to test errors
+    second = hydep.Material("other", mdens=1, temperature=608)
+    second.addSAlphaBeta("HinH2O")
+
+    with pytest.raises(hydep.DataError, match=str(second.temperature)):
+        writer._findSABTables([second], mockSAB)
+
+    with pytest.raises(hydep.DataError, match=str(second.temperature)):
+        writer._findSABTables([mat, second], mockSAB)
+
+    fake = pathlib.Path("fakesab")
+    with pytest.raises(FileNotFoundError, match=".*fakesab"):
+        writer._findSABTables([], fake)
