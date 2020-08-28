@@ -167,8 +167,20 @@ def mockSerpentData(tmp_path_factory):
     sabf = xsdir / "acedata" / "sssth1"
     sabf.parent.mkdir()
     # Make a minimal thermal scattering file
-    sabf.write_text("""lwe6.12t    0.999170  2.5507E-08   02/11/09
-ENDF/B-VI.8 Data for Serpent 1.1.0 (HinH20 at 600.00K)         mat 125""")
+    sabf.write_text(
+        """lwe6.00t    0.999170  2.5507E-08   02/11/09
+ENDF/B-VI.8 Data for Serpent 1.1.0 (HinH20 at 296.00K)         mat 125
+  lwe6.02t    0.999170  3.0161E-08   02/11/09
+ENDF/B-VI.8 Data for Serpent 1.1.0 (HinH20 at 350.00K)         mat 125
+  lwe6.04t    0.999170  3.4470E-08   02/11/09
+ENDF/B-VI.8 Data for Serpent 1.1.0 (HinH20 at 400.00K)         mat 125
+  lwe6.06t    0.999170  3.8778E-08   02/11/09
+ENDF/B-VI.8 Data for Serpent 1.1.0 (HinH20 at 450.00K)         mat 125
+  lwe6.08t    0.999170  4.3087E-08   02/11/09
+ENDF/B-VI.8 Data for Serpent 1.1.0 (HinH20 at 500.00K)         mat 125
+lwe6.12t    0.999170  2.5507E-08   02/11/09
+ENDF/B-VI.8 Data for Serpent 1.1.0 (HinH20 at 600.00K)         mat 125
+""")
 
     files[Library.SAB] = sabf
     files[Library.DATA_DIR] = xsdir
