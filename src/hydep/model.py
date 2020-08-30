@@ -67,7 +67,15 @@ class Model:
     root : hydep.lib.Universe
         Root universe for the problem
     axialSymmetry : bool, optional
-        Flag indicating if ``root`` has axial symmetry at ``z=0``
+        Flag indicating if ``root`` has axial symmetry at ``z=0``.
+        Default: False
+    xySymmetry : bool, optional
+        Flag indicating if ``root`` has symmetry in the XY plane.
+        Incompatible with ``axialSymmetry``. Default: False
+    xySymmetryType : str or int or Symmetry member, optional
+        How the xy symmetry is defined. Required if ``xySymmetry``
+        evalutes to True. See conditions in :meth:`applyXYSymmetry`.
+        Default: :attr:`Symmetry.NONE`
 
     Attributes
     ----------
@@ -79,6 +87,8 @@ class Model:
         all directions. This may cause issues with downstream solvers.
     axialSymmetry : bool
         Read-only attribute indicating axial symmetry
+    xySymmetry : Symmetry
+        Read-only attribute indicating type of XY symmetry
 
     See Also
     --------
@@ -86,6 +96,9 @@ class Model:
         Look into the root universe and determine size from contents.
     * :meth:`applyAxialSymmetry`
         Additional notes regarding axial symmetry and modeling decisions
+    * :meth:`applyXYSymmetry`
+        Additional notes regarding modeling constraints necessary to
+        apply symmetry in the XY plane
 
     Notes
     -----
@@ -96,17 +109,33 @@ class Model:
 
     root = TypedAttr("root", (Universe))
 
-    def __init__(self, root, axialSymmetry=False):
+    def __init__(
+        self,
+        root,
+        axialSymmetry=False,
+        xySymmetry=False,
+        xySymmetryType=Symmetry.NONE,
+    ):
         self.root = root
         self._bounds = None
+        self._xySymmetry = Symmetry.NONE
+        self._axialSymmetry = False
         if axialSymmetry:
+            if xySymmetry:
+                raise GeometryError(
+                    "Axial and XY symmetry is not supported at the moment"
+                )
             self.applyAxialSymmetry()
-        else:
-            self._axialSymmetry = False
+        elif xySymmetry:
+            self.applyXYSymmetry(xySymmetryType)
 
     @property
     def axialSymmetry(self) -> bool:
         return self._axialSymmetry
+
+    @property
+    def xySymmetry(self) -> Symmetry:
+        return self._xySymmetry
 
     def differentiateBurnableMaterials(self, updateVolumes=True):
         """Create new burnable materials across the geometry.
@@ -266,6 +295,8 @@ class Model:
         """
         if self.axialSymmetry:
             return
+        if self.xySymmetry is not Symmetry.NONE:
+            raise GeometryError("Axial and XY symmetry is not supported at this moment")
 
         bounds = self.bounds
         if bounds is None:
@@ -297,3 +328,101 @@ class Model:
 
         self._bounds = Boundaries(bounds.x, bounds.y, (0, bounds.z.upper))
         self._axialSymmetry = True
+
+    def applyXYSymmetry(self, sym):
+        """Apply rotational symmetry in the XY plane
+
+        The symmetric region is defined by a rotation starting along the
+        positive x-axis and sweeping counter clockwise towards and beyond
+        the positive y-axis. The geometry will be reflected
+
+        A model of four symmetric assemblies with four unique pins in
+        each assembly could be created by defining a single assembly
+
+        .. code::
+
+            |23
+            |01
+            ----
+
+        and then applying quarter symmetry with
+        :attr:`hydep.Symmetry.QUARTER` to create
+
+        .. code::
+
+            31|23
+            20|01
+            -----
+            10|02
+            32|13
+
+        Parameters
+        ----------
+        sym : int or str or :class:`hydep.Symmetry` member
+            Type of symmetry
+
+        Raises
+        ------
+        hydep.GeometryError
+            If this model is also configured for axial symmetry (may be
+            removed in the future). If the boundaries are not set and
+            cannot easily be inferred. If the point ``(x, y) = (0, 0)``
+            is not found in the XY plane
+
+        """
+        if self.axialSymmetry:
+            raise GeometryError(
+                "Axial and XY symmetry are not supported at this moment"
+            )
+
+        if not isinstance(sym, Symmetry):
+            if isinstance(sym, str):
+                sym = Symmetry.fromStr(sym)
+            elif isinstance(sym, numbers.Integral):
+                sym = Symmetry.fromInt(sym)
+            else:
+                raise TypeError(f"XY symmetry type {sym} is not supported")
+
+        if self.xySymmetry is sym:
+            return
+
+        if sym is Symmetry.NONE:
+            __logger__.warn(
+                "Passed %s indicating no symmetry to xySymmetry.", Symmetry.NONE.name
+            )
+            self._xySymmetry = Symmetry.NONE
+            return
+
+        __logger__.debug(
+            "Changing %s XY symmetry from %s to %s",
+            self,
+            self._xySymmetry.name,
+            sym.name,
+        )
+
+        bounds = self.bounds
+        if bounds is None:
+            bounds = self.root.bounds
+            if bounds is None:
+                __logger__.debug(
+                    "Model and root universe do not have defined boundaries. "
+                    "Inspecting underlying geometry"
+                )
+                bounds = self.root.boundaries()
+                if bounds is None:
+                    raise GeometryError(
+                        f"Cannot determine boundaries on {self} and {self.root}"
+                    )
+                self.root.bounds = bounds
+
+        # Check that the geometry contains the origin
+        if 0 not in bounds.x:
+            raise GeometryError(f"X=0 not found in {bounds.x}")
+
+        if 0 not in bounds.y:
+            raise GeometryError(f"Y=0 not found in {bounds.y}")
+
+        self._xySymmetry = sym
+
+        if self.bounds is None:
+            self.bounds = bounds
