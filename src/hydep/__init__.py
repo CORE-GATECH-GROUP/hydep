@@ -12,7 +12,7 @@ from .universe import InfiniteMaterial
 from .pin import Pin
 from .cartesian import CartesianLattice
 from .stack import LatticeStack
-from .model import Model
+from .model import Model, Symmetry
 from .chain import DepletionChain
 from .manager import Manager
 from .integrators import PredictorIntegrator, CELIIntegrator, RK4Integrator

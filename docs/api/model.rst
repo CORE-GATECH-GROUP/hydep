@@ -5,3 +5,5 @@ Model
 =====
 
 .. autoclass:: hydep.Model
+
+.. autoclass:: hydep.Symmetry

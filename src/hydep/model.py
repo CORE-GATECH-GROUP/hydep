@@ -2,6 +2,7 @@ import numbers
 from collections.abc import Iterable
 import typing
 import logging
+from enum import IntEnum
 
 import numpy
 
@@ -10,10 +11,46 @@ from .typed import TypedAttr
 from hydep.internal import Boundaries
 from .exceptions import GeometryError
 
-__all__ = ("Model",)
+__all__ = ("Model", "Symmetry")
 
 
 __logger__ = logging.getLogger("hydep.model")
+
+
+class Symmetry(IntEnum):
+    """Symmetry modes for model building
+
+    Attributes
+    ----------
+    NONE : int
+    HALF : int
+    THIRD : int
+    QUARTER : int
+    SIXTH : int
+    EIGHTH : int
+
+    """
+
+    NONE = 1
+    HALF = 2
+    THIRD = 3
+    QUARTER = 4
+    SIXTH = 6
+    EIGHTH = 8
+
+    @classmethod
+    def fromStr(cls, value: str):
+        try:
+            return getattr(cls, value.upper())
+        except AttributeError:
+            raise ValueError(f"Symmetry option {value} not understood")
+
+    @classmethod
+    def fromInt(cls, value: int):
+        for member in cls.__members__.values():
+            if member == value:
+                return member
+        raise ValueError(f"Symmetry option {value} not understood")
 
 
 class Model:

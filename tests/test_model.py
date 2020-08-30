@@ -169,3 +169,15 @@ def test_symmetryFailure(simpleModel):
             simpleModel.applyAxialSymmetry()
 
         assert not simpleModel.axialSymmetry
+
+
+def test_symmetryTypes():
+    assert hydep.Symmetry.fromStr("none") is hydep.Symmetry.NONE
+    assert hydep.Symmetry.fromInt(2) is hydep.Symmetry.HALF
+    with pytest.raises(ValueError):
+        hydep.Symmetry.fromStr("failure")
+
+    # Really any value > 1 could work, as this would imply
+    # 360 / N slices. But use a ridiculous number here
+    with pytest.raises(ValueError):
+        hydep.Symmetry.fromInt(500)
