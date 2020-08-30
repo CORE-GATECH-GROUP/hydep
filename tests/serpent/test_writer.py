@@ -249,11 +249,6 @@ def test_unbounded(tmp_path, beavrsFuelPin, serpentcfg, simpleChain):
     assert filecompare(boundedModel, boundedRoot)
 
 
-@pytest.fixture(params=[hydep.serpent.SerpentWriter, hydep.serpent.ExtDepWriter])
-def writer(request):
-    return request.param()
-
-
 @pytest.mark.serpent
 def test_materialTemperature(writer):
     mat = hydep.Material("test", adens=1)

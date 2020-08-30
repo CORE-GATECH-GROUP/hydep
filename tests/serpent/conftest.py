@@ -18,6 +18,11 @@ hdserpent = pytest.importorskip("hydep.serpent")
 from hydep.serpent.utils import Library
 
 
+@pytest.fixture(params=[hydep.serpent.SerpentWriter, hydep.serpent.ExtDepWriter])
+def writer(request):
+    return request.param()
+
+
 @pytest.fixture(scope="module")
 def beavrsMaterials():
     """Dictionary of materials from the BEAVRS specification
