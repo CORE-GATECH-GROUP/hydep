@@ -135,11 +135,6 @@ def test_axialSymmetry(simpleModel, presetBounds):
     simpleModel.applyAxialSymmetry()
 
     assert simpleModel.axialSymmetry
-    checkbounds(
-        simpleModel.bounds,
-        Boundaries(bounds.x, bounds.y, (0, bounds.z.upper))
-    )
-    checkbounds(simpleModel.root.bounds, bounds)
 
 
 def test_symmetryFailure(simpleModel):

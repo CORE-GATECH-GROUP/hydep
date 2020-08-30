@@ -326,7 +326,10 @@ class Model:
                 f"Origin not found in the xy plane: {bounds.x}, {bounds.y}"
             )
 
-        self._bounds = Boundaries(bounds.x, bounds.y, (0, bounds.z.upper))
+        if bounds.z.lower != 0:
+            __logger__.info("Setting lower Z boundary to zero")
+            self._bounds = Boundaries(bounds.x, bounds.y, (0, bounds.z.upper))
+
         self._axialSymmetry = True
 
     def applyXYSymmetry(self, sym):
