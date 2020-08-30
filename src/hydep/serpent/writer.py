@@ -10,10 +10,12 @@ from textwrap import TextWrapper
 import struct
 from collections import OrderedDict
 from collections.abc import Sequence
+import numbers
 
 import numpy
 
 import hydep
+from hydep import Symmetry
 from hydep.constants import SECONDS_PER_DAY
 from hydep.internal import getIsotope
 from hydep.typed import TypedAttr, IterableOf
@@ -393,6 +395,22 @@ set nfg {self._eneGridName}
             # Angles are in degrees
             stream.write(
                 f"set usym {_ROOT_UNIVERSE_ID} 1 2 0.0 0.0 0 180 1\n"
+            )
+
+        xysym = self.model.xySymmetry
+        if xysym is not Symmetry.NONE:
+            # Perform the same style of transformation, but in the
+            # xy plane. Not sure if this is supported by Serpent (to
+            # have them both at the same time) so the Model should
+            # disallow that
+            assert not self.model.axialSymmetry
+            # Assume that the rotation aligns with the positive x axis
+            # and sweep 360 / symmetry degrees counter clockwise.
+            # Symmetry should be a positive integer like 2 for 1/2 symmetry
+            assert isinstance(xysym, numbers.Integral)
+            assert xysym > 0
+            stream.write(
+                f"set usym {_ROOT_UNIVERSE_ID} 3 2 0.0 0.0 0 {360 / xysym:.0f} 1\n"
             )
 
     def writeUniverse(self, stream, u, memo):
