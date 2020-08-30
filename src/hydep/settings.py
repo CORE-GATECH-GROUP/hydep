@@ -58,7 +58,7 @@ def asBool(key: str, value: typing.Union[str, bool, int]) -> bool:
         if value == 1:
             return True
         raise ValueError(
-            f"Could not coerrce {key}={value} to boolean. Integers "
+            f"Could not coerce {key}={value} to boolean. Integers "
             "must be zero or one"
         )
     elif isinstance(value, str):
@@ -66,6 +66,10 @@ def asBool(key: str, value: typing.Union[str, bool, int]) -> bool:
             return True
         if value.lower() in {"0", "no", "n", "false"}:
             return False
+        raise ValueError(
+            f"Could not coerce {key}={value} to boolean. Strings must be "
+            "0 1 y n yes no true false"
+        )
 
     raise TypeError(f"Could not coerce {key}={value} to boolean")
 
@@ -679,7 +683,7 @@ class SerpentSettings(SubSetting, sectionName="serpent"):
         Initial random number seed
     k0 : float or None
         Initial guess at multiplication factor. Defaults to 1.0, and must
-        be bewteen zero and two
+        be between zero and two
     executable : str or None
         Command to use when executing Serpent. Must be a valid shell
         command, e.g. ``"sss2"`` or ``"./sss2-custom"``

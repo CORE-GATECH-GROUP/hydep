@@ -241,3 +241,42 @@ def test_emptyconfig(tmpdir):
 
     with pytest.warns(UserWarning):
         Settings.fromFile(cfg, strict=False)
+
+
+def test_validators():
+    bools = {
+        True: {True, 1, "1", "y", "YES", "trUe"},
+        False: {False, "fAlSe", 0, "0", "no", "N"},
+    }
+    for expected, options in bools.items():
+        for testv in options:
+            assert asBool("test", testv) == expected
+
+    with pytest.raises(ValueError, match="test=.*zero or one"):
+        asBool("test", 2)
+
+    with pytest.raises(ValueError, match="test=.*String"):
+        asBool("test", "possibly")
+
+    with pytest.raises(TypeError, match="test="):
+        asBool("test", [1])
+
+    with pytest.raises(TypeError, match="test=.*bool"):
+        asInt("test", True)
+
+    x = 1
+    assert asInt("test", x) is x
+
+    def inttest(value, expected, name="test"):
+        actual = asInt(name, value)
+        assert type(actual) is int
+        assert actual == expected
+
+    inttest(-1.0, -1)
+    inttest("2.0", 2)
+
+    with pytest.raises(TypeError, match="test=.*integer"):
+        asInt("test", 1.5)
+
+    with pytest.raises(ValueError, match="test.*positive"):
+        asPositiveInt("test", -1)
