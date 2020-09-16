@@ -24,6 +24,7 @@ Serpent
 -------
 
 * Improved parsing of error at output (catch more types of errors)
+* Capture ExtDepRunner output on failure. Little broken now
 * Support for writing outer materials for lattice stack
 
 Caveats
