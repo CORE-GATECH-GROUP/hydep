@@ -66,7 +66,7 @@ vessels are not easily supported. While one could create a hyper-fine Cartesian
 grid to approximate the curvature of a pressure vessel, this is not advised.
 
 Single energy group for internal data handling
-----------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 While the underlying transport codes can use any or no energetic
 approximations, the resulting scalar flux, reaction rates,

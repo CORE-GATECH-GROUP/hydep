@@ -17,3 +17,4 @@ Example configuration
 
 .. literalinclude:: ../hydep.cfg.example
     :language: cfg
+
