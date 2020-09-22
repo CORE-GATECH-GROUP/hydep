@@ -4,21 +4,6 @@
 Internal Helpers
 ================
 
-Feature Control
-===============
-
-.. currentmodule:: hydep.internal.features
-
-.. module:: hydep.internal.features
-
-.. autosummary::
-    :toctree: generated
-    :nosignatures:
-    :template: myclass.rst
-
-    Feature
-    FeatureCollection
-
 .. currentmodule:: hydep.internal
 
 .. module:: hydep.internal
@@ -76,3 +61,16 @@ Other Helpers
     Cram48Solver
     FissionYieldDistribution
     FissionYield
+
+
+Settings helper
+===============
+
+.. currentmodule:: hydep.settings
+
+.. autosummary::
+    :toctree: generated
+    :nosignatures:
+    :template: myclass.rst
+
+    SubSetting

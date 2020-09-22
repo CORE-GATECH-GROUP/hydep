@@ -10,16 +10,12 @@ Reference
     :maxdepth: 1
     :caption: Contents
 
-    materials
-    geometry
-    model
-    depletion
-    integrators
-    settings
+    main
     serpent
     simplero
     sfv
     hdf
-    abc
+    lib
     internal
+    features
     exceptions

@@ -1,6 +1,6 @@
 .. currentmodule:: hydep.lib
 
-.. _lib-abc:
+.. _api-lib:
 
 .. module:: hydep.lib
 
@@ -18,3 +18,4 @@ Abstract Base Classes
     HighFidelitySolver
     ReducedOrderSolver
     Universe
+
