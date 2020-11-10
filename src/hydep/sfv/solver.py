@@ -315,7 +315,7 @@ class SfvSolver(ReducedOrderSolver):
         if len(macroxs) != self._macroData.shape[0]:
             raise ValueError(
                 f"Recieved data for {len(macroxs)} regions but expected "
-                "{self._macroData.shape[0]}"
+                f"{self._macroData.shape[0]}"
             )
         # Only works with one-group
         for ix, matdata in enumerate(macroxs):
@@ -326,7 +326,7 @@ class SfvSolver(ReducedOrderSolver):
         if flux.shape[0] != self._macroData.shape[0]:
             raise ValueError(
                 f"Recieved flux data for {flux.shape[0]} regions but expected "
-                "{self._macroData.shape[0]}"
+                f"{self._macroData.shape[0]}"
             )
         if flux.shape[1] != 1:
             raise NotImplementedError(f"Mutligroup flux not supported with {self!s}")
