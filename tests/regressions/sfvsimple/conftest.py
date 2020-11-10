@@ -74,7 +74,7 @@ def simpleSfvProblem(endfChain):
 
     settings = hydep.settings.Settings(fittingOrder=1, numFittingPoints=2)
     settings.sfv.densityCutoff = 0.0
-    settings.sfv.modes = len(problem.dep.burnable)
+    settings.sfv.modes = len(problem.dep.burnable) - 2
     problem.settings = settings
 
     yield problem

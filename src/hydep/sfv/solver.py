@@ -202,10 +202,10 @@ class SfvSolver(ReducedOrderSolver):
                 raise TypeError(
                     f"Expected integer number of modes or None, got {type(modes)}"
                 )
-            elif not (0 < modes <= nvols):
+            elif not (0 < modes < nvols):
                 raise ValueError(
                     "Modes must be positive, and (for this problem) less than "
-                    f"{nvols}, got {modes}"
+                    f"{nvols - 2}, got {modes}"
                 )
         else:
             modeFraction = sfvSettings.modeFraction
@@ -218,6 +218,7 @@ class SfvSolver(ReducedOrderSolver):
                     f"Mode fraction should be bounded (0, 1], got {modeFraction}"
                 )
             modes = math.ceil(nvols * modeFraction)
+            modes = min(nvols - 2, modes)
             __logger__.info("Solving with %d modes", modes)
             __logger__.debug(
                 "Computed from %d unique burnable materials with mode fraction %f",
@@ -247,11 +248,11 @@ class SfvSolver(ReducedOrderSolver):
             )
 
         self._nubar = TimeTraveler(
-            settings.numFittingPoints, (len(vols), ), fittingOrder
+            settings.numFittingPoints, (nvols, ), fittingOrder
         )
 
         self._totalvolume = sum(vols)
-        self._macroData = numpy.empty((len(vols), len(DataIndexes)))
+        self._macroData = numpy.empty((nvols, len(DataIndexes)))
         self._macroData[:, DataIndexes.VOLUMES] = vols
         self._processIsotopeFissionQ(manager.chain)
 
@@ -303,12 +304,12 @@ class SfvSolver(ReducedOrderSolver):
 
     def _bosProcessFmtx(self, txresult, timestep):
         try:
-            adj, fwd, eig = getAdjFwdEig(txresult.fmtx)
+            adj, fwd, eig = getAdjFwdEig(txresult.fmtx, self.numModes)
         except LinAlgError as le:
             raise FailedSolverError(f"{self!s} at {timestep}\n{le!s}") from le
-        self._adjointMoments = adj[:, : self.numModes].copy(order="F")
-        self._forwardMoments = fwd[:, : self.numModes].copy(order="F")
-        self._eigenvalues = eig[: self.numModes]
+        self._adjointMoments = numpy.asfortranarray(adj)
+        self._forwardMoments = numpy.asfortranarray(adj)
+        self._eigenvalues = 1 / eig[: self.numModes]
 
     def _bosProcessMacroXs(self, macroxs):
         if len(macroxs) != self._macroData.shape[0]:

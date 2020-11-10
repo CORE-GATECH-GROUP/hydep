@@ -18,5 +18,5 @@ if not (minVersion <= parse_version(__version__) < upperNotEqual):
     )
 del minVersion, upperNotEqual, parse_version
 
-from sfv import getAdjFwdEig  # noqa: F401 E402
 from sfv.lib import predict_spatial_flux  # noqa: F401 E402
+from sfv import getAdjFwdEig  # noqa: F401 E402
