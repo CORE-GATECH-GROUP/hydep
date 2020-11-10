@@ -4,7 +4,7 @@ import pathlib
 from unittest.mock import patch
 
 import pytest
-from hydep.settings import Settings, SubSetting, asBool
+from hydep.settings import Settings, SubSetting, asBool, asInt, asPositiveInt
 
 
 def test_settings():

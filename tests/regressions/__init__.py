@@ -117,11 +117,6 @@ class CompareBase(ABC):
         on the pytest mode. Concrete classes are responsible for
         logging failures in :meth:`compare`, if applicable
 
-        Returns
-        -------
-        bool
-            Status of the update or test
-
         Raises
         ------
         AssertionError
@@ -132,9 +127,7 @@ class CompareBase(ABC):
         if config.get("update"):
             self.update(*args, **kwargs)
         else:
-            failures = self.compare(*args, **kwargs)
-            assert not failures, failures
-        return True
+            self.compare(*args, **kwargs)
 
     @abstractmethod
     def update(self, *args, **kwargs):
@@ -142,16 +135,7 @@ class CompareBase(ABC):
 
     @abstractmethod
     def compare(self, *args, **kwargs):
-        """
-        Perform a comparison against reference data
-
-        Returns
-        -------
-        list of str
-            List of failed values. Actual failures should be
-            reported in :meth:`compare`
-
-        """
+        """Perform a comparison against reference data."""
 
 
 class ResultComparator(CompareBase):
@@ -229,28 +213,19 @@ class ResultComparator(CompareBase):
 
     def compare(self, txresult):
         """Compare results from a regression test to the reference"""
-        failures = {}
-        if not self._compareKeff(txresult.keff):
-            failures["keff"] = numpy.array([txresult.keff])
+        self._compareKeff(txresult.keff)
 
-        if not txresult.flux == pytest.approx(self.referenceFlux()):
-            failures["flux"] = txresult.flux
+        assert txresult.flux == pytest.approx(self.referenceFlux())
 
         if txresult.fmtx is not None:
             fmtx = txresult.fmtx.tocoo()
-            if not self._compareFmtx(fmtx):
-                failures["fmtx"] = fmtx
-
-        if failures:
-            self.dumpFailures(failures)
-            return sorted(failures)
-        return []
+            self._compareFmtx(fmtx)
 
     def _compareKeff(self, keff):
         refK, refU = self.referenceKeff()
         actK, actU = keff
         propUnc = math.sqrt(refU * refU + actU * actU)
-        return abs(refK - actK) == pytest.approx(0, abs=propUnc)
+        assert abs(refK - actK) == pytest.approx(0, abs=propUnc)
 
     def referenceKeff(self):
         """Reference multiplication factor and absolute uncertainty"""
@@ -276,22 +251,7 @@ class ResultComparator(CompareBase):
         if numpy.array_equal(fmtx.row, reference.row) and numpy.array_equal(
             fmtx.col, reference.col
         ):
-            return fmtx.data == pytest.approx(reference.data)
+            assert fmtx.data == pytest.approx(reference.data)
         # Compare the full matrices to account for small values in
         # one matrix and zeros in the other
-        return fmtx.A == pytest.approx(reference.A)
-
-    def dumpFailures(self, fails):
-        for key, value in fails.items():
-            dest = self.getPathFor(key, "fail")
-            if issparse(value):
-                dumpSparseMatrix(
-                    dest, value, intfmt=self.intFormat, floatfmt=self.floatFormat
-                )
-                continue
-            numpy.savetxt(
-                dest,
-                value,
-                fmt=self.floatFormat,
-                header=" ".join(str(x) for x in value.shape),
-            )
+        assert fmtx.A == pytest.approx(reference.A)

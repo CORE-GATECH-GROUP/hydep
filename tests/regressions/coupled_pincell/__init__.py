@@ -21,7 +21,7 @@ class HdfResultCompare(CompareBase):
     def main(self, integrator):
         integrator.integrate()
         res = pathlib.Path(self.targetFile).resolve()
-        assert res.is_file(), res
+        assert res.is_file()
 
         self._checkConsistency(integrator, res)
 
@@ -34,22 +34,16 @@ class HdfResultCompare(CompareBase):
             for ix, mat in enumerate(
                 problem.model.root.findBurnableMaterials()
             ):
-                assert mat.id == materialIDs[ix], (mat.id, materialIDs[ix])
-                assert mat.name == names[ix].decode(), (
-                    mat.name,
-                    names[ix].decode(),
-                )
+                assert mat.id == materialIDs[ix]
+                assert mat.name == names[ix].decode()
             assert hf.attrs["burnableMaterials"] == len(names)
 
             assert hf.attrs["isotopes"] == len(problem.dep.chain)
             zais = hf["isotopes/zais"]
             names = hf["isotopes/names"]
             for ix, iso in enumerate(problem.dep.chain):
-                assert iso.zai == zais[ix], (iso, zais[ix])
-                assert iso.name == names[ix].decode(), (
-                    iso,
-                    names[ix].decode(),
-                )
+                assert iso.zai == zais[ix]
+                assert iso.name == names[ix].decode()
 
             assert hf.attrs["coarseSteps"] == len(problem.dep.timesteps) + 1
             assert hf.attrs["totalSteps"] == sum(problem.dep.substeps) + 1
@@ -59,7 +53,6 @@ class HdfResultCompare(CompareBase):
 
     def compare(self, testF):
         reference = self.datadir / "results-reference.h5"
-        fails = []
 
         with h5py.File(testF, mode="r") as test, h5py.File(
             reference, mode="r"
@@ -73,31 +66,24 @@ class HdfResultCompare(CompareBase):
                     f"{version[:]}, expected {self.expectsVersion}"
                 )
 
-            if not self._compareK(test, ref):
-                fails.append("keff")
-
-            if not self._compareComps(test, ref):
-                fails.append("compositions")
-
-        if fails:
-            shutil.move(str(testF), str(self.datadir / "results-fail.h5"))
-        return fails
+            try:
+                self._compareK(test, ref)
+                self._compareComps(test, ref)
+            except AssertionError:
+                shutil.move(str(testF), str(self.datadir / "results-fail.h5"))
+                raise
 
     def _compareK(self, test, ref):
-        actualDS = test.get("multiplicationFactor")
-        if actualDS is None:
-            return False
-
+        actualDS = test["multiplicationFactor"]
         refK = ref["multiplicationFactor"]
 
         if actualDS[:, 0] == pytest.approx(refK[:, 0]):
-            return True
+            return
 
         refnan = numpy.isnan(refK).any(axis=1)
         actualnan = numpy.isnan(actualDS).any(axis=1)
 
-        if not numpy.equal(refnan, actualnan).any():
-            return False
+        assert (refnan == actualnan).all(), (refnan, actualnan)
 
         # Check statistics
         diff = numpy.fabs(actualDS[~refnan, 0] - refK[~refnan, 0])
@@ -106,33 +92,23 @@ class HdfResultCompare(CompareBase):
             numpy.square(actualDS[~refnan, 1]) + numpy.square(refK[~refnan, 1])
         )
 
-        # Check against non-nans
-        if (diff > unc).any():
-            return False
-
-        return True
+        assert (diff <= unc).all(), (diff, unc)
 
     def _compareComps(self, test, ref):
-        actual = test.get("compositions")
-        if actual is None:
-            return False
+        actual = test["compositions"]
         reference = ref["compositions"]
 
         # Check BOL, EOL, and then internals
         # Internals will be skipped with warning if the number
         # of intermediate steps (substeps) differs
-        if not actual[0] == pytest.approx(reference[0]):
-            return False
+        assert actual[0] == pytest.approx(reference[0])
 
-        if not actual[-1] == pytest.approx(reference[-1]):
-            return False
+        assert actual[-1] == pytest.approx(reference[-1])
 
-        if len(actual) == len(reference):
-            return actual[1:-1] == pytest.approx(reference[1:-1])
-
-        warnings.warn(
-            f"Number of steps differs: Reference: {len(reference)} "
-            f"Test: {len(actual)}. Contents will not be tested",
-            RuntimeWarning,
-        )
-        return True
+        if len(actual) != len(reference):
+            raise pytest.skip(
+                f"Number of steps differs: Reference: {len(reference)} "
+                f"Test: {len(actual)}. Contents will not be tested",
+                RuntimeWarning,
+            )
+        assert actual[1:-1] == pytest.approx(reference[1:-1])

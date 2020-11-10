@@ -221,7 +221,9 @@ class SfvComparator(CompareBase):
             actual = self._computeDifferences(qty, value)
             expected = numpy.loadtxt(self.getPathFor(qty, "reference"), unpack=True)
 
-            if not actual == pytest.approx(expected):
+            try:
+                assert actual == pytest.approx(expected), qty
+            except AssertionError:
                 fails[qty] = expected
                 numpy.savetxt(
                     self.getPathFor(qty, "fail"),
@@ -229,4 +231,4 @@ class SfvComparator(CompareBase):
                     fmt=self.floatFormat,
                     header="{} 2\nAbsolute Error, Relative Error %".format(len(value)),
                 )
-        return sorted(fails)
+                raise

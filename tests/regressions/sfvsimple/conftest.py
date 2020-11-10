@@ -8,9 +8,7 @@ import hydep
 from hydep.constants import CM2_PER_BARN
 from hydep.internal import XsIndex, MaterialDataArray, CompBundle, getIsotope
 
-from tests.regressions import ProblemProxy
 from . import SfvDataHarness
-
 
 
 @pytest.fixture

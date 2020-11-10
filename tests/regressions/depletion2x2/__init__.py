@@ -78,39 +78,14 @@ class DepletionComparator(CompareBase):
         for z in sorted(common):
             testrow = testzai.index(z)
             refrow = refzai.index(z)
-            if asmtx[testrow, 1:] == pytest.approx(reference[refrow, 1:]):
-                continue
-            fails.append((z, testrow, refrow))
-
-        if not fails:
-            return []
-
-        fmt = " ".join(
-            [self.intFormat] + [self.floatFormat] * len(compBundle.densities)
-        )
-        with self.getPathFor("concentrations", "fail").open("w") as stream:
-            numpy.savetxt(stream, asmtx, fmt=fmt)
-
-        # Compute absolute relative error against reference data
-        rdiff = numpy.empty((len(fails), 1 + len(compBundle.densities)), order="f")
-        indexes = numpy.array(fails, dtype=int, order="f")
-        rdiff[:, 0] = indexes[:, 0]
-
-        referror = reference[indexes[:, 2], 1:]
-        rdiff[:, 1:] = numpy.fabs(asmtx[indexes[:, 1], 1:] - referror)
-        nzr, nzc = referror.nonzero()
-        rdiff[nzr, nzc + 1] /= referror[nzr, nzc]
-
-        # Sort by highest average absolute relative error
-        sortix = rdiff.mean(axis=1).argsort()[::-1]
-
-        with self.getPathFor("relative_errors", "fail").open("w") as stream:
-            numpy.savetxt(
-                stream,
-                rdiff[sortix],
-                fmt=fmt,
-                header="Sorted by highest average absolute relative difference",
+            if not asmtx[testrow, 1:] == pytest.approx(reference[refrow, 1:]):
+                msg = (
+                    f"{z}>{reference[refrow, 1:]}\n{z}<{asmtx[testrow, 1:]}"
+                )
+                fails.append(msg)
+        if fails:
+            msg = (
+                "Differences found for the following isotopes between reference "
+                "[>] and test [<]"
             )
-
-        # Return list of highest failures
-        return [fails[x][0] for x in sortix]
+            raise AssertionError("\n".join([msg] + fails))
