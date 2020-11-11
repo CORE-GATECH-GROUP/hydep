@@ -6,7 +6,7 @@ h5py = pytest.importorskip("h5py")
 import scipy.sparse
 import hydep
 from hydep.internal import TimeStep, TransportResult, CompBundle
-import hydep.hdfstore
+import hydep.hdf
 
 N_GROUPS = 2
 N_BU_MATS = 2
@@ -43,7 +43,7 @@ def compositions(simpleChain):
 def h5Destination(tmp_path, result, compositions, simpleChain):
     dest = (tmp_path / __file__).with_suffix(".h5")
 
-    store = hydep.hdfstore.HdfStore(filename=dest)
+    store = hydep.hdf.Store(filename=dest)
     assert store.fp.samefile(dest)
     assert store.fp.is_absolute()
 
@@ -123,12 +123,12 @@ def test_hdfStore(result, simpleChain, h5Destination, compositions):
     # existing files
 
     with pytest.raises(OSError):
-        hydep.hdfstore.HdfStore(filename=h5Destination, existOkay=False)
+        hydep.hdf.Store(filename=h5Destination, existOkay=False)
 
 
 def test_hdfProcessor(result, simpleChain, compositions, h5Destination):
 
-    processor = hydep.hdfstore.HdfProcessor(h5Destination)
+    processor = hydep.hdf.Processor(h5Destination)
 
     assert processor.days[START.total] == pytest.approx(
         START.currentTime / hydep.constants.SECONDS_PER_DAY
@@ -243,8 +243,8 @@ def test_hdfProcessor(result, simpleChain, compositions, h5Destination):
     assert processor.get("fake key") is None
 
     # Test context manager behavior
-    with hydep.hdfstore.HdfProcessor(h5Destination) as data:
-        assert isinstance(data, hydep.hdfstore.HdfProcessor)
+    with hydep.hdf.Processor(h5Destination) as data:
+        assert isinstance(data, hydep.hdf.Processor)
         # Compare based on IDs of underlying HDF5 files
         assert data._root.id == processor._root.id
 
@@ -257,8 +257,8 @@ def test_hdfProcessor(result, simpleChain, compositions, h5Destination):
 
 
 def test_hdfenums():
-    RootNames = hydep.hdfstore.HdfStrings
-    SecondNames = hydep.hdfstore.HdfSubStrings
+    RootNames = hydep.hdf.HdfStrings
+    SecondNames = hydep.hdf.HdfSubStrings
 
     bypathop = RootNames.CALENDAR / SecondNames.CALENDAR_TIME
     expected = "/".join(

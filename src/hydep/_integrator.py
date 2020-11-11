@@ -54,7 +54,7 @@ class Integrator(ABC):
     store : hydep.lib.BaseStore, optional
         Instance responsible for writing transport and depletion
         result data. If not provided, will be set to
-        :class:`hydep.hdfstore.HdfStore`
+        :class:`hydep.hdf.Store`
 
     Attributes
     ----------
@@ -72,7 +72,7 @@ class Integrator(ABC):
     store : hydep.lib.BaseStore or None
         Instance responsible for writing transport and depletion
         result data. If not provided, will be set to
-        :class:`hydep.hdfstore.HdfStore`
+        :class:`hydep.hdf.Store`
     settings : hydep.Settings
         Simulation settings. Can be updated directly, or
         through :meth:`configure`
@@ -175,12 +175,12 @@ class Integrator(ABC):
         self.ro.beforeMain(self.model, self.dep, self.settings)
 
         if self.store is None:
-            from .hdfstore import HdfStore
+            from .hdf import Store
 
             filename = self.settings.basedir / "hydep-results.h5"
             __logger__.debug("Storing result in %s", filename)
 
-            self.store = HdfStore(filename=filename)
+            self.store = Store(filename=filename)
 
         self.store.beforeMain(
             nhf=len(self.dep.timesteps) + 1,

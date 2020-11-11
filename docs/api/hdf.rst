@@ -1,4 +1,4 @@
-.. currentmodule:: hydep.hdfstore
+.. currentmodule:: hydep.hdf
 
 .. _api-hdf:
 
@@ -15,12 +15,12 @@ through the simulation. It requires the
     :nosignatures:
     :template: myclass.rst
 
-    HdfStore
-    HdfProcessor
+    Store
+    Processor
 
 The following :class:`~enum.Enum` classes are provided to provide a more consistent
 and programmatic way to index directly in to the HDF files. It is recommended to
-use the :class:`HdfProcessor`, as it provides additional convenience methods on top
+use the :class:`Processor`, as it provides additional convenience methods on top
 of acting like an HDF file anyway.
 
 .. autosummary::

@@ -27,7 +27,7 @@ class PredictorIntegrator(Integrator):
     store : hydep.lib.BaseStore, optional
         Instance responsible for writing transport and depletion
         result data. If not provided, will be set to
-        :class:`hydep.hdfstore.HdfStore`
+        :class:`hydep.hdf.Store`
 
     Attributes
     ----------
@@ -45,7 +45,7 @@ class PredictorIntegrator(Integrator):
     store : hydep.lib.BaseStore or None
         Instance responsible for writing transport and depletion
         result data. If not provided, will be set to
-        :class:`hydep.hdfstore.HdfStore`
+        :class:`hydep.hdf.Store`
     settings : hydep.Settings
         Simulation settings. Can be updated directly, or
         through :meth:`configure`
@@ -100,7 +100,7 @@ class CELIIntegrator(Integrator):
     store : hydep.lib.BaseStore, optional
         Instance responsible for writing transport and depletion
         result data. If not provided, will be set to
-        :class:`hydep.hdfstore.HdfStore`
+        :class:`hydep.hdf.Store`
 
     Attributes
     ----------
@@ -118,7 +118,7 @@ class CELIIntegrator(Integrator):
     store : hydep.lib.BaseStore or None
         Instance responsible for writing transport and depletion
         result data. If not provided, will be set to
-        :class:`hydep.hdfstore.HdfStore`
+        :class:`hydep.hdf.Store`
     settings : hydep.Settings
         Simulation settings. Can be updated directly, or
         through :meth:`configure`
@@ -184,7 +184,7 @@ class RK4Integrator(Integrator):
     store : hydep.lib.BaseStore, optional
         Instance responsible for writing transport and depletion
         result data. If not provided, will be set to
-        :class:`hydep.hdfstore.HdfStore`
+        :class:`hydep.hdf.Store`
 
     Attributes
     ----------
@@ -202,7 +202,7 @@ class RK4Integrator(Integrator):
     store : hydep.lib.BaseStore or None
         Instance responsible for writing transport and depletion
         result data. If not provided, will be set to
-        :class:`hydep.hdfstore.HdfStore`
+        :class:`hydep.hdf.Store`
     settings : hydep.Settings
         Simulation settings. Can be updated directly, or
         through :meth:`configure`

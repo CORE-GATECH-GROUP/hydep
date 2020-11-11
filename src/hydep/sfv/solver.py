@@ -450,7 +450,7 @@ class MixedRK4Integrator(RK4Integrator):
     store : hydep.lib.BaseStore, optional
         Instance responsible for writing transport and depletion
         result data. If not provided, will be set to
-        :class:`hydep.hdfstore.HdfStore`
+        :class:`hydep.hdf.Store`
     stepThreshold : float, optional
         Step size [d] that the current step must meet or exceed in
         order to use the RK4 scheme. Otherwise the scheme indicated
@@ -477,7 +477,7 @@ class MixedRK4Integrator(RK4Integrator):
     store : hydep.lib.BaseStore or None
         Instance responsible for writing transport and depletion
         result data. If not provided, will be set to
-        :class:`hydep.hdfstore.HdfStore`
+        :class:`hydep.hdf.Store`
     settings : hydep.Settings
         Simulation settings. Can be updated directly, or
         through :meth:`configure`

@@ -37,7 +37,7 @@ class HdfStrings(HdfEnumKeys):
     """Strings for root datasets or groups
 
     These can be used to interact with a file written
-    by :class:`HdfStore` as keys to the root datasets
+    by :class:`Store` as keys to the root datasets
     or groups, e.g. ``hf[HdfStrings.FLUXES]`` would return
     the fluxes dataset.
 
@@ -200,7 +200,7 @@ class HdfAttrs(HdfEnumKeys):
     V_HYDEP = "hydepVersion"
 
 
-class HdfStore(BaseStore):
+class Store(BaseStore):
     """Write transport and depletion result to HDF files
 
     Format is described in :`hdf-format`
@@ -412,7 +412,7 @@ class HdfStore(BaseStore):
             h5f[HdfStrings.COMPOSITIONS][timeStep.total] = compBundle.densities
 
 
-class HdfProcessor(Mapping):
+class Processor(Mapping):
     """Dictionary-like interface for HDF result files
 
     Parameters

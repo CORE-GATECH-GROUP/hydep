@@ -8,7 +8,7 @@ import hydep.simplerom
 from . import HdfResultCompare
 
 hdserpent = pytest.importorskip("hydep.serpent")
-hdfstore = pytest.importorskip("hydep.hdfstore")
+pytest.importorskip("hydep.hdf")
 
 
 PATCHED_EXE = "sss2-extdep"
