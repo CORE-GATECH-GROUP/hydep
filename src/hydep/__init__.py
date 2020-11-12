@@ -6,6 +6,7 @@ from .exceptions import (
     NegativeDensityError,
     DataError,
     DataWarning,
+    ExperimentalIntegratorWarning,
 )
 from .materials import Material, BurnableMaterial
 from .universe import InfiniteMaterial

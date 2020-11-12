@@ -131,10 +131,33 @@ def manager(clearIsotopes):
 
 
 @pytest.mark.parametrize("scheme", SCHEMES)
-def test_integrator(model, manager, scheme):
+def test_integrator(recwarn, model, manager, scheme):
     store = AnalyticStore()
     klass, eosXe, eosU = SCHEMES[scheme]
     solver = klass(model, AnalyticHFSolver(), AnalyticROSolver(), manager, store=store)
 
     solver.integrate()
+    assert store.densities[-1] == pytest.approx([eosXe, eosU])
+
+
+@pytest.mark.parametrize("scheme", ("celi", "rk4"))
+@pytest.mark.parametrize("brave", (True, False))
+def test_brave_integrators(recwarn, model, manager, scheme, brave):
+    store = AnalyticStore()
+    klass, eosXe, eosU = SCHEMES[scheme]
+    solver = klass(
+        model,
+        AnalyticHFSolver(),
+        AnalyticROSolver(),
+        manager,
+        store=store,
+        brave=brave
+    )
+
+    solver.integrate()
+
+    if not brave:
+        w = recwarn.pop(hydep.ExperimentalIntegratorWarning)
+        assert klass.__name__ in str(w.message)
+    assert len(recwarn) == 0
     assert store.densities[-1] == pytest.approx([eosXe, eosU])

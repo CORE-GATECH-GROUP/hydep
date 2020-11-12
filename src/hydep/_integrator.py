@@ -8,10 +8,11 @@ import os
 import configparser
 import typing
 import tempfile
+import warnings
 
 import numpy
 
-from .exceptions import FailedSolverError
+from .exceptions import FailedSolverError, ExperimentalIntegratorWarning
 from .model import Model
 from .manager import Manager
 from .settings import Settings

@@ -24,3 +24,6 @@ Exceptions
 
 .. autoclass:: hydep.DataWarning
     :show-inheritance:
+
+.. autoclass:: hydep.ExperimentalIntegratorWarning
+    :show-inheritance:

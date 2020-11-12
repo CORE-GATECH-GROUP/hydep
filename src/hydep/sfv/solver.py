@@ -427,6 +427,10 @@ class SfvSolver(ReducedOrderSolver):
 class MixedRK4Integrator(RK4Integrator):
     """Integrator that conditionally uses RK4, depending on step size
 
+    .. warning::
+
+        This integrator has not been fully vetted and studied ye
+
     Previous experience indicates that the SFV method does not
     perform well for small step sizes. The RK4 scheme requires
     solutions after a half depletion step, which can be too
@@ -451,6 +455,10 @@ class MixedRK4Integrator(RK4Integrator):
         Instance responsible for writing transport and depletion
         result data. If not provided, will be set to
         :class:`hydep.hdf.Store`
+    brave : bool, optional
+        Pass True to suppress a
+        :class:`hydep.ExperimentalIntegratorWarning`. Default is
+        False.
     stepThreshold : float, optional
         Step size [d] that the current step must meet or exceed in
         order to use the RK4 scheme. Otherwise the scheme indicated
@@ -486,11 +494,12 @@ class MixedRK4Integrator(RK4Integrator):
     def __init__(
         self,
         *args,
+        brave=False,
         stepThreshold=5,
         fallback="predictor",
         **kwargs,
     ):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, brave=brave, **kwargs)
         integratorFallbacks = {
             "predictor": PredictorIntegrator,
             "celi": CELIIntegrator,

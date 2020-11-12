@@ -24,3 +24,7 @@ class DataWarning(UserWarning):
 
 class DataError(Exception):
     """Raised if there is an issue with nuclear data, e.g. missing libraries"""
+
+
+class ExperimentalIntegratorWarning(UserWarning):
+    """Warning that an integrator is not fully vetted and used with caution"""

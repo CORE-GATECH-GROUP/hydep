@@ -10,9 +10,11 @@ https://github.com/openmc-dev/openmc
 """
 
 import typing
+from warnings import warn
 
 from .lib import Integrator
 from .internal import MaterialDataArray
+from .exceptions import ExperimentalIntegratorWarning
 
 
 class PredictorIntegrator(Integrator):
@@ -83,6 +85,10 @@ class PredictorIntegrator(Integrator):
 class CELIIntegrator(Integrator):
     """CE/LI variation on the predictor-corrector scheme
 
+    .. warning::
+
+        This integrator has not been fully vetted and studied yet
+
     Employs the constant extrapolation - linear interpolation
     scheme proposed by Isotalo and Aarnio.
 
@@ -112,6 +118,10 @@ class CELIIntegrator(Integrator):
         Instance responsible for writing transport and depletion
         result data. If not provided, will be set to
         :class:`hydep.hdf.Store`
+    brave : bool, optional
+        Pass True to suppress a
+        :class:`hydep.ExperimentalIntegratorWarning`. Default is
+        False.
 
     Attributes
     ----------
@@ -134,6 +144,15 @@ class CELIIntegrator(Integrator):
         Simulation settings. Can be updated directly, or
         through :meth:`configure`
     """
+
+    def __init__(self, *args, brave=False, **kwargs):
+        if not brave:
+            warn(
+                f"{self} is experimental and should be used with caution",
+                ExperimentalIntegratorWarning,
+            )
+        return super().__init__(*args, **kwargs)
+
     def __call__(
         self,
         timestep: "hydep.internal.TimeStep",
@@ -170,6 +189,10 @@ class CELIIntegrator(Integrator):
 class RK4Integrator(Integrator):
     """Fourth order Runge-Kutta time integration scheme
 
+    .. warning::
+
+        This integrator has not been fully vetted and studied yet
+
     Uses two reduced order solutions at the mid-point of the depletion
     interval and one at the end of the depletion interval.
     The solution follows the formulation presented by Josey,
@@ -196,6 +219,11 @@ class RK4Integrator(Integrator):
         Instance responsible for writing transport and depletion
         result data. If not provided, will be set to
         :class:`hydep.hdf.Store`
+    brave : bool, optional
+        Pass True to suppress a
+        :class:`hydep.ExperimentalIntegratorWarning`. Default is
+        False.
+
 
     Attributes
     ----------
@@ -218,6 +246,14 @@ class RK4Integrator(Integrator):
         Simulation settings. Can be updated directly, or
         through :meth:`configure`
     """
+    def __init__(self, *args, brave=False, **kwargs):
+        if not brave:
+            warn(
+                f"{self} is experimental and should be used with caution",
+                ExperimentalIntegratorWarning,
+            )
+        return super().__init__(*args, **kwargs)
+
     def __call__(
         self,
         timestep: "hydep.internal.TimeStep",
