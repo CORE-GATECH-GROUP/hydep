@@ -308,7 +308,8 @@ class Integrator(ABC):
         ):
             __logger__.info(
                 "Executing %s step %d Time %.4E [d]",
-                type(self.hf).__name__, coarseIndex, timestep.currentTime / SECONDS_PER_DAY,
+                type(self.hf).__name__, coarseIndex,
+                timestep.currentTime / SECONDS_PER_DAY,
             )
             result = self.hf.bosSolve(compositions, timestep, power)
             __logger__.info("   k =  %.6f +/- %.6E", result.keff[0], result.keff[1])
@@ -332,7 +333,8 @@ class Integrator(ABC):
         # Final transport solution
         __logger__.info(
             "Executing %s step %d Time %.4E [d]",
-            type(self.hf).__name__, timestep.coarse, timestep.currentTime / SECONDS_PER_DAY,
+            type(self.hf).__name__, timestep.coarse,
+            timestep.currentTime / SECONDS_PER_DAY,
         )
         result = self.hf.eolSolve(compositions, timestep, self.dep.powers[-1])
         __logger__.info("   k =  %.6f +/- %.6E", result.keff[0], result.keff[1])
@@ -468,7 +470,7 @@ class Integrator(ABC):
 
         """
         if isinstance(options, (str, pathlib.Path)):
-            __logger__.debug(f"Reading config options from {options}")
+            __logger__.debug("Reading config options from %s",  options)
             cfg = configparser.ConfigParser()
             with open(options, "r") as stream:
                 cfg.read_file(stream, options)
