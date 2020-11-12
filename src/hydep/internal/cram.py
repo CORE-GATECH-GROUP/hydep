@@ -1,7 +1,8 @@
 """
 Shadow of OpenMC CRAM solvers
 
-Copyright: 2011-2019 Massachusetts Institute of Technology and
+Inspired and, in some places, copied from OpenMC
+Copyright: 2011-2020 Massachusetts Institute of Technology and
 OpenMC collaborators
 
 https://docs.openmc.org

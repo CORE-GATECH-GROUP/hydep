@@ -1,11 +1,13 @@
 """
 Classes for operating on fission yields
 
-From OpenMC - MIT Licensed
-Copyright: 2011-2019 Massachusetts Institute of Technology and
+Inspired and, in some places, copied from OpenMC
+Copyright: 2011-2020 Massachusetts Institute of Technology and
 OpenMC collaborators
 
-https://docs.openmc.org/en/latest/pythonapi/deplete.html
+https://docs.openmc.org
+https://docs.openmc.org/en/stable/pythonapi/deplete.html
+https://github.com/openmc-dev/openmc
 
 Changes made:
     1. FissionYield.products is tuple of int for ZZAAAI
@@ -14,9 +16,9 @@ Changes made:
        names to ZAI identifiers
     4. Provided :meth:`FissionYieldDistribution.at`,
        :meth:`FissionYieldDistribution.get`,
-       :meth:`FissionYieldDistribution.values`. Modified
-       :meth:`FissionYieldDistribution.items` to use the
-       ``at`` method.
+       :meth:`FissionYieldDistribution.values`.
+    5.  Modified :meth:`FissionYieldDistribution.items` to use the
+        ``at`` method.
 """
 
 import bisect

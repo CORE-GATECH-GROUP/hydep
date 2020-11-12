@@ -1,3 +1,14 @@
+"""Depletion schemes presented as time-integration solvers
+
+Inspired and, in some places, copied from OpenMC
+Copyright: 2011-2020 Massachusetts Institute of Technology and
+OpenMC collaborators
+
+https://docs.openmc.org
+https://docs.openmc.org/en/stable/pythonapi/deplete.html
+https://github.com/openmc-dev/openmc
+"""
+
 import typing
 
 from .lib import Integrator
