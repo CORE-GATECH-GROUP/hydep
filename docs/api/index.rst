@@ -23,7 +23,7 @@ Reference
    * - :mod:`hydep.lib`
      - Abstract base classes from which much of the project inherits.
        Can be used for developing additional interfaces and data exporters
-   * - :mod:`hydep.hdfstore`
+   * - :mod:`hydep.hdf`
      - Interface for writing simulation results to heirarchical data
        format (HDF) files
    * - :mod:`hydep.internal`

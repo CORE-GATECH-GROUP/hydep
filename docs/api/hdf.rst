@@ -1,6 +1,6 @@
 .. currentmodule:: hydep.hdf
 
-.. module:: hydep.hdfstore
+.. module:: hydep.hdf
 
 .. _api-hdf:
 
