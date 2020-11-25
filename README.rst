@@ -46,6 +46,9 @@ a fine temporal resolution without the computational burden of many
 high-fidelity transport solutions. Using this library and the provided
 interfaces, one (in theory) could link a Monte Carlo code with a
 nodal diffusion code as the high-fidelity and reduced-order solvers.
+Since the library includes a dedicated depletion backend, inspired heavily
+from `OpenMC <https://github.com/openmc-dev/openmc>`_ [OpenMC_dep]_,
+neither solver is required to have an integrated depletion solver.
 At this time however, only two concrete interfaces are provided,
 for the Serpent [Serpent]_ Monte Carlo code and the SFV prediction
 method [SFV]_.
@@ -200,8 +203,12 @@ this project.
 References
 ----------
 
+.. [OpenMC_dep] Romano et al. "Depletion capabilities in the OpenMC
+   Monte Carlo particle transport code." Ann. Nuc. Ene. `(in press)
+   <https://doi.org/10.1016/j.anucene.2020.107989>`_
+
 .. [Serpent] Leppanen, J. et al. "The Serpent Monte Carlo code: Status,
-    development and applications in 2013." Ann. Nucl. Energy, `82 (2015) 142-150
+    development and applications in 2013." Ann. Nucl. Ene, `82 (2015) 142-150
     <http://www.sciencedirect.com/science/article/pii/S0306454914004095>`_
 
 .. [SFV] Johnson, A. and Kotlyar, D. "A Transport-Free Method for Predicting
