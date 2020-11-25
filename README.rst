@@ -45,7 +45,7 @@ for an extended version of Serpent yet to be distributed. This later version
 allows the framework to pass updated compositions to Serpent via a data file
 without Serpent reloading the model and cross sections at each depletion step.
 Discussion are being had regarding the best way to distribute these changes.
-In the mean time, the `SerpentSolver`` can be used to perform hybrid
+In the meantime, the ``SerpentSolver`` can be used to perform hybrid
 transport-depletion simulations, but with some waiting and restarting.
 
 SFV interface
@@ -148,7 +148,7 @@ should not be considered human readable. Some aesthetic considerations
 have been taken, but universe names and identifiers may be hard to
 understand. 
 
-See ./docs/scope.rst for more description on the scope and limits of
+See ``./docs/scope.rst`` for more description on the scope and limits of
 this project.
 
 References
