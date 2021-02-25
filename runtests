@@ -34,13 +34,18 @@
 
 set -eu
 
-_COV_OPTS="--cov=hydep --cov-report= --no-cov-on-fail"
+# When running from the project root, pytest will produce an immense amount
+# of ImportMismatchErrors because it finds the installed hydep package and
+# the one inside src/
+# https://github.com/pytest-dev/py/pull/199
+export PY_IGNORE_IMPORTMISMATCH=1
 
 COVERAGE=${COVERAGE:-"0"}
 
 if [ $COVERAGE != "1" ]; then
     COVERAGE_OPTS=""
 else
+    _COV_OPTS="--cov=hydep --cov-report= --no-cov-on-fail"
     COVERAGE_OPTS=${COVERAGE_OPTS:-$_COV_OPTS}
 fi
 
