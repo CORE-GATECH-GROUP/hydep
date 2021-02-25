@@ -4,6 +4,10 @@ hydep
 A hybrid depletion framework for reactor physics applications and
 analysis. 
 
+.. image:: https://zenodo.org/badge/DOI/10.1016/j.anucene.2020.108120.svg
+   :target: https://doi.org/10.1016/j.anucene.2020.108120
+   :alt: Annals of Nuclear Energy 10.1016/j.anucene.2020.108120
+
 Motivation
 ----------
 
