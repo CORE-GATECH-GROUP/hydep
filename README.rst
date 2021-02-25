@@ -204,6 +204,24 @@ understand.
 See ``./docs/scope.rst`` for more description on the scope and limits of
 this project.
 
+Citing
+------
+
+.. code-block:: bibtex
+
+    @article{JOHNSON2021108120,
+        author = {Andrew Johnson and Dan Kotlyar},
+        doi = {https://doi.org/10.1016/j.anucene.2020.108120},
+        issn = {0306-4549},
+        journal = {Annals of Nuclear Energy},
+        keywords = {Monte Carlo, Depletion, Stability, Fission matrix, Perturbation theory},
+        pages = {108120},
+        title = {Hybrid depletion framework using mixed-fidelity transport solutions and substeps},
+        url = {https://www.sciencedirect.com/science/article/pii/S0306454920308161},
+        volume = {155},
+        year = {2021},
+    }
+
 References
 ----------
 
