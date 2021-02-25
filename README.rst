@@ -204,7 +204,7 @@ References
 ----------
 
 .. [OpenMC_dep] Romano et al. "Depletion capabilities in the OpenMC
-   Monte Carlo particle transport code." Ann. Nuc. Ene. `(in press)
+   Monte Carlo particle transport code." Ann. Nuc. Ene. `152 (2021) 107989
    <https://doi.org/10.1016/j.anucene.2020.107989>`_
 
 .. [Serpent] Leppanen, J. et al. "The Serpent Monte Carlo code: Status,
