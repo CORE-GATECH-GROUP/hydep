@@ -142,9 +142,35 @@ Tests require ``pytest`` which can be pulled from the ``test`` extras package
 
     (venv) $ pip install .[test]
 
-Using ``pytest`` marks, parts of the library that relate to specific interfaces
-can be excluded or isolated using the ``-m`` switch. The following will run
-just tests related to the SFV interface
+To run all tests, run 
+
+.. code-block:: shell
+
+   (venv) $ ./runtests
+
+This script is admittedly a crutch around some flaky design, where generated
+Serpent cards must *exactly* match reference snippets. The downside to this is
+related to an internal material registry that is not cleared if an earlier test
+fails. Meaning some tests that *should* pass don't because of an off material or
+cell index
+
+.. code-block:: diff
+
+    --- steady_state_reference
+    +++ steady_state_fail
+    @@ -6,7 +6,7 @@
+      */
+     include "BASEFILE"
+     set power 1.0000000E+04
+    -mat 1 -10.3400000 burn 1
+    +mat 18 -10.3400000 burn 1
+     8016.09c 4.602600000E-02
+     8017.09c 1.753300000E-05
+     92234.09c 5.995900000E-06
+
+Tests can be isolated using ``pytest`` marks. Parts of the library that relate to
+specific interfaces can be excluded or isolated using the ``-m`` switch. The following
+will run just tests related to the SFV interface
 
 .. code-block:: shell
 
@@ -156,7 +182,7 @@ The current test layout does not well support testing just the base library with
 
     (venv) $ pytest -m "not serpent" -m "not sfv"
 
-unless both the Serpent and SFV extras have been installed. Also, the Serpent
+unless **both** the Serpent and SFV extras have been installed. Also, the Serpent
 tests include a test with the coupled solver, which is not yet excluded with
 a dedicated mark.
 
